@@ -113,9 +113,17 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
         
           dialogRef.afterClosed().subscribe((expedienteModificado: ExpedienteModel) => {
             if (expedienteModificado) {
+            /* */
+              this.expedienteService.deleteClienteExpedientePorId(expediente.id).subscribe(response => {
+                console.log('Respuesta del servidor:', response);
+              }, error => {
+                console.error('Error al eliminar clientes:', error);
+              });
+              
               this.expedienteService.actualizarExpediente(expedienteModificado.id, expedienteModificado)
                 .subscribe(response => {
                   console.log('Expediente actualizado:', response);
+
                   
                   // ✅ Actualiza solo el expediente en la lista sin recargar todo
                   this.expedientes = this.expedientes.map(exp => 

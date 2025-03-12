@@ -29,11 +29,9 @@ export class ExpedientesService {
 
               });
       
-              console.log('ID del demandado:', expediente.demandado_id);
 
               this.getDemandadoPorId(expediente.demandado_id!).subscribe((demandado) => {
                 expediente.demandadoModel = demandado
-                console.log('nombre del demandado:', expediente.demandadoModel.nombre); 
 
               });
             });
@@ -51,7 +49,7 @@ export class ExpedientesService {
 
   getClientesPorExpediente(id_expediente: string) {
     const url = `${this.apiUrl}/clientesPorExpediente/${id_expediente}`;
-    //sconsole.log('URL llamada:', url);  
+    //console.log('URL llamada:', url);  
     return this.http.get<ClienteModel[]>(url);
   }
 
@@ -60,9 +58,6 @@ export class ExpedientesService {
       console.error('ID de demandado no definido');
     }
 
-    //const apiUrl = 'http://localhost:3000/expedientes';  
-
-    console.log('id en el getdemandado: ', id);
     const url = `http://localhost:3000/demandados/${id}`;
     return this.http.get<DemandadoModel>(url);
   }
@@ -86,7 +81,13 @@ export class ExpedientesService {
       return this.http.put<ExpedienteModel>(url, expediente);
     }
 
-
+    deleteClienteExpedientePorId(id: string | number) {
+      const url = `${this.apiUrl}/eliminar/${id}`;
+      console.log('Ejecutando DELETE con URL:', url);
+      return this.http.delete(url);
+    }
+    
+    
 
       searchExpedientes(texto: string): Observable<ExpedienteModel[]> {
         const textoLower = texto.toLowerCase();

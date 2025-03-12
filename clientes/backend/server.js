@@ -270,18 +270,21 @@ sql.connect(dbConfig)
               WHERE id = @id
             `);
 
-            const expedienteId = resultado.recordset[0].id;
+            //const expedienteId = resultado.recordset[0].id;
   
-            /*
-            for (const cliente of clientes) {
+            
+            if (nuevosDatos.clientes.length > 0) {
+              for (const cliente of nuevosDatos.clientes) {
+                // Realiza la actualización de los clientes si es necesario
                 await pool.request()
-                    .input('id_cliente', sql.Int, cliente.id)
-                    .input('id_expediente', sql.Int, expedienteId)
-                    .query(`
-                        INSERT INTO clientes_expedientes (id_cliente, id_expediente)
-                        VALUES (@id_cliente, @id_expediente)
-                    `);
-            }*/
+                  .input('id_expediente', id)
+                  .input('id_cliente', cliente.id)
+                  .query(`
+                    INSERT INTO clientes_expedientes (id_expediente, id_cliente)
+                    VALUES (@id_expediente, @id_cliente)
+                  `);
+              }
+            }
       
           if (resultado.rowsAffected[0] > 0) {
             res.status(200).json({ mensaje: 'Expediente actualizado correctamente' });
@@ -295,13 +298,13 @@ sql.connect(dbConfig)
       });
 
 
-      app.delete('/expedientes/:id_expediente', async (req, res) => {
-        const { id_expediente } = req.params; // Obtenemos el id_expediente desde los parámetros de la URL
+      app.delete('/expedientes/eliminar/:id_expediente', async (req, res) => {
+        const { id_expediente } = req.params;
       
         try {
           // Verificar que el id_expediente es válido
-          if (!id_expediente) {
-            return res.status(400).json({ error: 'El ID del expediente es obligatorio' });
+          if (!id_expediente || isNaN(id_expediente)) {
+            return res.status(400).json({ error: 'El ID del expediente es obligatorio y debe ser un número válido' });
           }
       
           // Eliminar todos los clientes asociados al expediente

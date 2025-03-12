@@ -108,6 +108,7 @@ export class DialogExpedienteModificarComponent   {
                 if (this.data && this.data.juzgado_id) {
                   const juzgadoSeleccionado = this.juzgados.find(j => +j.id === this.data.juzgado_id);
                   this.form.get('juzgado')?.setValue(juzgadoSeleccionado || '');
+                  this.juzgadoElegido = juzgadoSeleccionado;
                 }
               },
               (error) => {
@@ -126,6 +127,7 @@ export class DialogExpedienteModificarComponent   {
                 if (this.data && this.data.demandado_id) {
                   const demandadoSeleccionado = this.demandados.find(d => +d.id === this.data.demandado_id);
                   this.form.get('demandado')?.setValue(demandadoSeleccionado || '');
+                  this.demandadoElegido = demandadoSeleccionado;
                 }
               },
               (error) => {
