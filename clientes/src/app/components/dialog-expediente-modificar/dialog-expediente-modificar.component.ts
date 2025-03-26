@@ -169,7 +169,7 @@ export class DialogExpedienteModificarComponent   {
           demandadoModel: this.demandadoElegido,
           estado: this.data?.estado,
           sala_radicacion: this.form.value.sala_radicacion ?? null,
-          honorario: this.form.value.honorario ?? null,
+          honorario: 'prueba',
           fecha_inicio: this.form.value.fecha_inicio ?? null,
           fecha_sentencia: this.form.value.fecha_sentencia ?? null, 
           hora_sentencia: this.form.value.hora_sentencia ?? null, 

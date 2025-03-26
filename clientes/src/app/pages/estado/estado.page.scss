@@ -334,6 +334,31 @@ mat-toolbar {
     padding: 16px;
   }
   
+
+
+
+  /* DIVIDER */
+
+  .divider-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  .white-divider {
+    flex-grow: 1;
+    border-color: white !important;
+    opacity: 1;
+  }
+  
+  .divider-text {
+    color: white;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  
   
   
   

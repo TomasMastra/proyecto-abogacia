@@ -254,6 +254,8 @@ sql.connect(dbConfig)
         const { id } = req.params;
         const nuevosDatos = req.body; 
                
+        console.log('Datos recibidos para actualizar:', nuevosDatos); // Verifica los datos
+
         try {
           const resultado = await pool.request()
             .input('id', sql.Int, id)
@@ -265,6 +267,9 @@ sql.connect(dbConfig)
             .input('demandado_id', sql.Int, nuevosDatos.demandado_id)
             .input('estado', sql.NVarChar, nuevosDatos.estado) 
             .input('juez_id', sql.Int, nuevosDatos.juez_id)
+            .input('honorario', sql.NVarChar, nuevosDatos.honorario)
+            .input('fecha_inicio', sql.DateTime, nuevosDatos.fecha_inicio)
+
             .query(`
               UPDATE expedientes
               SET 
@@ -276,7 +281,8 @@ sql.connect(dbConfig)
                 demandado_id = @demandado_id,
                 estado = @estado,
                 juez_id = @juez_id,
-
+                honorario = @honorario,
+                fecha_inicio = @fecha_inicio
               WHERE id = @id
             `);
 

@@ -45,6 +45,7 @@ export class EstadoPage implements OnInit {
 
   protected form: FormGroup;
 
+  expediente: any;
   numero: string = '';
   anio: string = '';
   menu: string = '1';
@@ -56,7 +57,7 @@ export class EstadoPage implements OnInit {
 
   private destroy$ = new Subject<void>(); 
   
-  juezSeleccionado: any;
+  juezSeleccionado: JuezModel | null = null;
 
   apelable: any;
 
@@ -67,12 +68,8 @@ export class EstadoPage implements OnInit {
     ) {
   
       this.form = new FormGroup({
-        nombre: new FormControl('', [Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),  // Sin 'Validators.required'
-        apellido: new FormControl('', [Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),  // Sin 'Validators.required'
-        dni: new FormControl('', [Validators.minLength(7), Validators.maxLength(8), Validators.pattern("^[0-9]+$")]),
-        telefono: new FormControl('', [Validators.minLength(6), Validators.maxLength(14), Validators.pattern("^[0-9]+$")]),
-        fechaNacimiento: new FormControl(''),  // No tiene validadores
-        fecha_inicio: new FormControl('')  // No tiene validadores
+        honorario: new FormControl(''),
+        fecha_inicio: new FormControl('')
       });
       
   /*
@@ -85,17 +82,12 @@ export class EstadoPage implements OnInit {
           dni: data.dni || '',
           telefono: data.telefono || '',
         });
-  
-  
-  
       }*/
   
       this.cargarJueces();
     }
 
   ngOnInit() {
-    //this.cargarJueces();
-
   }
 
   goTo(path: string) {
@@ -119,6 +111,7 @@ export class EstadoPage implements OnInit {
 
         } else {
           console.log("Expedientes encontrados:", expedientes);
+          this.expediente = expedientes[0]; // Guardar el expediente
           this.menu = '2';
 
           Swal.fire({
@@ -162,6 +155,109 @@ export class EstadoPage implements OnInit {
           }
         );
     }
-  
 
+
+    actualizarEstado(){
+      alert('Honorario: ' + this.form.value.honorario);
+      alert('Fecha de inicio: ' + this.form.value.fecha_inicio);
+      
+      if (this.form.valid) {
+
+        const expediente: ExpedienteModel = {
+          id: this.expediente?.id ?? '0',  
+          titulo: '',
+          descripcion: '', 
+          fecha_creacion: this.expediente?.fecha_creacion ?? '', 
+          clientes: this.expediente?.clientes ?? null,
+          juzgado_id: this.expediente?.juzgado_id ?? null, // Asumiendo que `juzgadoEelegido` tiene un campo `id`
+          demandado_id: this.expediente?.demandado_id ?? null,    
+          numero: this.form.value.numero,
+          anio: this.form.value.anio,
+          demandadoModel: this.expediente.demandadoModel,
+          estado: this.form?.value.estado,
+
+          sala_radicacion:  null,
+          honorario: this.form.value.honorario ?? null,
+          fecha_inicio: this.form.value.fecha_inicio ?? null,
+          fecha_sentencia: this.form.value.fecha_sentencia ?? null, 
+          hora_sentencia:  null, 
+
+          // modificar
+          juez_id: '1',
+          juezModel: { id:  '', nombre:  '' }
+          
+        };
+
+        this.expedienteService.actualizarExpediente(expediente.id, expediente);
+
+}else {
+  Swal.fire({
+    toast: true,
+    position: "top-end",
+    icon: "error",
+    title: "Seleccione un juez",
+    showConfirmButton: false,
+    timer: 1500
+  });
+}
+}
+
+
+
+/*
+
+acceptDialog(): void {
+      if (this.form.valid) {
+
+        const expediente: ExpedienteModel = {
+          id: this.data?.id ?? '0',  
+          titulo: '',
+          descripcion: '', 
+          fecha_creacion: this.data?.fecha_creacion ?? '', 
+          clientes: this.data?.clientes ?? null,
+          juzgado_id: this.juzgadoElegido?.id ?? null, // Asumiendo que `juzgadoEelegido` tiene un campo `id`
+          demandado_id: this.demandadoElegido?.id ?? null,    
+          numero: this.form.value.numero,
+          anio: this.form.value.anio,
+          demandadoModel: this.demandadoElegido,
+          estado: this.data?.estado,
+          sala_radicacion: this.form.value.sala_radicacion ?? null,
+          honorario: 'prueba',
+          fecha_inicio: this.form.value.fecha_inicio ?? null,
+          fecha_sentencia: this.form.value.fecha_sentencia ?? null, 
+          hora_sentencia: this.form.value.hora_sentencia ?? null, 
+
+          // modificar
+          juez_id: null,
+          juezModel: { id: '', nombre: '' },
+        };
+    
+        this.dialogRef.close(expediente);
+      } else {
+        let mensaje = "Errores en los siguientes campos:\n";
+    
+        Object.keys(this.form.controls).forEach(campo => {
+          const control = this.form.get(campo);
+          if (control?.invalid) {
+            mensaje += `- ${campo}: `;
+    
+            if (control.errors?.['required']) {
+              mensaje += "Este campo es obligatorio.\n";
+            }
+            if (control.errors?.['email']) {
+              mensaje += "Debe ser un correo válido.\n";
+            }
+            if (control.errors?.['pattern']) {
+              mensaje += "Formato inválido.\n";
+            }
+            if (control.errors?.['minlength']) {
+              mensaje += `Debe tener al menos ${control.errors['minlength'].requiredLength} caracteres.\n`;
+            }
+            if (control.errors?.['maxlength']) {
+              mensaje += `Debe tener máximo ${control.errors['maxlength'].requiredLength} caracteres.\n`;
+            }
+          }
+        });
+      }
+    }*/
 }

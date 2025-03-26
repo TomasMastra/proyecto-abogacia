@@ -78,6 +78,9 @@ export class ExpedientesService {
 
   actualizarExpediente(id: string, expediente: ExpedienteModel): Observable<ExpedienteModel> {
     const url = `${this.apiUrl}/modificar/${id}`;   
+    console.log('ID a actualizar: ', id);
+    console.log('honorario: ', expediente.honorario, ' fecha_inicio: ', expediente.fecha_inicio);
+
       return this.http.put<ExpedienteModel>(url, expediente);
     }
 

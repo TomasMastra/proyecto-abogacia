@@ -103,16 +103,25 @@
                 </mat-select>
               </mat-form-field>
               
+
+              
               <!-- Formulario reactivo -->
-              <form [formGroup]="form">
+              <form [formGroup]="form" *ngIf="estadoSeleccionado=='sentencia'">
+                <div class="divider-container">
+                  <mat-divider class="white-divider"></mat-divider>
+                  <span class="divider-text">Detalles de la sentencia</span>
+                  <mat-divider class="white-divider"></mat-divider>
+                </div>
                 <div class="toolbar">
                   <!-- Honorario (Deshabilitado) -->
                   <ion-input 
                     placeholder="Honorario" 
                     class="input-busqueda"
                     formControlName="honorario"
-                    [disabled]="true">
+                    name="honorarrio"
+                    id="honorario">
                   </ion-input>
+
 
                   <!-- Fecha de inicio (formControlName corregido) -->
                   <ion-input 
@@ -120,24 +129,14 @@
                     type="date"
                     class="input-busqueda"
                     formControlName="fecha_inicio"
-                    placeholder="Apellido"
-                    name="apellido"
-                    id="apellido"
-                    [disabled]="true">
+                    placeholder="fecha_inicio"
+                    name="fecha_inicio"
+                    id="fecha_inicio">
                   </ion-input>
                 </div>
 
                 <!-- Apellido con validaciones 
                 <div class="form__group field">
-                  <input 
-                    type="text"
-                    class="form__field"
-                    placeholder="Apellido"
-                    name="apellido"
-                    id="apellido"
-                    formControlName="apellido"/>
-                  <label for="apellido" class="form__label">Apellido</label>
-
                   <div class="error" *ngIf="form.controls['apellido']?.invalid && (form.controls['apellido']?.dirty || form.controls['apellido']?.touched)">
                     <div *ngIf="form.controls['apellido']?.errors?.['required']">El apellido es requerido</div>
                     <div *ngIf="form.controls['apellido']?.errors?.['pattern']">Únicamente letras y espacios</div>
@@ -147,21 +146,28 @@
                 <!-- Jueces -->
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label style="color: white">Jueces</mat-label>
-                  <mat-select style="color: white" formControlName="juezSeleccionado">
+                  <mat-select style="color: white" [(ngModel)]="juezSeleccionado" >
                     <mat-option *ngFor="let juez of jueces" [value]="juez">
                       {{ juez.nombre }}
                     </mat-option>
                   </mat-select>
                 </mat-form-field>
+                
+                
 
-                <!-- Apelación -->
+                <!-- Apelación 
                 <div class="form__group field">
-                  <input type="checkbox" id="apelable" formControlName="apelable"/>
+                  <input type="checkbox" id="apelable" formControlName="apelable" [disabled]="true"/>
                   <label for="apelable">¿El expediente fue apelado?</label>
-                </div>
+                </div> -->
               </form>
+
             </div>
+            <button mat-button class="menu-estado" style="background-color:#015dbb" (click)="actualizarEstado()">
+              <span style="color: #ffffff">Actualizar estado</span>
+            </button>
           </div>
+
         </ion-list>
       </div>
     </mat-sidenav-content>
