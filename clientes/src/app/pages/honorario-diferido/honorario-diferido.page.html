@@ -1,4 +1,5 @@
 
+
 <div> 
   <mat-toolbar color="primary">
     <button mat-icon-button (click)="sidenav.toggle()">
@@ -74,62 +75,74 @@
         </button>
       </div>
     </mat-sidenav>
-  
-    
+
+
     <mat-sidenav-content>
       <div class="content mat-elevation-z8">
-        <!--  -->
-         
-        <ion-list  class="lista-clientes">
-          <div class="toolbar">
-            <ion-input 
-            placeholder="Buscar por nombre, apellido o dirección de correo electrónico" 
-            class="input-busqueda"
-            [(ngModel)]="busqueda"
-            (ngModelChange)="buscar()">
-          </ion-input>
-            <button mat-button class="list-button" (click)="abrirDialog()">
-              <mat-icon style="color: #ffffff">person</mat-icon>
-              <span style="color: #ffffff">Agregar cliente</span>
-            </button>
-            <button mat-button class="list-button" (click)=" buscar()">
-              <mat-icon style="color: #ffffff">download</mat-icon>
-            </button>
-            <button mat-button class="list-button">
-              <mat-icon style="color: #ffffff">more_vert</mat-icon>
-            </button>
-          </div>
-        <div > 
-          <ion-item-sliding *ngFor="let cliente of clientes" class="cliente" >
-            <ion-item class="cliente" *ngIf="hayClientes && clientes.length > 0">
-              <ion-label>
-                <h1>{{ cliente.nombre }} {{cliente.apellido}}</h1>
-              </ion-label>
-        
-
-
-              <button mat-button class="list-button" (click)="eliminarCliente(cliente)">
-                <mat-icon style="color: #ffffff">delete</mat-icon>
-              </button>
-
-              <button mat-button class="list-button" (click)="abrirModificar(cliente)">
-                <mat-icon style="color: #ffffff" >edit</mat-icon>
-              </button>
-            </ion-item>
-          </ion-item-sliding>
-
-          <ion-item *ngIf="!hayClientes && clientes.length <= 0" class="cliente" >
-            <ion-label text-center>{{ texto }}</ion-label>
-          </ion-item>
-          
+        <div *ngIf="cargando" class="loader-container">
+          <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
         </div>
 
+        <div class="toolbar">
+          <button mat-button class="list-button" (click)="cargarHonorariosDiferidos()">
+            <mat-icon style="color: #ffffff">refresh</mat-icon>
+            <span style="color: #ffffff">Actualizar lista</span>
+          </button>
+        </div>
 
-        </ion-list>
-        
-        
-        <!-- -->
+        <div class="table-container" *ngIf="!cargando">
+          <table>
+            <thead>
+              <tr>
+                <th>Nº expediente</th>
+                <th>Juzgado</th>
+                <th>Carátula</th>
+                <th>Fecha sentencia</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of honorariosDiferidos">
+                <td>{{ item.numero }}/{{ item.anio }}</td> 
+                <td>Juzgado</td>
+                <td *ngIf="item.clientes.length === 1">
+                  {{ item.clientes[0].nombre }} {{ item.clientes[0].apellido }} contra {{ item.demandadoModel.nombre }}
+                </td>
+                <td *ngIf="item.clientes.length > 1">
+                  {{ item.clientes[0].nombre }} {{ item.clientes[0].apellido }} y otros contra {{ item.demandadoModel.nombre }}
+                </td>
+                <td *ngIf="item.clientes.length === 0">
+                  (sin actora) contra {{ item.demandadoModel.nombre }}
+                </td>
+                <td>{{ item.fecha_sentencia | date:'yyyy-MM-dd' }}</td>
+                <td>{{ item.estado }}</td>
+              </tr>
+              <tr *ngIf="!hayHonorarios">
+                <td colspan="4" style="text-align: center;">No hay honorarios diferidos cargados.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </mat-sidenav-content>
   </mat-sidenav-container>
-  </div>
+</div>
+
+
+
+
+<!--
+
+            <ion-label>
+              <td *ngIf="expediente.clientes.length === 1">
+                {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} contra {{ expediente.demandadoModel.nombre }}
+              </td>
+              <td *ngIf="expediente.clientes.length > 1">
+                {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} y otros contra {{ expediente.demandadoModel.nombre }}
+              </td>
+              <td *ngIf="expediente.clientes.length === 0">
+                {{ expediente.numero }}/{{ expediente.anio }} (sin actora) contra {{ expediente.demandadoModel.nombre }}
+              </td>
+            </ion-label>
+
+-->

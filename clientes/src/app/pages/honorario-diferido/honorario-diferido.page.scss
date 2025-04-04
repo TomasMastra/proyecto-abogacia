@@ -1,0 +1,132 @@
+
+/* honorario-diferido.page.scss */
+
+.mat-toolbar {
+  background: #004a9f;
+  color: white;
+}
+
+.mat-sidenav-container {
+  height: calc(100vh - 65px);
+}
+
+.mat-sidenav {
+  margin: 16px;
+  width: 200px;
+  border-right: none;
+  background: #002b5c;
+  color: white;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  height: 100%;
+}
+
+.sidebar-content img.avatar {
+  margin-top: 16px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+}
+
+.sidebar-content h4 {
+  margin-top: 8px;
+  font-weight: normal;
+}
+
+.sidebar-content p {
+  margin-top: 2px;
+  font-size: 0.7rem;
+  color: lightgrey;
+}
+
+.mat-divider {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.menu-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 1rem;
+  color: white;
+  white-space: nowrap;
+
+  mat-icon {
+    margin-right: 8px;
+    color: white;
+  }
+}
+
+.mat-menu-item {
+  color: black;
+}
+
+/* Restante del CSS se mantiene como lo tenías para la tabla y contenido */
+
+.content {
+  background-color: #1565c0;
+  border-radius: 16px;
+  padding: 16px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  background-color: #1976d2;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.toolbar button {
+  color: white;
+  font-weight: bold;
+}
+
+.loader-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+}
+
+.table-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  background-color: #0d47a1;
+  border-radius: 8px;
+  padding: 8px;
+  color: white;
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  color: white;
+}
+
+.table-container th,
+.table-container td {
+  border: 1px solid white;
+  padding: 8px;
+  text-align: left;
+}
+
+.table-container th {
+  background-color: #1976d2;
+}

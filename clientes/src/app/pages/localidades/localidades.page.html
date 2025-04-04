@@ -32,11 +32,15 @@
         <mat-menu #expedienteMenu="matMenu">
           <button mat-menu-item (click)="goTo('/lista-expedientes')">
             <mat-icon>gavel</mat-icon>
-            <span>Listado</span>
+            <span>ABM</span>
           </button>
           <button mat-menu-item (click)="goTo('/estado')">
             <mat-icon>location_on</mat-icon>
             <span>Estados</span>
+          </button>
+          <button mat-menu-item (click)="goTo('/honorario-diferido')">
+            <mat-icon>paid</mat-icon>
+            <span>Honorarios</span>
           </button>
         </mat-menu>
       

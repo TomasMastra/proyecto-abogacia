@@ -958,6 +958,27 @@ app.get("/expedientes/buscarPorNumeroyAnio", async (req, res) => {
   }
 });
 
+app.get("/expedientes/buscarPorEstado", async (req, res) => {
+  try {
+      const { estado } = req.query; 
+
+      if (!numero || !anio) {
+          return res.status(400).json({ error: "Se requieren 'numero' y 'anio'." });
+      }
+
+      const result = await pool
+          .request()
+          .input("estado", sql.NVarChar, estado)
+
+          .query("SELECT * FROM expedientes WHERE estado = @estado");
+
+      res.json(result.recordset);
+  } catch (err) {
+      console.error("Error al obtener expedientes:", err);
+      res.status(500).send(err);
+  }
+});
+
 
              // Iniciar el servidor
       app.listen(3000, () => {

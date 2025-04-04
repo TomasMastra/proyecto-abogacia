@@ -78,6 +78,8 @@ private cliExpServ: ClientesExpedientesService;
 
   //getClientes$: Subscription | null = null; // Asignar null
 
+  cargando: boolean = false;
+
 
   constructor(clientesService: ClientesService, private dialog: MatDialog,
     private router: Router, cliExpServ: ClientesExpedientesService) {

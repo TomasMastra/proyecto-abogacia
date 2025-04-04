@@ -15,6 +15,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSelectModule } from '@angular/material/select';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { Router } from '@angular/router';
 
@@ -42,7 +43,7 @@ import { Subject } from 'rxjs';
         MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
         MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule,
         MatMenuModule, MatButtonModule, MatIconModule, MatSelectModule, ReactiveFormsModule,     
-        MatFormFieldModule, MatInputModule
+        MatFormFieldModule, MatInputModule, MatProgressSpinnerModule
   ]
 })
 export class EstadoPage implements OnInit {
@@ -65,8 +66,8 @@ export class EstadoPage implements OnInit {
   estados: any[] = ['en gestíon', 'inicio', 'prueba', 'clausura p.', 'fiscal', 'sentencia'];
   estadoSeleccionado: any;
 
-  honorarios: any[] = ['Reputacion 1º instancia', 'Difiere reputacion 1º instancia', 'Costas por su orden'];
-  honorarioSeleccionado: any = 'Reputacion 1º instancia';
+  honorarios: any[] = ['Regulacion 1º instancia', 'Difiere regulacion 1º instancia', 'Costas por su orden'];
+  honorarioSeleccionado: any = 'Regulacion 1º instancia';
 
   private destroy$ = new Subject<void>();
   
@@ -74,6 +75,8 @@ export class EstadoPage implements OnInit {
   apela: boolean = false;
 
   montoActual: number = 0;
+
+  cargando: boolean = false;
 
 
 
@@ -311,8 +314,8 @@ export class EstadoPage implements OnInit {
 
       actualizarMonto(honorario: string) {
         const montos = {
-          'Reputacion 1º instancia': this.expediente.monto,
-          'Difiere reputacion 1º instancia': 0.00,
+          'Regulacion 1º instancia': this.expediente.monto,
+          'Difiere regulacion 1º instancia': 0.00,
           'Costas por su orden': 0.00
         };
       
