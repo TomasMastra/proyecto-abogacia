@@ -60,6 +60,12 @@ export class DialogExpedienteModificarComponent   {
   demandadoElegido: any;
   clienteSeleccionado: any; 
 
+  estados: any[] = ['en gestíon', 'inicio', 'prueba', 'clausura p.', 'fiscal', 'sentencia'];
+  estadoSeleccionado: any;
+
+  juicios: any[] = ['ordinario', 'sumarisimo'];
+  juicioSeleccionado: any;
+
   constructor(
     private expedienteService: ExpedientesService,
     private juzgadoService: JuzgadosService,
@@ -73,18 +79,36 @@ export class DialogExpedienteModificarComponent   {
     this.form = new FormGroup({
       juzgado: new FormControl('', [Validators.required]),
       demandado: new FormControl('', [Validators.required]),  
-      numero: new FormControl('', [Validators.required, Validators.min(0), Validators.max(999999)]),  
+      numero: new FormControl('', [Validators.required/*, Validators.min(0), Validators.max(999999)*/]),  
       anio: new FormControl('', [Validators.required]),  
+      juicio: new FormControl('', [Validators.required]),
+      estado: new FormControl('', [Validators.required]),
+      fechaInicio: new FormControl('', [Validators.required]),
+
+
     });
 
     if (data) {
+      
       this.form.setValue({ 
         juzgado: data.juzgado_id || '' , 
         demandado: data.demandado_id || '',
         numero: data.numero || '', 
-        anio: data.anio || ''  
+        anio: data.anio || ''  ,
+        juicio: data.juicio,
+        estado: data.estado,
+        fechaInicio: data.fecha_inicio
       });
     }
+
+    const estadoSeleccionado = this.estados.find(j => j === this.data.estado) || ''; 
+    this.form.get('estado')?.setValue(estadoSeleccionado);
+    this.estadoSeleccionado = estadoSeleccionado;
+    
+    const juicioSeleccionado = this.juicios.find(j => j === this.data.juicio) || ''; 
+    this.form.get('juicio')?.setValue(juicioSeleccionado);
+    this.juicioSeleccionado = juicioSeleccionado;
+    
   }
 
   ngOnInit() {
@@ -155,28 +179,32 @@ export class DialogExpedienteModificarComponent   {
 
     acceptDialog(): void {
       if (this.form.valid) {
-
         const expediente: ExpedienteModel = {
           id: this.data?.id ?? '0',  
           titulo: '',
           descripcion: '', 
           fecha_creacion: this.data?.fecha_creacion ?? '', 
           clientes: this.data?.clientes ?? null,
-          juzgado_id: this.juzgadoElegido?.id ?? null, // Asumiendo que `juzgadoEelegido` tiene un campo `id`
+          juzgado_id: this.juzgadoElegido?.id ?? null, 
           demandado_id: this.demandadoElegido?.id ?? null,    
           numero: this.form.value.numero,
           anio: this.form.value.anio,
           demandadoModel: this.demandadoElegido,
-          estado: this.data?.estado,
+          estado: this.estadoSeleccionado,
           sala_radicacion: this.form.value.sala_radicacion ?? null,
           honorario: 'prueba',
-          fecha_inicio: this.form.value.fecha_inicio ?? null,
-          fecha_sentencia: this.form.value.fecha_sentencia ?? null, 
+          fecha_inicio: this.form.value.fechaInicio ?? null,
+          fecha_sentencia: this.data?.fecha_sentencia ?? null, 
           hora_sentencia: this.form.value.hora_sentencia ?? null, 
 
           // modificar
           juez_id: null,
           juezModel: { id: '', nombre: '' },
+          juicio: this.juicioSeleccionado,
+          ultimo_movimiento: this.data?.ultimo_movimiento,
+          monto: this.data?.monto,
+          apela: this.data?.apela
+
         };
     
         this.dialogRef.close(expediente);

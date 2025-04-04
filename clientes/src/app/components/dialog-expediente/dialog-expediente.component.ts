@@ -59,8 +59,11 @@ export class DialogExpedienteComponent {
    jueces: JuezModel[] = [];
 
 
-   estados: any[] = ['en gestíon', 'prueba', 'clausura p.', 'fiscal', 'sentencia'];
-   estadoSeleccionado: any;
+   estados: any[] = ['en gestíon', 'inicio', 'prueba', 'clausura p.', 'fiscal', 'sentencia'];
+   estadoSeleccionado: any = 'inicio';
+
+   juicios: any[] = ['ordinario', 'sumarisimo'];
+   juicioSeleccionado: any;
 
    menu: string = '1';
 
@@ -126,12 +129,9 @@ export class DialogExpedienteComponent {
         anio: new FormControl('', [Validators.required]),
         clientes: new FormArray([]),
         estado: new FormControl('', [Validators.required]),
+        juicio: new FormControl('', [Validators.required]),
+        fechaInicio: new FormControl('', [Validators.required]),
 
-        sala_radicacion: new FormControl(''),
-        honorario: new FormControl(''),
-        fecha_inicio: new FormControl(''),
-        fecha_sentencia: new FormControl(''),
-        hora_sentencia: new FormControl('')
       });
     
       // Si hay datos para cargar, asignarlos al formulario
@@ -142,61 +142,12 @@ export class DialogExpedienteComponent {
           numero: data.numero || '',
           anio: data.anio || '',
           estado: data.estado || '',
-          sala_radicacion: data.sala_radicacion || '',
-          honorario: data.honorario || '',
-          fecha_inicio: data.fecha_inicio || '',
-          fecha_sentencia: data.fecha_sentencia || '',
-          hora_sentencia: data.hora_sentencia || ''
+
         });
     
         //this.actualizarValidadoresPorEstado(data.estado);  // Asume que "estado" es una propiedad en "data"
       }
     }
-    
-    actualizarValidadoresPorEstado(estado: string): void {
-      console.log(estado);
-      if (estado === 'sentencia') {
-        //this.form.get('sala_radicacion')?.setValidators([Validators.required]);
-        this.form.get('honorario')?.setValidators([Validators.required]);
-        this.form.get('fecha_inicio')?.setValidators([Validators.required]);
-        //this.form.get('fecha_sentencia')?.setValidators([Validators.required]);
-        //this.form.get('hora_sentencia')?.setValidators([Validators.required]);
-      } else {
-        //this.form.get('sala_radicacion')?.clearValidators();
-        this.form.get('honorario')?.clearValidators();
-        this.form.get('fecha_inicio')?.clearValidators();
-        //this.form.get('fecha_sentencia')?.clearValidators();
-        //this.form.get('hora_sentencia')?.clearValidators();
-      }
-    
-      //this.form.get('sala_radicacion')?.updateValueAndValidity();
-      this.form.get('honorario')?.updateValueAndValidity();
-      this.form.get('fecha_inicio')?.updateValueAndValidity();
-      //this.form.get('fecha_sentencia')?.updateValueAndValidity();
-      //this.form.get('hora_sentencia')?.updateValueAndValidity();
-
-
-
-
-      ///////////
-
-
-
-      if (estado === 'sentencia') {
-        this.form.get('honorario')?.setValidators([Validators.required]);
-        this.form.get('fecha_inicio')?.setValidators([Validators.required]);
-      } else {
-        this.form.get('honorario')?.clearValidators();
-        this.form.get('fecha_inicio')?.clearValidators();
-      }
-    
-      this.form.get('honorario')?.updateValueAndValidity();
-      this.form.get('fecha_inicio')?.updateValueAndValidity();
-    
-      console.log('Honorario:', this.form.get('honorario')?.value);
-      console.log('Fecha inicio:', this.form.get('fecha_inicio')?.value);
-    }
-    
     
 
   ngOnInit() {
@@ -273,6 +224,8 @@ export class DialogExpedienteComponent {
       );
   }
 
+
+  
   acceptDialog(): void {
     console.log('Datos recibidos en el formulario:', this.data); // 👈 Verifica la estructura de los datos
   
@@ -293,62 +246,26 @@ export class DialogExpedienteComponent {
         anio: this.form.value.anio,
         demandadoModel: { id: '', nombre: '', estado: '' },
         estado: this.estadoSeleccionado, // Este es el valor por defecto. Se actualizaría si el estado es 'sentencia'.
-        sala_radicacion: this.form.value.sala_radicacion ?? null,
-        honorario: this.form.value.honorario ?? '1',
-        fecha_inicio: this.form.value.fecha_inicio ?? null,
-        fecha_sentencia: this.form.value.fecha_sentencia ?? null,
-        hora_sentencia: this.form.value.hora_sentencia ?? null,
+        sala_radicacion: null,
+        honorario: this.form.value.honorario ?? null,
+        fecha_inicio: this.form.value.fecha_inicio ?? new Date().toISOString().split('T')[0],
+        fecha_sentencia: null,
+        hora_sentencia: null,
         juez_id: this.juezSeleccionado?.id ?? null,
         juezModel: { id: '', nombre: '' },
+        juicio: this.juicioSeleccionado,
+        ultimo_movimiento: this.data?.ultimo_movimiento,
+        monto: null,
+        apela: null
+
 
       };
-  
-      // Verificamos si el estado es 'sentencia' y aplicamos validaciones si es necesario
-      //this.actualizarValidadoresPorEstado(this.estadoSeleccionado);
-  
-      // Si el estado es "sentencia", revisamos si el formulario es válido
-      if (this.estadoSeleccionado === 'sentencia') {
-        if (this.form.invalid) {
-          let mensaje = "Errores en los siguientes campos:\n";
-          Object.keys(this.form.controls).forEach(campo => {
-            const control = this.form.get(campo);
-            if (control?.invalid) {
-              mensaje += `- ${campo}: `;
-              if (control.errors?.['required']) {
-                mensaje += "Este campo es obligatorio.\n";
-              }
-            }
-          });
-          alert(mensaje);
-          return; // Si hay errores, no continuamos
-        }
-      }
-  
-      // Si todo está correcto, pasamos a la siguiente etapa
-      if (this.estadoSeleccionado === 'sentencia' && this.menu === '1') {
-        // Si estamos en "sentencia" y en "menu 1", pasamos al "menu 2"
-        this.menu = '2'; // Cambiar al "menu 2"
-        this.actualizarValidadoresPorEstado(this.estadoSeleccionado);
-        } else {
-          this.actualizarValidadoresPorEstado(this.estadoSeleccionado);
-        this.dialogRef.close(expediente);  // Cerrar el diálogo con los datos del expediente
-      }
-    } else {
-      let mensaje = "Errores en los siguientes campos:\n";
-      Object.keys(this.form.controls).forEach(campo => {
-        const control = this.form.get(campo);
-        if (control?.invalid) {
-          mensaje += `- ${campo}: `;
-          if (control.errors?.['required']) {
-            mensaje += "Este campo es obligatorio.\n";
-          }
-        }
-      });
-      alert(mensaje);
-    }
+
+    this.dialogRef.close(expediente);
+  }else {
+
   }
-  
-  
+}
   
 
   seleccionarCliente(cliente: ClienteModel): void {
@@ -384,25 +301,5 @@ export class DialogExpedienteComponent {
   }
 
 
-
-  // Método para agregar los clientes de manera secuencial
- /* async agregarClientes(expedienteId: string, clientes: ClienteModel[]): Promise<void> {
-    try {
-      if (!Array.isArray(clientes) || clientes.length === 0) {
-        throw new Error('No se proporcionaron clientes válidos.');
-      }
-
-      // Aquí puedes llamar al servicio para guardar en la base de datos
-      for (const cliente of clientes) {
-        await this.expedienteService.agregarClientesAExpediente(expedienteId, cliente.id);
-      }
-
-      console.log('Clientes agregados exitosamente.');
-    } catch (err) {
-      console.error('Error al agregar los clientes:', err.message);
-      throw err;
-    }
-  }*/
-  
 
 }

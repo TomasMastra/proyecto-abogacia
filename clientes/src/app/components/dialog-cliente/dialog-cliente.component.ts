@@ -61,10 +61,10 @@ export class DialogClienteComponent {
   ) {
 
     this.form = new FormGroup({
-      nombre: new FormControl('', [Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),  // Sin 'Validators.required'
-      apellido: new FormControl('', [Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),  // Sin 'Validators.required'
-      dni: new FormControl('', [Validators.minLength(7), Validators.maxLength(8), Validators.pattern("^[0-9]+$")]),
-      telefono: new FormControl('', [Validators.minLength(6), Validators.maxLength(14), Validators.pattern("^[0-9]+$")]),
+      nombre: new FormControl('', [Validators.required, Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),
+      apellido: new FormControl('', [Validators.required, Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),  
+      dni: new FormControl('', [Validators.minLength(5), Validators.maxLength(8), Validators.pattern("^[0-9]+$")]),
+      telefono: new FormControl('', [Validators.minLength(5), Validators.maxLength(14), Validators.pattern("^[0-9]+$")]),
       fechaNacimiento: new FormControl(''),  // No tiene validadores
       direccion: new FormControl('')  // No tiene validadores
     });

@@ -24,14 +24,23 @@
           <mat-icon style="color: #ffffff">person</mat-icon >
           <span style="color: #ffffff">Clientes</span>
         </button>
-        <button mat-button class="menu-button" (click)="goTo('/lista-expedientes')">
+
+        <button mat-button class="menu-button" [matMenuTriggerFor]="expedienteMenu">
           <mat-icon style="color: #ffffff">folder_open</mat-icon>
           <span style="color: #ffffff">Expedientes</span>
         </button>
-        <button mat-button class="menu-button" (click)="goTo('/estado')">
-          <mat-icon style="color: #ffffff">folder_open</mat-icon>
-          <span style="color: #ffffff">estados</span>
-        </button>
+
+        <mat-menu #expedienteMenu="matMenu">
+          <button mat-menu-item (click)="goTo('/lista-expedientes')">
+            <mat-icon>gavel</mat-icon>
+            <span>Listado</span>
+          </button>
+          <button mat-menu-item (click)="goTo('/estado')">
+            <mat-icon>location_on</mat-icon>
+            <span>Estados</span>
+          </button>
+        </mat-menu>
+      
         <button mat-button class="menu-button" [matMenuTriggerFor]="generalMenu">
           <mat-icon style="color: #ffffff">apps</mat-icon>
           <span style="color: #ffffff">General</span>

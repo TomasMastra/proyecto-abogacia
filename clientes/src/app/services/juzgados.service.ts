@@ -79,7 +79,7 @@ export class JuzgadosService {
 
 
 getExpedientesPorJuzgado(juzgadoId: string) {
-  return this.http.get<any[]>(`http://localhost:3000/expedientes/juzgados?id=${juzgadoId}`);
+  return this.http.get<any[]>(`http://localhost:3000/expedientes/clientes?id=${juzgadoId}`);
 }
 
   

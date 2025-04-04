@@ -72,7 +72,12 @@ export class ClientesService {
     );
   }
 
-
+  getExpedientesPorCliente(clienteId: string) {
+    const url = `http://localhost:3000/expedientes/clientes?id=${clienteId}`;
+    console.log("URL de la petición:", url); // 🔹 Muestra la URL en la consola
+    return this.http.get<any[]>(url);
+  }
+  
 
   
 }

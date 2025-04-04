@@ -23,14 +23,25 @@
           <mat-icon style="color: #ffffff">person</mat-icon>
           <span style="color: #ffffff">Clientes</span>
         </button>
-        <button mat-button class="menu-button" (click)="goTo('/lista-expedientes')">
+
+        <button mat-button class="menu-button" [matMenuTriggerFor]="expedienteMenu">
           <mat-icon style="color: #ffffff">folder_open</mat-icon>
           <span style="color: #ffffff">Expedientes</span>
         </button>
-        <button mat-button class="menu-button" (click)="goTo('/estado')">
-          <mat-icon style="color: #ffffff">folder_open</mat-icon>
-          <span style="color: #ffffff">Estados</span>
-        </button>
+
+        <mat-menu #expedienteMenu="matMenu">
+          <button mat-menu-item (click)="goTo('/lista-expedientes')">
+            <mat-icon>gavel</mat-icon>
+            <span>Listado</span>
+          </button>
+          <button mat-menu-item (click)="goTo('/estado')">
+            <mat-icon>location_on</mat-icon>
+            <span>Estados</span>
+          </button>
+        </mat-menu>
+
+
+
         <button mat-button class="menu-button" [matMenuTriggerFor]="generalMenu">
           <mat-icon style="color: #ffffff">apps</mat-icon>
           <span style="color: #ffffff">General</span>
@@ -65,18 +76,35 @@
         <ion-list class="lista-clientes">
           <!-- Sección 1: Búsqueda de expediente -->
           <div *ngIf="menu == '1'">
+
             <div class="toolbar">
               <ion-input 
                 placeholder="Número" 
                 class="input-busqueda"
+                (keypress)="validateNumber($event)"
                 [(ngModel)]="numero">
               </ion-input>
       
               <ion-input 
                 placeholder="Año" 
                 class="input-busqueda"
+                (keypress)="validateNumber($event)"
                 [(ngModel)]="anio">
               </ion-input>
+
+              <form [formGroup]="form">
+
+              <mat-form-field appearance="outline" class="full-width" style="width: 100%">
+                <mat-label style="color: white">Juzgados</mat-label>
+                <mat-select style="color: white" formControlName="juez" [(ngModel)]="juzgadoSeleccionado">
+                  <mat-option *ngFor="let juzgado of juzgados" [value]="juzgado">
+                    {{ juzgado.nombre }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+              </form>
+              
+
             </div>
 
             <button mat-button class="menu-button" (click)="buscar()">
@@ -91,9 +119,22 @@
               <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
               <span style="color: #ffffff">Regresar</span>
             </button>
-          
-            <div style="padding: 16px;">
-              <!-- Estado del expediente -->
+
+<div class="expediente-info">
+  <h6 *ngIf="expediente.clientes.length === 1">
+    {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} contra {{ expediente.demandadoModel.nombre }}
+  </h6>
+  <h6 *ngIf="expediente.clientes.length > 1">
+    {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} y otros contra {{ expediente.demandadoModel.nombre }}
+  </h6>
+  <h6 *ngIf="expediente.clientes.length === 0">
+    {{ expediente.numero }}/{{ expediente.anio }} (sin actora) contra {{ expediente.demandadoModel.nombre }}
+  </h6>
+</div>
+
+
+
+            <div class="toolbar">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label style="color: white">Estado del expediente</mat-label>
                 <mat-select style="color: white" [(ngModel)]="estadoSeleccionado">
@@ -102,6 +143,11 @@
                   </mat-option>
                 </mat-select>
               </mat-form-field>
+            </div>
+          
+            <div style="padding: 16px;">
+              <!-- Estado del expediente -->
+
               
 
               
@@ -112,27 +158,91 @@
                   <span class="divider-text">Detalles de la sentencia</span>
                   <mat-divider class="white-divider"></mat-divider>
                 </div>
+
+                <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="32px">
+                  <mat-form-field appearance="outline" class="half-width">
+                    <mat-label style="color: white">Honorario</mat-label>
+                    <mat-select style="color: white" formControlName="honorario" [(ngModel)]="honorarioSeleccionado" (selectionChange)="actualizarMonto($event.value)">
+                      <mat-option *ngFor="let honorario of honorarios" [value]="honorario">
+                        {{ honorario }}
+                      </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="form.controls?.['honorario']?.invalid && (form.controls?.['honorario']?.dirty || form.controls?.['honorario']?.touched)">
+                      <span *ngIf="form.controls?.['honorario']?.errors?.['required']" style="color:red">El honorario es requerido</span>
+                    </mat-error>
+                  </mat-form-field>
+                
+                  <mat-form-field appearance="outline" class="half-width">
+                    <mat-label style="color: white">Jueces</mat-label>
+                    <mat-select style="color: white" formControlName="juez" [(ngModel)]="juezSeleccionado">
+                      <mat-option *ngFor="let juez of jueces" [value]="juez">
+                        {{ juez.nombre }}
+                      </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="form.controls?.['juez']?.invalid && (form.controls?.['juez']?.dirty || form.controls?.['juez']?.touched)">
+                      <span *ngIf="form.controls?.['juez']?.errors?.['required']" style="color:red">El juez es requerido</span>
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+                
+                
+
                 <div class="toolbar">
-                  <!-- Honorario (Deshabilitado) -->
-                  <ion-input 
-                    placeholder="Honorario" 
-                    class="input-busqueda"
-                    formControlName="honorario"
-                    name="honorarrio"
-                    id="honorario">
-                  </ion-input>
+                <!-- MONTO -->
+                  <ion-input
+                  placeholder="monto"
+                  (keypress)="validateNumber($event)"
+                  type="number"
+                  class="input-busqueda"
+                  formControlName="monto"
+                  name="monto"
+                  id="monto">
+                </ion-input>
+        
+                <!-- Mensaje de error si la fecha_sentencia no es mayor a fecha_inicio -->
+      <!--          <mat-error *ngIf="form.controls?.['monto']?.errors?.['required'] && 
+                (form.controls?.['monto']?.dirty || form.controls?.['monto']?.touched)">
+  <span style="color: red; font-size: 12px; margin-top: 2px; display: block;">
+    El monto es requerido
+  </span>
+</mat-error> -->
 
 
-                  <!-- Fecha de inicio (formControlName corregido) -->
-                  <ion-input 
-                    placeholder="Fecha de inicio"
-                    type="date"
-                    class="input-busqueda"
-                    formControlName="fecha_inicio"
-                    placeholder="fecha_inicio"
-                    name="fecha_inicio"
-                    id="fecha_inicio">
-                  </ion-input>
+
+        <!-- Campo de fecha de sentencia -->
+        <ion-input
+          placeholder="Fecha de sentencia"
+          type="date"
+          class="input-busqueda"
+          formControlName="fecha_sentencia"
+          name="fecha_sentencia"
+          id="fecha_sentencia">
+        </ion-input>
+
+        <!-- Mensaje de error si la fecha_sentencia no es mayor a fecha_inicio -->
+  <!--       <mat-error *ngIf="form.controls?.['fecha_sentencia']?.errors?.['required'] && 
+        (form.controls?.['fecha_sentencia']?.dirty || form.controls?.['fecha_sentencia']?.touched)">
+        <span style="color:red">La fecha de sentencia es requerida</span>
+      </mat-error>
+      
+      <mat-error *ngIf="form.controls?.['fecha_sentencia']?.errors?.['fechaInvalida'] && 
+        (form.controls?.['fecha_sentencia']?.dirty || form.controls?.['fecha_sentencia']?.touched)">
+        <span style="color:red">La fecha de sentencia debe ser mayor que la fecha de inicio</span>
+      </mat-error> -->
+      
+      <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="32px">
+
+        <button mat-button style="background-color:#015dbb" (click)="apela = true">
+          <span style="color: #ffffff">APELA</span>
+        </button>
+        
+        <button mat-button style="background-color:#015dbb" (click)="apela = false">
+          <span style="color: #ffffff">NO APELA</span>
+        </button>
+      </div>
+
+
+
                 </div>
 
                 <!-- Apellido con validaciones 
@@ -144,28 +254,16 @@
                 </div> -->
 
                 <!-- Jueces -->
-                <mat-form-field appearance="outline" class="full-width">
-                  <mat-label style="color: white">Jueces</mat-label>
-                  <mat-select style="color: white" [(ngModel)]="juezSeleccionado" >
-                    <mat-option *ngFor="let juez of jueces" [value]="juez">
-                      {{ juez.nombre }}
-                    </mat-option>
-                  </mat-select>
-                </mat-form-field>
-                
-                
 
-                <!-- Apelación 
-                <div class="form__group field">
-                  <input type="checkbox" id="apelable" formControlName="apelable" [disabled]="true"/>
-                  <label for="apelable">¿El expediente fue apelado?</label>
-                </div> -->
+
+              
               </form>
 
+              <button mat-button class="menu-estado" style="background-color:#015dbb" (click)="actualizarEstado()">
+                <span style="color: #ffffff">Actualizar estado</span>
+              </button>
+
             </div>
-            <button mat-button class="menu-estado" style="background-color:#015dbb" (click)="actualizarEstado()">
-              <span style="color: #ffffff">Actualizar estado</span>
-            </button>
           </div>
 
         </ion-list>

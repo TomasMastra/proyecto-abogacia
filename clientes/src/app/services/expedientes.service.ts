@@ -1,12 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, forkJoin  } from 'rxjs';
+import { mergeMap, map } from 'rxjs/operators';
+
 import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 import { ExpedienteModel } from '../models/expediente/expediente.component';
 import { DemandadoModel } from '../models/demandado/demandado.component';
 import { HttpParams } from '@angular/common/http';
-import { map } from 'rxjs/operators';
-import { Observable, throwError, of } from 'rxjs';
+import { BehaviorSubject, forkJoin, Observable, throwError, of   } from 'rxjs';
+
 import { catchError, tap } from 'rxjs/operators';
 
 
@@ -160,12 +161,40 @@ export class ExpedientesService {
       
         return this.http.get<ExpedienteModel[]>(`${this.apiUrl}/demandados`, { params });
       }
-      
+ /*     
       getClientePorNumeroYAnio(numero: string, anio: string) {
         return this.http.get<ClienteModel[]>(`${this.apiUrl}/buscarPorNumeroyAnio`, {
           params: { numero, anio }
         });
-      }
+      }*/
+        getClientePorNumeroYAnio(numero: string, anio: string, juzgado_id: number) {
+
+          console.log('id ',  juzgado_id)
+          //juzgado_id = '2';
+          return this.http.get<ExpedienteModel[]>(`${this.apiUrl}/buscarPorNumeroyAnio`, { params: { numero, anio, juzgado_id } }).pipe(
+            mergeMap(expedientes => {
+              if (!expedientes.length) return of([]); // Si no hay expedientes, devolver un array vacío
+        
+              return forkJoin(
+                expedientes.map(expediente =>
+                  forkJoin({
+                    clientes: this.getClientesPorExpediente(expediente.id),
+                    demandado: this.getDemandadoPorId(expediente.demandado_id!)
+                  }).pipe(
+                    map(({ clientes, demandado }) => ({
+                      ...expediente,
+                      clientes,
+                      demandadoModel: demandado
+                    }))
+                  )
+                )
+              );
+            })
+          );
+        }
+        
+
+        
       
       
 

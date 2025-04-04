@@ -98,7 +98,6 @@ sql.connect(dbConfig)
                 .input('fecha_nacimiento', sql.DateTime, fecha_nacimiento)
                 .input('email', sql.NVarChar, email)
                 .input('estado', sql.NVarChar, estado)
-
                 .query(`
                   INSERT INTO clientes (nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado)
                   OUTPUT INSERTED.id  -- Esto devuelve el id del nuevo cliente insertado
@@ -139,6 +138,8 @@ sql.connect(dbConfig)
                     .input('fecha_nacimiento', sql.DateTime, nuevosDatos.fecha_nacimiento)
                     .input('dni', sql.Int, nuevosDatos.dni)
                     .input('estado', sql.NVarChar, nuevosDatos.estado)
+                    .input('direccion', sql.NVarChar, nuevosDatos.direccion)
+
                     .query(`
                         UPDATE Clientes
                         SET nombre = @nombre,
@@ -147,7 +148,8 @@ sql.connect(dbConfig)
                             telefono = @telefono,
                             fecha_nacimiento = @fecha_nacimiento,
                             dni = @dni,
-                            estado = @estado
+                            estado = @estado,
+                            direccion = @direccion
                         WHERE id = @id
                     `);
         
@@ -183,7 +185,7 @@ sql.connect(dbConfig)
 
     app.post('/expedientes/agregar', async (req, res) => {
       try {
-          const { titulo, descripcion, demandado_id, juzgado_id, numero, anio, clientes, estado, honorario, fecha_inicio } = req.body;
+          const { titulo, descripcion, demandado_id, juzgado_id, numero, anio, clientes, estado, honorario, monto, ultimo_movimiento, fecha_inicio, juez_id, juicio, fecha_sentencia } = req.body;
   
           if (!numero || !anio || !demandado_id || !juzgado_id || !Array.isArray(clientes)) {
               return res.status(400).json({
@@ -191,25 +193,46 @@ sql.connect(dbConfig)
                   camposRequeridos: ['numero', 'anio', 'demandado', 'juzgado', 'clientes']
               });
           }
-  
+
+          const resultExiste = await pool.request()
+          .input('numero', sql.Int, numero)
+          .input('anio', sql.Int, anio)
+          .input('juzgado_id', sql.Int, juzgado_id)
+
+          .query(`
+            SELECT COUNT(*) AS count
+            FROM expedientes
+            WHERE numero = @numero AND anio = @anio AND juzgado_id = @juzgado_id
+          `);
+
+          if (resultExiste.recordset[0].count > 0) {
+            return res.status(400).json({
+              error: 'Ya existe un expediente con el mismo número, año y juzgado.'
+            });
+          }
+
+
           const result = await pool.request()
-              .input('titulo', sql.NVarChar, titulo)
-              .input('descripcion', sql.NVarChar, descripcion)
-              .input('numero', sql.Int, numero)
-              .input('anio', sql.Int, anio)
-              .input('demandado_id', sql.Int, demandado_id)
-              .input('juzgado_id', sql.Int, juzgado_id)
-              .input('estado', sql.NVarChar, estado)
-              .input('fecha_inicio', sql.DateTime, fecha_inicio)
-              .input('honorario', sql.NVarChar, honorario)
-              .input('juez_id', sql.Int, juez_id)
-
-
-              .query(`
-                  INSERT INTO expedientes (titulo, descripcion, numero, anio, demandado_id, juzgado_id, fecha_creacion, estado, fecha_inicio, honorario)
-                  OUTPUT INSERTED.id
-                  VALUES (@titulo, @descripcion, @numero, @anio, @demandado_id, @juzgado_id, GETDATE(), @estado, @fecha_inicio, @honorario)
-              `);
+          .input('titulo', sql.NVarChar, titulo)
+          .input('descripcion', sql.NVarChar, descripcion)
+          .input('numero', sql.Int, numero)
+          .input('anio', sql.Int, anio)
+          .input('demandado_id', sql.Int, demandado_id)
+          .input('juzgado_id', sql.Int, juzgado_id)
+          .input('estado', sql.NVarChar, estado)
+          .input('fecha_inicio', sql.DateTime, fecha_inicio)
+          .input('fecha_sentencia', sql.DateTime, fecha_sentencia)
+          .input('honorario', sql.NVarChar, honorario)
+          .input('juez_id', sql.Int, juez_id)
+          .input('juicio', sql.NVarChar, juicio)
+          .input('monto', sql.NVarChar, monto)
+      
+          .query(`
+              INSERT INTO expedientes (titulo, descripcion, numero, anio, demandado_id, juzgado_id, fecha_creacion, estado, fecha_inicio, honorario, juez_id, juicio, fecha_sentencia, ultimo_movimiento, monto)
+              OUTPUT INSERTED.id
+              VALUES (@titulo, @descripcion, @numero, @anio, @demandado_id, @juzgado_id, GETDATE(), @estado, @fecha_inicio, @honorario, @juez_id, @juicio, @fecha_sentencia, @fecha_inicio, @monto)
+          `);
+      
   
           // Verificar que se insertó el expediente correctamente
           if (!result.recordset || result.recordset.length === 0) {
@@ -228,6 +251,7 @@ sql.connect(dbConfig)
                       VALUES (@id_cliente, @id_expediente)
                   `);
           }
+        
 
   
           res.status(201).json({
@@ -256,19 +280,44 @@ sql.connect(dbConfig)
                
         console.log('Datos recibidos para actualizar:', nuevosDatos); // Verifica los datos
 
+        const resultExiste = await pool.request()
+        .input('id', sql.Int, id) // Agregamos el id actual
+        .input('numero', sql.Int, nuevosDatos.numero)
+        .input('anio', sql.Int, nuevosDatos.anio)
+        .input('juzgado_id', sql.Int, nuevosDatos.juzgado_id)
+        .query(`
+            SELECT COUNT(*) AS count
+            FROM expedientes
+            WHERE numero = @numero 
+            AND anio = @anio 
+            AND juzgado_id = @juzgado_id
+            AND id <> @id  -- Excluir el expediente que se está actualizando
+        `);
+
+        if (resultExiste.recordset[0].count > 0) {
+          return res.status(400).json({
+            error: 'Ya existe un expediente con el mismo número, año y juzgado.'
+          });
+        }
+
         try {
           const resultado = await pool.request()
             .input('id', sql.Int, id)
-            .input('titulo', sql.NVarChar, nuevosDatos.titulo) 
+            .input('titulo', sql.NVarChar, nuevosDatos.titulo)
             .input('descripcion', sql.NVarChar, nuevosDatos.descripcion)
             .input('numero', sql.Int, nuevosDatos.numero)
-            .input('anio', sql.Int, nuevosDatos.anio)            
-            .input('juzgado_id', sql.Int, nuevosDatos.juzgado_id)  
+            .input('anio', sql.Int, nuevosDatos.anio)
+            .input('juzgado_id', sql.Int, nuevosDatos.juzgado_id)
             .input('demandado_id', sql.Int, nuevosDatos.demandado_id)
-            .input('estado', sql.NVarChar, nuevosDatos.estado) 
+            .input('estado', sql.NVarChar, nuevosDatos.estado)
             .input('juez_id', sql.Int, nuevosDatos.juez_id)
             .input('honorario', sql.NVarChar, nuevosDatos.honorario)
             .input('fecha_inicio', sql.DateTime, nuevosDatos.fecha_inicio)
+            .input('juicio', sql.NVarChar, nuevosDatos.juicio)
+            .input('fecha_sentencia', sql.DateTime, nuevosDatos.fecha_sentencia)
+            .input('monto', sql.Int, nuevosDatos.monto)
+            .input('apela', sql.Bit, nuevosDatos.apela)
+
 
             .query(`
               UPDATE expedientes
@@ -282,7 +331,11 @@ sql.connect(dbConfig)
                 estado = @estado,
                 juez_id = @juez_id,
                 honorario = @honorario,
-                fecha_inicio = @fecha_inicio
+                fecha_inicio = @fecha_inicio,
+                juicio = @juicio,
+                fecha_sentencia = @fecha_sentencia,
+                monto = @monto,
+                apela = @apela
               WHERE id = @id
             `);
 
@@ -753,7 +806,7 @@ app.post('/demandados/agregar', async (req, res) => {
 ////////////////
 
 
-
+// funciona
 app.get("/expedientes/demandados", async (req, res) => {
   const { id, estado } = req.query;
 
@@ -798,7 +851,33 @@ app.get("/expedientes/juzgados", async (req, res) => {
   }
 });
 
+
+app.get("/juzgados/localidades", async (req, res) => {
+  const { id, estado } = req.query;
+
+  try {
+    const result = await pool.request()
+      .input("localidadId", id)
+      .query("SELECT * FROM juzgados WHERE localidad_id = @localidadId");
+
+    // Filtrar los expedientes que están en estado 'en gestión' o 'eliminado' si es necesario
+    const juzgadosFiltrados = result.recordset.filter(juzgado => juzgado.estado !== 'eliminado');
+
+    // Si no hay expedientes en estado 'en gestión' y hay otros, puedes manejarlos
+    if (juzgadosFiltrados.length === 0) {
+      return res.json([]);  // Si no hay expedientes en gestión, enviar un array vacío
+    }
+
+    res.json(juzgadosFiltrados);  // Devolver los expedientes filtrados
+  } catch (err) {
+    console.error("Error al obtener juzgados:", err);
+    res.status(500).send("Error al obtener los juzgados.");
+  }
+});
+
 //TERMINAR// HACER LA MISMA PARA EXPEDIENTES Y CLIENTES
+// 
+/* 
 app.get("/juzgados/localidades", async (req, res) => {
   const { id } = req.query;
 
@@ -815,7 +894,33 @@ app.get("/juzgados/localidades", async (req, res) => {
     console.error("Error al obtener juzgados:", err);
     res.status(500).send("Error al obtener los juzgados.");
   }
+});*/
+
+// funciona
+app.get("/expedientes/clientes", async (req, res) => {
+  const { id, estado } = req.query;
+
+  try {
+    const result = await pool.request()
+      .input("id_cliente", id)
+      .query("SELECT * FROM clientes_expedientes WHERE id_cliente = @id_cliente");
+
+    // Filtrar los expedientes que están en estado 'en gestión' o 'eliminado' si es necesario
+    const clientesFiltrados = result.recordset.filter(clientes => clientes.estado !== 'eliminado');
+
+    // Si no hay expedientes en estado 'en gestión' y hay otros, puedes manejarlos
+    if (clientesFiltrados.length === 0) {
+      return res.json([]);  // Si no hay expedientes en gestión, enviar un array vacío
+    }
+
+    res.json(clientesFiltrados);  // Devolver los expedientes filtrados
+  } catch (err) {
+    console.error("Error al obtener clientes:", err);
+    res.status(500).send("Error al obtener los clientes.");
+  }
 });
+
+
 
 
 app.get("/juez", async (req, res) => {
@@ -832,7 +937,7 @@ app.get("/juez", async (req, res) => {
 
 app.get("/expedientes/buscarPorNumeroyAnio", async (req, res) => {
   try {
-      const { numero, anio } = req.query; 
+      const { numero, anio, juzgado_id } = req.query; 
 
       if (!numero || !anio) {
           return res.status(400).json({ error: "Se requieren 'numero' y 'anio'." });
@@ -842,7 +947,9 @@ app.get("/expedientes/buscarPorNumeroyAnio", async (req, res) => {
           .request()
           .input("numero", sql.Int, numero)
           .input("anio", sql.Int, anio)
-          .query("SELECT * FROM expedientes WHERE estado != 'eliminado' AND numero = @numero AND anio = @anio");
+          .input("juzgado_id", sql.Int, juzgado_id)
+
+          .query("SELECT * FROM expedientes WHERE estado != 'eliminado' AND numero = @numero AND anio = @anio AND juzgado_id = @juzgado_id");
 
       res.json(result.recordset);
   } catch (err) {

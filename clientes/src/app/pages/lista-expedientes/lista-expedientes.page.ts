@@ -121,12 +121,21 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
                 console.log('Respuesta del servidor:', response);
               }, error => {
                 console.error('Error al eliminar clientes:', error);
+
               });
               
               this.expedienteService.actualizarExpediente(expedienteModificado.id, expedienteModificado)
                 .subscribe(response => {
                   console.log('Expediente actualizado:', response);
 
+                  Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: "Expediente modificado exitosamente",
+                    showConfirmButton: false,
+                    timer: 1500
+                  });
                   
                   // ✅ Actualiza solo el expediente en la lista sin recargar todo
                   this.expedientes = this.expedientes.map(exp => 
@@ -135,6 +144,15 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
                   
                 }, error => {
                   console.error('Error al actualizar expediente:', error);
+
+                  Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "error",
+                    title: "Error al actualizar expediente",
+                    showConfirmButton: false,
+                    timer: 1500
+                  });
                 });
             }
           });
@@ -180,6 +198,15 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
           
                   console.log('expediente agregado:', response);
                   this.expedientes.push(expediente);
+
+                  Swal.fire({
+                    toast: true,
+                    position: "top-end",
+                    icon: "success",
+                    title: "Expediente cargado exitosamente",
+                    showConfirmButton: false,
+                    timer: 1500
+                  });
           
                   //this.agregarClientes(+expediente.id, expediente.clientes);
                   // Si la búsqueda está vacía, obtener todos los clientes
@@ -189,20 +216,17 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
                     this.clienteService.searchClientes(this.busqueda);
                   }*/
           
-/*                  if (cliente.expedientes != null && cliente.expedientes.length > 0) {
-                    cliente.expedientes.forEach((expediente: any) => {
-                      if (cliente.id) {  
-                        this.cliExpServ.addClienteExpediente(cliente.id, expediente.id).subscribe(response => {
-                          console.log('Relación cliente-expediente agregada:', response);
-                        }, error => {
-                          console.error('Error al agregar relación cliente-expediente:', error);
-                        });
-                      }
-                    });
-                  }*/
-          
+  
                 }, error => {
                   console.error('Error al agregar expediente:', error);
+                  Swal.fire({
+                              toast: true,
+                              position: "top-end",
+                              icon: "error",
+                              title: "Error al cargar expediente",
+                              showConfirmButton: false,
+                              timer: 1500
+                            });
                 });
               }
             });
@@ -246,7 +270,6 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
         this.demandadoService.getDemandadoPorId(id);
       }
 
-      
             // HACER SERVICIO PROPIO
             eliminarExpediente(expediente: ExpedienteModel) {
               Swal.fire({

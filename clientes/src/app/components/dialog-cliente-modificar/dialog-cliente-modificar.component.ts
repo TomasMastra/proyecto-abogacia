@@ -51,8 +51,8 @@ export class DialogClienteModificarComponent {
     @Inject(MAT_DIALOG_DATA) public data: ClienteModel
   ) {
     this.form = new FormGroup({
-      nombre: new FormControl('', [Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),  // Sin 'Validators.required'
-      apellido: new FormControl('', [Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),  // Sin 'Validators.required'
+      nombre: new FormControl('', [Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]), 
+      apellido: new FormControl('', [Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),  
       dni: new FormControl('', [Validators.minLength(7), Validators.maxLength(8), Validators.pattern("^[0-9]+$")]),
       telefono: new FormControl('', [Validators.minLength(6), Validators.maxLength(14), Validators.pattern("^[0-9]+$")]),
       fechaNacimiento: new FormControl(''),  // No tiene validadores
@@ -61,13 +61,19 @@ export class DialogClienteModificarComponent {
     
 
     if (data) {
+      const fechaNacimiento = this.data.fecha_nacimiento;
+      const fechas = new Date(this.data.fecha_nacimiento!);
+      const fechaFormateada = fechaNacimiento!.toString().split('T')[0]; // Esto da el formato yyyy-MM-dd
+
       this.form.setValue({
         nombre: data.nombre || '',
         apellido: data.apellido || '',
-        fechaNacimiento: data.fecha_nacimiento || '',
+        fechaNacimiento: fechaFormateada || '',
         direccion: data.direccion || '',
         dni: data.dni || '',
         telefono: data.telefono || '',
+
+
       });
 
 

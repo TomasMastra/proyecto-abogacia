@@ -360,13 +360,58 @@ mat-toolbar {
   }
   
   
+  .expediente-info {
+    padding: 10px; /* Ajusta este valor según lo necesites */
+    margin: 10px; /* Si quieres margen adicional */
+    border: 1px solid #ccc; /* Puedes agregar un borde si es necesario */
+    border-radius: 5px; /* Si quieres bordes redondeados */
+  }
+
+
+  .form-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    //gap: 50px;
+    margin-left: 100px;
+
+  }
+  
+  .half-width {
+    width: 50%;
+  }
+
+  ///////////
+  /// 
+  /// 
+  
+  .dialog-title {
+    background-color: #1976d2; /* Azul Material */
+    color: rgb(158, 27, 233);
+    padding: 16px;
+    margin: -24px -24px 16px -24px; /* Para que ocupe todo el ancho */
+    text-align: center;
+  }
+  
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 300%; /* Para que no sea tan pequeño */
+    background-color: #002b5c; /* Azul Material */
+  
+  }
+  
+  mat-dialog-actions {
+    padding: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
   
   
-  
-  
-  
-  
-  
-  
+  //////////////////
+  /// 
+  /// 
   
   

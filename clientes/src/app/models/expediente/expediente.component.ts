@@ -20,6 +20,10 @@ export interface ExpedienteModel {
   fecha_sentencia: string | null,
   hora_sentencia: string | null,
   juez_id: string | null,
-  juezModel: JuezModel | null
+  juezModel: JuezModel | null,
+  juicio: string | null,
+  ultimo_movimiento: string | null,
+  monto: number | null,
+  apela: boolean | null
   }
   

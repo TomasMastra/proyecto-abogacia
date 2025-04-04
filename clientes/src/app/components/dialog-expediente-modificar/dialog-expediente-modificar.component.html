@@ -117,6 +117,9 @@
               {{ demandado.nombre }}
             </mat-option>
           </mat-select>
+          <mat-error *ngIf="form.controls?.['demandado']?.invalid && (form.controls?.['demandado']?.dirty || form.controls?.['demandado']?.touched)">
+            <span *ngIf="form.controls?.['demandado']?.errors?.['required']" style="color:red">El demandado es requerido</span>
+          </mat-error>
         </mat-form-field>
 
 
@@ -127,26 +130,43 @@
           <mat-option *ngFor="let juzgado of juzgados" [value]="juzgado">
             {{ juzgado.nombre }}
           </mat-option>
-        </mat-select>
+        </mat-select>        <mat-error *ngIf="form.controls?.['juzgado']?.invalid && (form.controls?.['juzgado']?.dirty || form.controls?.['juzgado']?.touched)">
+          <span *ngIf="form.controls?.['juzgado']?.errors?.['required']" style="color:red">El juzgado es requerido</span>
+        </mat-error>
       </mat-form-field>
 
-      <!-- VER 
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Seleccionar Cliente</mat-label>
-        <mat-select formControlName="cliente" [(ngModel)]="clienteSeleccionado">
-          <mat-option *ngFor="let cliente of clientes" [value]="cliente">
-            {{ cliente.nombre }} {{ cliente.apellido }}
+        <mat-label style="color: white">Estado del expediente</mat-label>
+        <mat-select style="color: white" formControlName="estado" [(ngModel)]="estadoSeleccionado">
+          <mat-option *ngFor="let estado of estados" [value]="estado">
+            {{ estado }}
           </mat-option>
         </mat-select>
-      </mat-form-field> -->
+        <mat-error *ngIf="form.controls?.['estado']?.invalid && (form.controls?.['estado']?.dirty || form.controls?.['estado']?.touched)">
+          <span *ngIf="form.controls?.['estado']?.errors?.['required']" style="color:red">El estado es requerido</span>
+        </mat-error>
+      </mat-form-field>
 
-      <!-- 
-      <mat-form-field>
-        <mat-label>Cliente</mat-label>
-        <mat-select [(ngModel)]="clienteSeleccionado" name="cliente" required (selectionChange)="seleccionarCliente($event.value)">
-          <mat-option *ngFor="let cliente of clientes" [value]="cliente">{{ cliente.nombre }} {{ cliente.apellido }}</mat-option>
+      <div class="form__group field">
+        <input type="date" class="form__field" placeholder="Fecha de inicio" name="fechainicio" id='fechaInicio' formControlName="fechaInicio"/>
+        <label for="fechaInicio" class="form__label">Fecha de inicio</label>
+        <mat-error *ngIf="form.controls?.['fechaInicio']?.invalid && (form.controls?.['fechaInicio']?.dirty || form.controls?.['fechaInicio']?.touched)">
+          <span *ngIf="form.controls?.['fechaInicio']?.errors?.['required']" style="color:red">La fecha es requerida</span>
+        </mat-error>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: white">Tipo de juicio</mat-label>
+        <mat-select style="color: white" formControlName="juicio" [(ngModel)]="juicioSeleccionado">
+          <mat-option *ngFor="let juicio of juicios" [value]="juicio">
+            {{ juicio }}
+          </mat-option>
         </mat-select>
-      </mat-form-field> -->
+        <mat-error *ngIf="form.controls?.['juicio']?.invalid && (form.controls?.['juicio']?.dirty || form.controls?.['juicio']?.touched)">
+          <span *ngIf="form.controls?.['juicio']?.errors?.['required']" style="color:red">El tipo de juicio es requerido</span>
+        </mat-error>
+      </mat-form-field>
+
       
       <mat-form-field appearance="outline" class="full-width">
         <mat-label style="color: white">Clientes</mat-label>

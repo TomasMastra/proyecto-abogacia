@@ -318,65 +318,75 @@ private cliExpServ: ClientesExpedientesService;
           reverseButtons: true
         }).then((result) => {
           if (result.isConfirmed) {
-            // Cambiar estado a 'eliminado'
-            cliente.estado = 'eliminado';
-      
-            // Verificar si el cliente tiene un ID válido
-            if (!cliente.id) {
-              Swal.fire({
-                toast: true,
 
-                icon: "error",
-                title: "Error",
-                text: "El cliente no tiene un ID válido."
-              });
-              return;
-            }
-      
-            // Actualizar el cliente en la base de datos
-            this.clienteService.actualizarCliente(cliente.id, cliente).subscribe(
-              (response) => {
-                console.log('Cliente actualizado:', response);
-                this.cargarClientes();
-                // Actualiza solo el cliente en la lista sin recargar todo
-               // this.clientes = this.clientes.map(c => (c.id === cliente.id ? cliente : c));
-      
-                // Mostrar notificación de éxito
+            this.clienteService.getExpedientesPorCliente(cliente.id).subscribe(
+              (clientes) => {
+                console.log("Clientes:", clientes); // Verifica la respuesta
+            
+                if (clientes.length > 0) {
+                  // Si hay expedientes en gestión, mostrar error y cancelar eliminación
+                  Swal.fire({
+                    toast: true,
+                    icon: "error",
+                    title: "No puedes eliminar este cliente",
+                    text: "Tiene expedientes en gestión.",
+                    showConfirmButton: true
+                  });
+                  return;
+                }else{
+                  console.error('Error al actualizar cliente:');
+                      Swal.fire({
+                        toast: true,
+                        icon: "error",
+                        title: "Error",
+                        text: "No se pudo eliminar el cliente debido a problemas internos."
+                      });
+                    
+
+                }
+          
+                  // Si no hay expedientes activos, proceder con la eliminación
+                  cliente.estado = 'eliminado';
+          
+                  this.clienteService.actualizarCliente(cliente.id, cliente).subscribe(
+                    (response) => {
+                      console.log('Cliente actualizado:', response);
+                      this.cargarClientes();
+          
+                      Swal.fire({
+                        toast: true,
+                        position: "top-end",
+                        icon: "success",
+                        title: "Cliente eliminado correctamente.",
+                        showConfirmButton: false,
+                        timer: 3000
+                      });
+                    },
+                    (error) => {
+                      console.error('Error al actualizar cliente:', error);
+                      Swal.fire({
+                        toast: true,
+                        icon: "error",
+                        title: "Error",
+                        text: "No se pudo eliminar el cliente."
+                      });
+                    }
+                  );
+                });
+              } else if (result.dismiss === Swal.DismissReason.cancel) {
                 Swal.fire({
                   toast: true,
                   position: "top-end",
-                  icon: "success",
-                  title: "Cliente eliminado correctamente.",
+                  icon: "error",
+                  title: "Cancelaste la eliminación.",
                   showConfirmButton: false,
                   timer: 3000
                 });
-              },
-              (error) => {
-                console.error('Error al actualizar cliente:', error);
-      
-                // Mostrar error en SweetAlert
-                Swal.fire({
-                  toast: true,
-
-                  icon: "error",
-                  title: "Error",
-                  text: "No se pudo eliminar el cliente."
-                });
               }
-            );
-          } else if (result.dismiss === Swal.DismissReason.cancel) {
-            Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "error",
-              title: "Cancelaste la eliminación.",
-              showConfirmButton: false,
-              timer: 3000
             });
           }
-        });
-      }
-      
+
+
       
 
 }
