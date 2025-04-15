@@ -1034,7 +1034,16 @@ app.get('/juzgados/:id', async (req, res) => {
   }
 });
 
-
+app.get("/eventos", (req, res) => {
+  pool.request()
+      .query("SELECT * FROM eventos_calendario")  // Consulta SQL
+      .then(result => {
+          res.json(result.recordset);  // Devuelve los resultados
+      })
+      .catch(err => {
+          res.status(500).send(err);  // En caso de error, devuelve 500
+      });
+});
 
              // Iniciar el servidor
       app.listen(3000, () => {

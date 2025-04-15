@@ -49,5 +49,9 @@ export const routes: Routes = [
   {
     path: 'honorario-diferido',
     loadComponent: () => import('./pages/honorario-diferido/honorario-diferido.page').then( m => m.HonorarioDiferidoPage)
+  },
+  {
+    path: 'calendario',
+    loadComponent: () => import('./pages/calendario/calendario.page').then( m => m.CalendarioPage)
   }
 ];

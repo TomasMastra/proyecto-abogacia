@@ -56,7 +56,7 @@ import Swal from 'sweetalert2'
 export class ListaClientesPage implements OnInit {
 
   private clienteService: ClientesService;
-private cliExpServ: ClientesExpedientesService;
+  private cliExpServ: ClientesExpedientesService;
 
   clientes: ClienteModel[] = [];
   clientesOriginales: ClienteModel[] = []; 

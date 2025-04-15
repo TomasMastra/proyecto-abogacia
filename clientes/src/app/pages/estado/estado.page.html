@@ -113,7 +113,7 @@
                 <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="32px">
                   <mat-form-field appearance="outline" class="half-width">
                     <mat-label style="color: white">Honorario</mat-label>
-                    <mat-select style="color: white" formControlName="honorario" [(ngModel)]="honorarioSeleccionado" (selectionChange)="actualizarMonto($event.value); actualizarHonorario()">
+                    <mat-select style="color: white" formControlName="honorario" [(ngModel)]="honorarioSeleccionado" (selectionChange)="actualizarMonto($event.value); actualizarHonorario(); actualizarValidacionesCondicionales()">
                       <mat-option *ngFor="let honorario of honorarios" [value]="honorario">
                         {{ honorario }}
                       </mat-option>
@@ -279,7 +279,7 @@
     <!-- CASO REGULACION Y COSTAS POR SU ORDEN-->
     <mat-form-field appearance="outline" style="flex: 1;" *ngIf="honorarioSeleccionado != 'Difiere regulacion 1º instancia'">
       <mat-label style="color: white">Estado de Honorarios</mat-label>
-      <mat-select style="color: white" [(ngModel)]="estadoHonorariosSeleccionado" name="estadoHonorariosSeleccionado" (selectionChange)="actualizarEstadoLiquidacionHonorarios(); actualizarValidacionesCondicionales()">
+      <mat-select style="color: white" [(ngModel)]="estadoHonorariosSeleccionado" name="estadoHonorariosSeleccionado" (selectionChange)="actualizarEstadoLiquidacionHonorarios(); actualizarValidacionesCondicionales(); actualizarEstadoHonorario()">
         <mat-option [value]="'apelado'" [disabled]="deshabilitarApeladoOFirme">Apelado</mat-option>
         <mat-option [value]="'firme'" [disabled]="deshabilitarApeladoOFirme">Firme</mat-option>
         <mat-option [value]="'pendiente'" [disabled]="deshabilitarApeladoOFirme">Pendiente</mat-option>

@@ -1,0 +1,24 @@
+<div class="calendario-container">
+  <h2 class="titulo">Calendario de vencimientos y audiencias</h2>
+
+  <mat-card class="calendar-card">
+    <mat-card-title>Selecciona una fecha</mat-card-title>
+    <mat-card-content>
+      <mat-datepicker #picker></mat-datepicker>
+      <button mat-button (click)="picker.open()">
+        <mat-icon>event</mat-icon>
+        Abrir calendario
+      </button>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="eventos">
+    <mat-card class="evento-card" *ngFor="let evento of eventos">
+      <mat-card-title>{{ evento.titulo }}</mat-card-title>
+      <mat-card-content>
+        <p><strong>Fecha:</strong> {{ evento.fecha_evento }}</p>
+        <p><strong>Tipo:</strong> {{ evento.tipo_evento }}</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
