@@ -5,8 +5,8 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';  // Necesario para usar firstValueFrom
 
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonImg, IonCard, IonCardContent, IonText, IonItem, IonItemOption, IonItemOptions, IonLabel, IonItemSliding, IonList, IonIcon, IonButton, IonButtons, IonInput } from '@ionic/angular/standalone';
-import { JuzgadosService } from 'src/app/services/juzgados.service';
-import { JuzgadoModel } from 'src/app/models/juzgado/juzgado.component';
+import { JuezService } from 'src/app/services/juez.service';
+import { JuezModel } from 'src/app/models/juez/juez.component';
 import { MatDialogModule } from '@angular/material/dialog';
 
 import { ExpedientesService } from 'src/app/services/expedientes.service';
@@ -39,9 +39,9 @@ import Swal from 'sweetalert2'
 
 // src\app\components\dialog-cliente\dialog-cliente.component.ts
 @Component({
-  selector: 'app-juzgados',
-  templateUrl: './juzgados.page.html',
-  styleUrls: ['./juzgados.page.scss'],
+  selector: 'app-jueces',
+  templateUrl: './jueces.page.html',
+  styleUrls: ['./jueces.page.scss'],
   standalone: true,
   imports: [IonInput, 
     CommonModule,
@@ -55,16 +55,15 @@ import Swal from 'sweetalert2'
  
   ]
 })
-export class JuzgadosPage implements OnInit {
+export class JuecesPage implements OnInit {
 
-  private juzgadosService: JuzgadosService;
-  private expedientesService: ExpedientesService;
+  //private expedientesService: ExpedientesService;
 
-  juzgados: JuzgadoModel[] = [];
-  juzgadosOriginales: JuzgadoModel[] = []; 
+  jueces: JuezModel[] = [];
+  juecesOriginales: JuezModel[] = []; 
 
-  getJuzgados$!: Subscription;
-  hayJuzgados: boolean = true;
+  getJueces$!: Subscription;
+  hayJueces: boolean = true;
   busqueda: string = '';
   busquedaAnterior: string = ''; 
   texto: string = '';
@@ -75,12 +74,12 @@ export class JuzgadosPage implements OnInit {
 
 
 
-  constructor(juzgadosService: JuzgadosService, expedientesService: ExpedientesService, private dialog: MatDialog,
-    private router: Router) {
-    this.juzgadosService = juzgadosService;
-    this.expedientesService = expedientesService;
-
-  }
+  constructor(
+    private juezService: JuezService,
+    private dialog: MatDialog,
+    private router: Router
+  ) {}
+  
 
 /*
   ngOnInit() {
@@ -99,23 +98,23 @@ export class JuzgadosPage implements OnInit {
 
           ngOnInit() {
             if(this.busqueda == ''){
-              this.cargarJuzgados(); 
+              this.cargarJueces(); 
             }
           }
         
-          cargarJuzgados() {
-            this.juzgadosService.getJuzgados().subscribe(
-              (juzgados) => {
-                this.juzgados = juzgados;
-                this.juzgadosOriginales = [...juzgados];
-                this.hayJuzgados = this.juzgados.length > 0;
+          cargarJueces() {
+            this.juezService.getJuez().subscribe(
+              (jueces) => {
+                this.jueces = jueces;
+                this.juecesOriginales = [...jueces];
+                this.hayJueces = this.jueces.length > 0;
               },
               (error) => {
-                console.error('Error al obtener juzgados:', error);
+                console.error('Error al obtener jueces:', error);
               },
               () => {
                 this.timeoutId = setTimeout(() => {
-                  this.cargarJuzgados();
+                  this.cargarJueces();
 
                 }, 5000);
               }
@@ -123,7 +122,7 @@ export class JuzgadosPage implements OnInit {
           }
         
 
-
+/*
       obtenerLista(){
         this.juzgadosService.getJuzgados()
           .pipe(takeUntil(this.destroy$)) 
@@ -138,14 +137,14 @@ export class JuzgadosPage implements OnInit {
             }
           );
         
-      }
-
+      }*/
+/*
       abrirDialog(): void {
         const dialogRef = this.dialog.open(DialogJuzgadoComponent, {
           width: '500px',
           disableClose: true, // 🔹 Evita que se cierre al hacer clic afuera
 
-        });
+        });*/
 
         /*
         const dialogRef = this.dialog.open(DialogClienteComponent, {
@@ -155,7 +154,7 @@ export class JuzgadosPage implements OnInit {
         });
 
         */
-      
+      /*
         dialogRef.afterClosed().subscribe((juzgado: JuzgadoModel) => {
           if (juzgado) {
             // Primero, agregar el cliente a la base de datos
@@ -179,7 +178,7 @@ export class JuzgadosPage implements OnInit {
             });
           }
         });
-      }
+      }*/
 
       
 
@@ -187,22 +186,27 @@ export class JuzgadosPage implements OnInit {
         this.router.navigate([path]);
       }
 
-      obtenerJuzgados() {
-        this.getJuzgados$ = this.juzgadosService.getJuzgados().subscribe(
-          (juzgados) => {
-            this.juzgados = juzgados;
-            this.juzgadosOriginales = [...juzgados]; 
-            this.hayJuzgados = this.juzgados.length > 0;
+      obtenerJueces() {
+        this.getJueces$ = this.juezService.getJuez().subscribe(
+          (jueces) => {
+            this.jueces = jueces;
+            this.juecesOriginales = [...jueces]; 
+            this.hayJueces = this.jueces.length > 0;
           },
           (error) => {
-            console.error('Error al obtener clientes:', error);
+            console.error('Error al obtener jueces:', error);
           }
         );
       }
 
 
+      buscar(){
+        alert('Todavia no la implemente');
+      }
 
-      abrirModificar(juzgado: JuzgadoModel) {
+
+/*
+      abrirModificar(juez: JuzgadoModel) {
         const dialogRef = this.dialog.open(DialogJuzgadoModificarComponent, {
           width: '500px',
           data: juzgado,
@@ -238,11 +242,9 @@ export class JuzgadosPage implements OnInit {
       
           }
         });
-      }
+      }*/
 
-
-        // HACER SERVICIO PROPIO
-        eliminarJuzgado(juzgado: JuzgadoModel) {
+        eliminarJuez(juez: JuezModel) {
           Swal.fire({
             toast: true,
             title: "¿Estás seguro?",
@@ -255,47 +257,48 @@ export class JuzgadosPage implements OnInit {
           }).then((result) => {
             if (result.isConfirmed) {
         
-              this.juzgadosService.getExpedientesPorJuzgado(juzgado.id).subscribe(expedientes => {
+              this.juezService.getExpedientesPorJuez(juez.id).subscribe(expedientes => {
                 if (expedientes.length > 0) {
                   // Si hay expedientes en gestión, mostrar error y cancelar eliminación
                   Swal.fire({
                     toast: true,
                     icon: "error",
-                    title: "No puedes eliminar este juzgado",
+                    title: "No puedes eliminar este juez",
                     text: "Tiene expedientes en gestión.",
                     showConfirmButton: true
                   });
                   return;
                 }
         
-                // Si no hay expedientes activos, proceder con la eliminación
-                juzgado.estado = 'eliminado';
+                // Si no hay expedientes activos, proceder con la eliminación lógica
+                juez.estado = 'eliminado';
         
-                this.juzgadosService.actualizarJuzgado(juzgado.id, juzgado).subscribe(
+                this.juezService.actualizarJuez(juez.id, juez).subscribe(
                   (response) => {
-                    console.log('Juzgado actualizado:', response);
-                    this.cargarJuzgados();
+                    console.log('juez actualizado:', response);
+                    this.cargarJueces();
         
                     Swal.fire({
                       toast: true,
                       position: "top-end",
                       icon: "success",
-                      title: "Juzgado eliminado correctamente.",
+                      title: "Juez eliminado correctamente.",
                       showConfirmButton: false,
                       timer: 3000
                     });
                   },
                   (error) => {
-                    console.error('Error al actualizar juzgado:', error);
+                    console.error('Error al actualizar juez:', error);
                     Swal.fire({
                       toast: true,
                       icon: "error",
                       title: "Error",
-                      text: "No se pudo eliminar el juzgado."
+                      text: "No se pudo eliminar el juez."
                     });
                   }
                 );
               });
+        
             } else if (result.dismiss === Swal.DismissReason.cancel) {
               Swal.fire({
                 toast: true,
@@ -308,21 +311,66 @@ export class JuzgadosPage implements OnInit {
             }
           });
         }
+        
 
-        async buscar() {
-
-          this.juzgadosService.searchJuzgados(this.busqueda).subscribe(
-            (juzgados) => {
-              this.juzgados = juzgados;
-              this.juzgadosOriginales = [...juzgados];
-              this.hayJuzgados = this.juzgados.length > 0;
-              this.texto = 'No se encontraron juzgados';
-            },
-            (error) => {
-              console.error('Error al obtener juzgados:', error);
-            },
-            
-          );
-      }
+        agregarJuez() {
+          Swal.fire({
+            title: 'Agregar Juez',
+            html: `
+              <input id="nombre" class="swal2-input" placeholder="Nombre">
+              <input id="apellido" class="swal2-input" placeholder="Apellido">
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Agregar',
+            preConfirm: () => {
+              const nombre = (document.getElementById('nombre') as HTMLInputElement).value;
+              const apellido = (document.getElementById('apellido') as HTMLInputElement).value;
+        
+              if (!nombre || !apellido) {
+                Swal.showValidationMessage('Debe ingresar nombre y apellido');
+                return null;
+              }
+        
+              return { nombre, apellido };
+            }
+          }).then((result) => {
+            if (result.isConfirmed && result.value) {
+              const juez: JuezModel = {
+                id: '',
+                nombre: result.value.nombre,
+                apellido: result.value.apellido,
+                estado: 'activo'
+              };
+        
+              this.juezService.addJuez(juez).subscribe({
+                next: () => {
+                  this.cargarJueces();
+                  Swal.fire({
+                    toast: true,
+                    icon: 'success',
+                    title: 'Juez agregado',
+                    text: `Se agregó correctamente a ${juez.nombre} ${juez.apellido}`,
+                    showConfirmButton: false,
+                    timer: 3000,
+                    position: 'top-end'
+                  });
+                },
+                error: (error) => {
+                  console.error('Error al agregar juez:', error);
+                  Swal.fire({
+                    toast: true,
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Hubo un problema al agregar al juez. Intenta nuevamente.',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    position: 'top-end'
+                  });
+                }
+              });
+            }
+          });
+        }
+        
         
 }

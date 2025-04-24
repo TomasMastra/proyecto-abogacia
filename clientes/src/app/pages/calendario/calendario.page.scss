@@ -1,28 +1,70 @@
 .calendario-container {
-    padding: 20px;
-    color: white;
-  }
-  
-  .titulo {
-    margin-bottom: 20px;
-    color: white;
-  }
-  
-  .calendar-card {
-    margin-bottom: 20px;
-    background-color: #002b5c;
-    color: white;
-  }
-  
-  .eventos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-  }
-  
-  .evento-card {
-    background-color: #004a9f;
-    color: white;
-    width: 300px;
-  }
-  
+  padding: 32px 40px 24px 280px; // margen izquierdo mayor para separarse del sidenav
+  color: white;
+  background-color: #1976d2; // fondo para separar visualmente del lateral
+  min-height: 100vh; // asegura el alto total
+}
+
+.titulo {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titulo-icono {
+  font-size: 2rem;
+  color: #ffeb3b;
+}
+
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.calendar-card {
+  margin-bottom: 20px;
+  background-color: #002b5c;
+  color: white;
+}
+
+.formulario-evento {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eventos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.evento-card {
+  background-color: #004a9f;
+  color: white;
+  width: 300px;
+}
+
+.formulario-container {
+  display: flex;
+  justify-content: center;
+  //margin-bottom: 32px;
+}
+
+.calendar-card {
+  background-color: #002b5c;
+  color: white;
+  width: 500%;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+
+
+

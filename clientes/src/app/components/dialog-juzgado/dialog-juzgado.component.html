@@ -8,7 +8,7 @@
           <input type="input" class="form__field" placeholder="Nombre" name="nombre" id='nombre' formControlName="nombre"/>
           <label for="nombre" class="form__label">Nombre</label>
           <div class="error" *ngIf="form.controls?.['nombre']?.invalid && (form.controls?.['nombre']?.dirty || form.controls?.['nombre']?.touched)">
-            <div *ngIf="form.controls?.['nombre']?.errors?.['required']">El nombre es requerido</div>
+            <div *ngIf="form.controls?.['nombre']?.errors?.['required']" style="color: red;">El nombre es requerido</div>
           </div>
         </div>
 
@@ -21,6 +21,14 @@
               </mat-option>
             </mat-select>
           </mat-form-field>
+        </div>
+
+        <div class="form__group field full-width">
+          <input type="input" class="form__field" placeholder="Tipo" name="tipo" id="tipo" required formControlName="tipo"/>
+          <label for="tipo" class="form__label">Tipo</label>
+          <div class="error" *ngIf="form.controls?.['tipo']?.invalid && (form.controls?.['tipo']?.dirty || form.controls?.['tipo']?.touched)">
+            <div *ngIf="form.controls?.['tipo']?.errors?.['required']" style="color: red;">El tipo es requerido</div>
+          </div>
         </div>
 
 

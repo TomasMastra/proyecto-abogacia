@@ -185,7 +185,7 @@ sql.connect(dbConfig)
 
     app.post('/expedientes/agregar', async (req, res) => {
       try {
-          const { titulo, descripcion, demandado_id, juzgado_id, numero, anio, clientes, estado, honorario, monto, ultimo_movimiento, fecha_inicio, juez_id, juicio, fecha_sentencia } = req.body;
+          const { titulo, descripcion, demandado_id, juzgado_id, numero, anio, clientes, estado, honorario, monto, ultimo_movimiento, fecha_inicio, juez_id, juicio, fecha_sentencia,  } = req.body;
   
           if (!numero || !anio || !demandado_id || !juzgado_id || !Array.isArray(clientes)) {
               return res.status(400).json({
@@ -326,6 +326,7 @@ sql.connect(dbConfig)
  .input('estadoLiquidacionCapitalSeleccionado', sql.NVarChar, nuevosDatos.estadoLiquidacionCapitalSeleccionado)
  .input('fechaLiquidacionCapital', sql.DateTime, nuevosDatos.fechaLiquidacionCapital)
  .input('montoLiquidacionCapital', sql.Decimal(15, 2), nuevosDatos.montoLiquidacionCapital)
+ .input('capitalCobrado', sql.Bit, nuevosDatos.capitalCobrado)
 
  // 🆕 Campos nuevos: Honorarios
  .input('estadoHonorariosSeleccionado', sql.NVarChar, nuevosDatos.estadoHonorariosSeleccionado)
@@ -334,6 +335,8 @@ sql.connect(dbConfig)
  .input('estadoLiquidacionHonorariosSeleccionado', sql.NVarChar, nuevosDatos.estadoLiquidacionHonorariosSeleccionado)
  .input('fechaLiquidacionHonorarios', sql.DateTime, nuevosDatos.fechaLiquidacionHonorarios)
  .input('montoLiquidacionHonorarios', sql.Decimal(15, 2), nuevosDatos.montoLiquidacionHonorarios)
+ .input('honorarioCobrado', sql.Bit, nuevosDatos.honorarioCobrado)
+ .input('cantidadUMA', sql.Decimal(15, 2), nuevosDatos.cantidadUMA)
 
  .query(`
    UPDATE expedientes
@@ -355,6 +358,7 @@ sql.connect(dbConfig)
      ultimo_movimiento = @ultimo_movimiento,
 
 
+
      -- 🚀 Actualización de campos nuevos (capital)
      estadoCapitalSeleccionado = @estadoCapitalSeleccionado,
      subEstadoCapitalSeleccionado = @subEstadoCapitalSeleccionado,
@@ -362,14 +366,16 @@ sql.connect(dbConfig)
      estadoLiquidacionCapitalSeleccionado = @estadoLiquidacionCapitalSeleccionado,
      fechaLiquidacionCapital = @fechaLiquidacionCapital,
      montoLiquidacionCapital = @montoLiquidacionCapital,
-
+     capitalCobrado = @capitalCobrado,
      -- 🚀 Actualización de campos nuevos (honorarios)
      estadoHonorariosSeleccionado = @estadoHonorariosSeleccionado,
      subEstadoHonorariosSeleccionado = @subEstadoHonorariosSeleccionado,
      fechaHonorariosSubestado = @fechaHonorariosSubestado,
      estadoLiquidacionHonorariosSeleccionado = @estadoLiquidacionHonorariosSeleccionado,
      fechaLiquidacionHonorarios = @fechaLiquidacionHonorarios,
-     montoLiquidacionHonorarios = @montoLiquidacionHonorarios
+     montoLiquidacionHonorarios = @montoLiquidacionHonorarios,
+     honorarioCobrado = @honorarioCobrado,
+     cantidadUMA = @cantidadUMA
 
    WHERE id = @id
  `);
@@ -444,12 +450,44 @@ sql.connect(dbConfig)
         try {
           const result = await pool.request()
             .input('texto', sql.NVarChar, `%${texto}%`)
-            .query("SELECT * FROM expedientes WHERE numero LIKE @texto");
+            .query("SELECT * FROM expedientes WHERE CAST(numero AS NVARCHAR) LIKE @texto OR CAST(anio AS NVARCHAR) LIKE @texto AND estado != 'eliminado'");
       
           res.json(result.recordset);  // Retornar los clientes encontrados
         } catch (err) {
           console.error('Error al ejecutar la consulta:', err);
           return res.status(500).send('Error al obtener expedientes');
+        }
+      });
+
+      /*  BUSCAR DEMANDADOS */
+      app.get('/demandados/buscar', async (req, res) => {
+        const texto = req.query.texto;  // Obtener el parámetro 'texto' de la URL
+        
+        try {
+          const result = await pool.request()
+            .input('texto', sql.NVarChar, `%${texto}%`)
+            .query("SELECT * FROM demandados WHERE CAST(nombre AS NVARCHAR) LIKE @texto AND estado != 'eliminado'");
+      
+          res.json(result.recordset);  // Retornar los clientes encontrados
+        } catch (err) {
+          console.error('Error al ejecutar la consulta:', err);
+          return res.status(500).send('Error al obtener demandados');
+        }
+      });
+
+      /*  BUSCAR JUZGADOS */
+      app.get('/juzgados/buscar', async (req, res) => {
+        const texto = req.query.texto;
+        
+        try {
+          const result = await pool.request()
+            .input('texto', sql.NVarChar, `%${texto}%`)
+            .query("SELECT * FROM juzgados WHERE CAST(nombre AS NVARCHAR) LIKE @texto AND estado != 'eliminado'");
+      
+          res.json(result.recordset); 
+        } catch (err) {
+          console.error('Error al ejecutar la consulta:', err);
+          return res.status(500).send('Error al obtener juzgados');
         }
       });
 
@@ -600,7 +638,7 @@ app.get("/partidos", (req, res) => {
 
 app.get("/demandados", (req, res) => {
   pool.request()
-      .query("SELECT * FROM demandados WHERE estado = 'en gestión'")  
+      .query("SELECT * FROM demandados WHERE estado != 'eliminado'")  
       .then(result => {
           res.json(result.recordset);  
       })
@@ -784,10 +822,14 @@ app.put('/demandados/modificar/:id', async (req, res) => {
           .input('id', sql.Int, id)
           .input('nombre', sql.NVarChar, nuevosDatos.nombre)
           .input('estado', sql.NVarChar, nuevosDatos.estado)
+          .input('localidad_id', sql.Int, nuevosDatos.localidad_id)
+          .input('direccion', sql.NVarChar, nuevosDatos.direccion)
           .query(`
               UPDATE demandados
               SET nombre = @nombre,
-                  estado = @estado
+                  estado = @estado,
+                  localidad_id = @localidad_id,
+                  direccion = @direccion
               WHERE id = @id
           `);
 
@@ -802,10 +844,9 @@ app.put('/demandados/modificar/:id', async (req, res) => {
   }
 });
 
-
 app.post('/demandados/agregar', async (req, res) => {
   try {
-    const { nombre, estado} = req.body;
+    const { nombre, estado, localidad_id, direccion } = req.body;
 
     if (!nombre) {
       return res.status(400).json({
@@ -815,15 +856,16 @@ app.post('/demandados/agregar', async (req, res) => {
     }
 
     const result = await pool.request()
-    .input('nombre', sql.NVarChar, nombre)
-    .input('estado', sql.NVarChar, 'en gestión')
-    .query(`
-        INSERT INTO demandados (nombre, estado)
+      .input('nombre', sql.NVarChar, nombre)
+      .input('estado', sql.NVarChar, 'en gestión')
+      .input('localidad_id', sql.Int, localidad_id) // ✅ corregido
+      .input('direccion', sql.NVarChar, direccion)
+      .query(`
+        INSERT INTO demandados (nombre, estado, localidad_id, direccion)
         OUTPUT INSERTED.id  
-        VALUES (@nombre, @estado)
+        VALUES (@nombre, @estado, @localidad_id, @direccion)
       `);
 
-    // El id del cliente insertado estará en result.recordset[0].id
     res.status(201).json({
       message: 'Juzgado agregado exitosamente',
       id: result.recordset[0].id
@@ -838,6 +880,7 @@ app.post('/demandados/agregar', async (req, res) => {
     });
   }
 });
+
 ////////////////
 
 
@@ -877,7 +920,7 @@ app.get("/expedientes/juzgados", async (req, res) => {
       .query("SELECT * FROM expedientes WHERE juzgado_id = @juzgadoId");
 
     // Filtrar expedientes en gestión
-    const expedientesEnGestion = result.recordset.filter(exp => exp.estado === 'en gestión');
+    const expedientesEnGestion = result.recordset.filter(exp => exp.estado !== 'eliminado');
 
     res.json(expedientesEnGestion);  // Devolver solo los expedientes en gestión
   } catch (err) {
@@ -910,28 +953,6 @@ app.get("/juzgados/localidades", async (req, res) => {
   }
 });
 
-//TERMINAR// HACER LA MISMA PARA EXPEDIENTES Y CLIENTES
-// 
-/* 
-app.get("/juzgados/localidades", async (req, res) => {
-  const { id } = req.query;
-
-  try {
-    const result = await pool.request()
-      .input("localidadId", sql.Int, id) // 🔹 Asegurar que se pasa como Int
-      .query("SELECT * FROM juzgados WHERE localidad_id = @localidadId");
-
-    // Filtrar expedientes en gestión
-    const expedientesEnGestion = result.recordset.filter(exp => exp.estado === 'activo');
-
-    res.json(expedientesEnGestion);  // Devolver solo los expedientes en gestión
-  } catch (err) {
-    console.error("Error al obtener juzgados:", err);
-    res.status(500).send("Error al obtener los juzgados.");
-  }
-});*/
-
-// funciona
 app.get("/expedientes/clientes", async (req, res) => {
   const { id, estado } = req.query;
 
@@ -955,12 +976,28 @@ app.get("/expedientes/clientes", async (req, res) => {
   }
 });
 
+app.get("/expedientes/jueces", async (req, res) => {
+  const { id } = req.query;
 
+  try {
+    const result = await pool.request()
+      .input("juez_id", sql.Int, id) // 🔹 Asegurar que se pasa como Int
+      .query("SELECT * FROM expedientes WHERE juez_id = @juez_id");
 
+    // Filtrar expedientes en gestión
+    const expedientesEnGestion = result.recordset.filter(exp => exp.estado != 'eliminado');
 
+    res.json(expedientesEnGestion);  // Devolver solo los expedientes en gestión
+  } catch (err) {
+    console.error("Error al obtener expedientes:", err);
+    res.status(500).send("Error al obtener los expedientes.");
+  }
+});
+
+//BUSCAR Y TRAER TODOS LOS JUECES
 app.get("/juez", async (req, res) => {
   try {
-      const result = await pool.request().query("SELECT * FROM juez");
+      const result = await pool.request().query("SELECT * FROM juez WHERE estado != 'eliminado'");
       res.json(result.recordset);
   } catch (err) {
       console.error("Error al obtener expedientes:", err);
@@ -969,7 +1006,7 @@ app.get("/juez", async (req, res) => {
 });
 
        
-
+//BUSCAR EXPEDIENTES POR NUMERO, AÑO Y ID EL JUZGADO
 app.get("/expedientes/buscarPorNumeroyAnio", async (req, res) => {
   try {
       const { numero, anio, juzgado_id } = req.query; 
@@ -993,6 +1030,7 @@ app.get("/expedientes/buscarPorNumeroyAnio", async (req, res) => {
   }
 });
 
+//TRAE EXPEDIENTES FILTRADOS POR UN ESTADO
 app.get("/expedientes/estado", async (req, res) => {
   try {
       const { estado } = req.query; 
@@ -1034,6 +1072,7 @@ app.get('/juzgados/:id', async (req, res) => {
   }
 });
 
+//TRAE LOS EVENTOS
 app.get("/eventos", (req, res) => {
   pool.request()
       .query("SELECT * FROM eventos_calendario")  // Consulta SQL
@@ -1044,6 +1083,149 @@ app.get("/eventos", (req, res) => {
           res.status(500).send(err);  // En caso de error, devuelve 500
       });
 });
+
+//AGREGA UN EVENTO A LA DB
+app.post('/eventos/agregar', async (req, res) => {
+  try {
+    const {
+      titulo,
+      descripcion,
+      fecha_evento,
+      hora_evento,
+      tipo_evento,
+      ubicacion
+    } = req.body;
+
+    // Validación de campos obligatorios
+    if (!titulo || !fecha_evento || !tipo_evento) {
+      return res.status(400).json({
+        error: 'Faltan campos obligatorios',
+        camposRequeridos: ['titulo', 'fecha_evento', 'tipo_evento']
+      });
+    }
+
+    const result = await pool.request()
+      .input('titulo', sql.NVarChar, titulo)
+      .input('descripcion', sql.NVarChar, descripcion || null)
+      .input('fecha_evento', sql.Date, fecha_evento)
+      .input('hora_evento', sql.Time, hora_evento || null)
+      .input('tipo_evento', sql.NVarChar, tipo_evento)
+      .input('ubicacion', sql.NVarChar, ubicacion || null)
+      .query(`
+        INSERT INTO eventos_calendario (
+          titulo,
+          descripcion,
+          fecha_evento,
+          hora_evento,
+          tipo_evento,
+          ubicacion
+        )
+        OUTPUT INSERTED.id
+        VALUES (
+          @titulo,
+          @descripcion,
+          @fecha_evento,
+          @hora_evento,
+          @tipo_evento,
+          @ubicacion
+        )
+      `);
+
+    res.status(201).json({
+      message: 'Evento agregado exitosamente',
+      id: result.recordset[0].id
+    });
+
+  } catch (err) {
+    console.error('Error al agregar evento:', err.message);
+    res.status(500).json({
+      error: 'Error al agregar evento',
+      message: err.message
+    });
+  }
+});
+
+//AGREGA UN JUEZ A LA DB
+app.post('/juez/agregar', async (req, res) => {
+  try {
+    const {
+      nombre,
+      apellido,
+      estado,
+    } = req.body;
+
+    // Validación de campos obligatorios
+    if (!nombre || !apellido || !estado) {
+      return res.status(400).json({
+        error: 'Faltan campos obligatorios',
+        camposRequeridos: ['nombre', 'apellido', 'estado']
+      });
+    }
+
+    const result = await pool.request()
+  .input('nombre', sql.NVarChar, nombre)
+  .input('apellido', sql.NVarChar, apellido)
+  .input('estado', sql.NVarChar, estado)
+  .query(`
+    INSERT INTO juez (
+      nombre,
+      apellido,
+      estado
+    )
+    OUTPUT INSERTED.id
+    VALUES (
+      @nombre,
+      @apellido,
+      @estado
+    )
+  `);
+
+
+    res.status(201).json({
+      message: 'Juez agregado exitosamente',
+      id: result.recordset[0].id
+    });
+
+  } catch (err) {
+    console.error('Error al agregar juez:', err.message);
+    res.status(500).json({
+      error: 'Error al agregar juez',
+      message: err.message
+    });
+  }
+});
+
+//MODIFICA UN JUEZ
+app.put('/juez/modificar/:id', async (req, res) => {
+  const { id } = req.params;
+  const nuevosDatos = req.body;
+
+  try {
+      const resultado = await pool.request()
+          .input('id', sql.Int, id)
+          .input('nombre', sql.NVarChar, nuevosDatos.nombre)
+          .input('apellido', sql.NVarChar, nuevosDatos.apellido)
+          .input('estado', sql.NVarChar, nuevosDatos.estado)
+          .query(`
+              UPDATE juez
+              SET nombre = @nombre,
+                 apellido = @apellido,
+                  estado = @estado
+              WHERE id = @id
+          `);
+
+      if (resultado.rowsAffected[0] > 0) {
+          res.status(200).json({ mensaje: 'Juez actualizado correctamente' });
+      } else {
+          res.status(404).json({ mensaje: 'Juez no encontrado' });
+      }
+  } catch (error) {
+      console.error('Error al actualizar juez:', error);
+      res.status(500).json({ mensaje: 'Error al actualizar juez' });
+  }
+});
+
+
 
              // Iniciar el servidor
       app.listen(3000, () => {

@@ -6,6 +6,10 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatOptionModule } from '@angular/material/core';
 
 import { EventosService } from 'src/app/services/eventos.service';
 import { EventoModel } from 'src/app/models/evento/evento.component';
@@ -20,7 +24,11 @@ import { EventoModel } from 'src/app/models/evento/evento.component';
     MatNativeDateModule,
     FormsModule,
     MatIconModule,
-    MatButtonModule
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatOptionModule
   ],
   templateUrl: './calendario.page.html',
   styleUrls: ['./calendario.page.scss']
@@ -30,7 +38,17 @@ export class CalendarioPage implements OnInit, OnDestroy {
   eventos: EventoModel[] = [];
   hayEventos: boolean = false;
   private timeoutId: any;
+  mostrarFormulario = false;
 
+  nuevoEvento: EventoModel = {
+    titulo: '',
+    descripcion: '',
+    fecha_evento: '',
+    hora_evento: '',
+    tipo_evento: '',
+    ubicacion: ''
+  };
+  
   constructor(private eventosService: EventosService) {}
 
   ngOnInit() {
@@ -59,4 +77,40 @@ export class CalendarioPage implements OnInit, OnDestroy {
     });
     
   }
+  guardarEvento() {
+    if (
+      this.nuevoEvento.titulo &&
+      this.nuevoEvento.fecha_evento &&
+      this.nuevoEvento.tipo_evento
+    ) {
+      this.eventosService.addEvento(this.nuevoEvento).subscribe({
+        next: (response) => {
+          console.log('Evento agregado correctamente:', response);
+  
+          const eventoConId = { ...this.nuevoEvento, id: response.id };
+          this.eventos.push(eventoConId);
+  
+          this.nuevoEvento = {
+            titulo: '',
+            descripcion: '',
+            fecha_evento: '',
+            hora_evento: '',
+            tipo_evento: '',
+            ubicacion: ''
+          };
+          this.mostrarFormulario = false;
+  
+          alert('Evento guardado correctamente');
+        },
+        error: (error) => {
+          console.error('Error al guardar el evento:', error);
+          alert('Ocurrió un error al guardar el evento');
+        }
+      });
+  
+    } else {
+      alert('Completa al menos Título, Fecha y Tipo');
+    }
+  }
+  
 }

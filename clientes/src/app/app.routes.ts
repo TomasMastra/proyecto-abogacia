@@ -53,5 +53,9 @@ export const routes: Routes = [
   {
     path: 'calendario',
     loadComponent: () => import('./pages/calendario/calendario.page').then( m => m.CalendarioPage)
+  },
+  {
+    path: 'jueces',
+    loadComponent: () => import('./pages/jueces/jueces.page').then( m => m.JuecesPage)
   }
 ];

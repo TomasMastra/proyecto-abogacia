@@ -38,16 +38,10 @@ export class JuzgadosService {
 
   // NO ESTA EN EL SERVER
   getJuzgadoPorId(id: string) {
-    console.log(id)
     return this.http.get<JuzgadoModel>(`${this.apiUrl}/${id}`);
   }
 
   addJuzgado(juzgado: JuzgadoModel): Observable<any> {
-
-    console.log('localidadElegida.id', juzgado.localidad_id);
-    console.log('Tipo de localidadElegida.id', typeof juzgado.localidad_id);
-    console.log('Juzgado antes de enviarlo:', juzgado);
-
     const url = `${this.apiUrl}/agregar`;
     return this.http.post(`${this.apiUrl}/agregar`, juzgado);
   }
@@ -82,6 +76,25 @@ export class JuzgadosService {
 getExpedientesPorJuzgado(juzgadoId: string) {
   return this.http.get<any[]>(`http://localhost:3000/expedientes/clientes?id=${juzgadoId}`);
 }
+
+
+  searchJuzgados(texto: string): Observable<JuzgadoModel[]> {
+    const textoLower = texto.toLowerCase();
+    const url = `${this.apiUrl}/buscar?texto=${textoLower}`;
+  
+    //console.log('URL de búsqueda:', url);
+  
+    return this.http.get<JuzgadoModel[]>(url).pipe(
+      tap(response => {
+        console.log('Respuesta de la API:', response);  
+      }),
+      catchError(error => {
+        console.error('Error al buscar juzgados', error);
+        return of([]);  
+      })
+    );
+  }
+
 
 
   

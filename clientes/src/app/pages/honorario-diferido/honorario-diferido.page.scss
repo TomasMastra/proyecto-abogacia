@@ -247,5 +247,23 @@
   user-select: none;
 }
 
+th {
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  position: relative;
+  user-select: none;
+}
+
+th:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.flecha {
+  margin-left: 6px;
+  font-size: 0.9rem;
+  color: #ffeb3b;
+}
+
+
 
 

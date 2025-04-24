@@ -43,6 +43,7 @@
             <mat-icon>paid</mat-icon>
             <span>Honorarios</span>
           </button>
+
         </mat-menu>
         
         <!-- General -->
@@ -53,7 +54,7 @@
         
         <mat-menu #generalMenu="matMenu">
           <button mat-menu-item [class.active-route]="isActive('juzgados')" (click)="goTo('juzgados')">
-            <mat-icon>gavel</mat-icon>
+            <mat-icon>account_balance</mat-icon>
             <span>Juzgados</span>
           </button>
           <button mat-menu-item [class.active-route]="isActive('localidades')" (click)="goTo('localidades')">
@@ -63,6 +64,10 @@
           <button mat-menu-item [class.active-route]="isActive('demandado')" (click)="goTo('demandado')">
             <mat-icon>gavel</mat-icon>
             <span>Demandados</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('jueces')" (click)="goTo('jueces')">
+            <mat-icon>balance</mat-icon>
+            <span>Jueces</span>
           </button>
         </mat-menu>
         

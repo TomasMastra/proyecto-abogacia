@@ -244,7 +244,7 @@ export class DialogExpedienteComponent {
         demandado_id: this.demandadoElegido?.id ?? null,
         numero: this.form.value.numero,
         anio: this.form.value.anio,
-        demandadoModel: { id: '', nombre: '', estado: '' },
+        demandadoModel: null,
         estado: this.estadoSeleccionado, // Este es el valor por defecto. Se actualizaría si el estado es 'sentencia'.
         sala_radicacion: null,
         honorario: this.form.value.honorario ?? null,
@@ -252,7 +252,7 @@ export class DialogExpedienteComponent {
         fecha_sentencia: null,
         hora_sentencia: null,
         juez_id: this.juezSeleccionado?.id ?? null,
-        juezModel: { id: '', nombre: '' },
+        juezModel: { id: '', nombre: '', apellido: '', estado: '' },
         juicio: this.juicioSeleccionado,
         ultimo_movimiento: this.data?.ultimo_movimiento,
         monto: null,
@@ -266,6 +266,8 @@ export class DialogExpedienteComponent {
         estadoLiquidacionCapitalSeleccionado: null,
         fechaLiquidacionCapital: null,
         montoLiquidacionCapital: null,
+        capitalCobrado: false,
+
 
         // 📌 Campos nuevos - Honorarios
         estadoHonorariosSeleccionado: null,
@@ -273,7 +275,9 @@ export class DialogExpedienteComponent {
         fechaHonorariosSubestado: null,
         estadoLiquidacionHonorariosSeleccionado: null,
         fechaLiquidacionHonorarios: null,
-        montoLiquidacionHonorarios: null
+        montoLiquidacionHonorarios: null,
+        honorarioCobrado: false,
+        cantidadUMA: null
 
 
       };

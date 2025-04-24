@@ -1,0 +1,51 @@
+<div class="content mat-elevation-z8">
+
+  <ion-list class="lista-clientes">
+
+    <div class="toolbar">
+      <ion-input 
+        placeholder="Buscar por nombre o apellido" 
+        class="input-busqueda"
+        [(ngModel)]="busqueda"
+        (ngModelChange)="buscar()">
+      </ion-input>
+
+      <button mat-button class="list-button" (click)="agregarJuez()">
+        <mat-icon style="color: #ffffff">cases</mat-icon>
+        <span style="color: #ffffff">Agregar juez</span>
+      </button>
+
+      <button mat-button class="list-button">
+        <mat-icon style="color: #ffffff">download</mat-icon>
+      </button>
+
+      <button mat-button class="list-button">
+        <mat-icon style="color: #ffffff">more_vert</mat-icon>
+      </button>
+    </div>
+
+    <div> 
+      <ion-item-sliding *ngFor="let juez of jueces" class="cliente">
+        <ion-item class="cliente" *ngIf="hayJueces && jueces.length > 0">
+          <ion-label>
+            <h1>{{ juez.nombre }} {{juez.apellido}}</h1>
+          </ion-label>
+
+          <button mat-button class="list-button" (click)="eliminarJuez(juez)">
+            <mat-icon style="color: #ffffff">delete</mat-icon>
+          </button>
+
+          <button mat-button class="list-button" >
+            <mat-icon style="color: #ffffff">edit</mat-icon>
+          </button>
+        </ion-item>
+      </ion-item-sliding>
+
+      <ion-item *ngIf="!hayJueces && jueces.length <= 0" class="cliente">
+        <ion-label text-center>{{ texto }}</ion-label>
+      </ion-item>
+    </div>
+
+  </ion-list>
+
+</div>

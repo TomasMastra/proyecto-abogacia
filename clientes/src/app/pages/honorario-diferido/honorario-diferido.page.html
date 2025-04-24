@@ -18,12 +18,7 @@
     <label for="styledSelect1" class="custom-select">
       <select id="styledSelect1" name="options" (change)="cambiarEstado($event)">
         <option value="">Seleccionar estado</option>
-        <option value="todos" selected>Todos</option>
-        <option value="inicio">Inicio</option>
-        <option value="prueba">Prueba</option>
-        <option value="fiscal">Fiscal</option>
-        <option value="clausula periodo prueba">Clausula periodo prueba</option>
-        <option value="sentencia">Sentencia</option>
+        <option value="sentencia" selected>Sentencia</option>
       </select>
     </label>
   </div>
@@ -36,33 +31,110 @@
     <table>
       <thead>
         <tr>
-          <th>Nº expediente</th>
-          <th>Juzgado</th>
-          <th>Carátula</th>
-          <th>Fecha sentencia</th>
-          <th>Estado</th>
+          <th (click)="ordenarPor('numero')" [class.activo]="ordenCampo === 'numero'">
+            Nº expediente
+            <span class="flecha" *ngIf="ordenCampo === 'numero'">{{ ordenAscendente ? '↑' : '↓' }}</span>
+          </th>
+          <th  (click)="ordenarPor('juzgado')" [class.activo]="ordenCampo === 'juzgado'">
+            Juzgado
+            <span class="flecha" *ngIf="ordenCampo === 'juzgado'">{{ ordenAscendente ? '↑' : '↓' }}</span>
+
+          </th>
+          <th>
+            Cobranza
+          </th>
+          <th>
+            Estado
+          </th>
+          <th>
+            Ultimo movimiento
+          </th>
+          <th>
+            Importe
+          </th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of honorariosDiferidos">
-          <td>{{ item.numero }}/{{ item.anio }}</td>
-          <td>{{ item.juzgadoModel?.nombre || 'Sin juzgado' }}</td>
-          <td *ngIf="item.clientes.length === 1">
-            {{ item.clientes[0].nombre }} {{ item.clientes[0].apellido }} contra {{ item.demandadoModel.nombre }}
-          </td>
-          <td *ngIf="item.clientes.length > 1">
-            {{ item.clientes[0].nombre }} {{ item.clientes[0].apellido }} y otros contra {{ item.demandadoModel.nombre }}
-          </td>
-          <td *ngIf="item.clientes.length === 0">
-            (sin actora) contra {{ item.demandadoModel.nombre }}
-          </td>
-          <td>{{ item.fecha_sentencia | date:'yyyy-MM-dd' }}</td>
-          <td>{{ item.estado }}</td>
-        </tr>
-        <tr *ngIf="!hayHonorarios">
-          <td colspan="5" style="text-align: center;">No se encontraron honorarios.</td>
-        </tr>
+        <ng-container *ngFor="let item of honorariosDiferidosOrdenados">
+          <tr>
+            <!-- Nº EXPEDIENTE ocupa dos filas -->
+            <td rowspan="2">{{ item.numero }}/{{ item.anio }}</td>
+      
+            <!-- JUZGADO - PRIMERA FILA -->
+            <td  rowspan="2">
+              {{ item.juzgadoModel?.nombre || 'Juzgado sin asignar' }}
+            </td>
+      
+            <!-- COBRANZA / CAPITAL -->
+             <td *ngIf="!item.capitalCobrado">Capital</td>
+
+      
+            <!-- ESTADO / FECHA CAPITAL -->
+            <td *ngIf="!item.capitalCobrado">
+              {{ item.subEstadoCapitalSeleccionado || item.estadoLiquidacionCapitalSeleccionado }}
+            </td>
+
+      
+            <!-- HONORARIO / ESTADO -->
+            <td *ngIf="!item.capitalCobrado">
+             <!--  {{ (item.fechaCapitalSubestado || item.fechaLiquidacionCapital) | date:'dd/MM/yyyy' }} -->
+              {{ item.fechaCapitalSubestado?.split('T')[0] || item.fechaLiquidacionCapital?.split('T')[0] }}
+
+            </td>
+      
+            <!-- FECHA HONORARIOS -->
+<!-- Capital: Monto -->
+<td *ngIf="!item.capitalCobrado">
+  <span *ngIf="item.montoLiquidacionCapital ">
+    ${{ item.montoLiquidacionCapital | number:'1.0-0'}}
+    <button *ngIf="!item.capitalCobrado" mat-icon-button color="primary" (click)="cobrar('capital', item)">
+      <mat-icon>attach_money</mat-icon>
+    </button>
+    <mat-icon *ngIf="item.capitalCobrado" style="color: limegreen">check_circle</mat-icon>
+  </span>
+</td>
+            
+
+          </tr>
+      
+          <tr>
+            <!-- JUZGADO - SEGUNDA FILA (detalles o info opcional) -->
+
+      
+            <td *ngIf="!item.honorarioCobrado">
+              Honorarios
+            </td>
+      
+            <td *ngIf="!item.honorarioCobrado">
+              {{ item.subEstadoHonorariosSeleccionado || item.estadoLiquidacionHonorariosSeleccionado }}
+            </td>
+            <td *ngIf="!item.honorarioCobrado"
+            >
+             
+            <!--{{ (item.fechaHonorariosSubestado || item.fechaLiquidacionHonorarios) | date:'dd/MM/yyyy' }} -->
+            {{ item.fechaHonorariosSubestado?.split('T')[0] || item.fechaLiquidacionHonorarios?.split('T')[0] }}
+
+            </td>
+      
+
+            <td *ngIf="!item.honorarioCobrado">
+              <span *ngIf="item.montoLiquidacionHonorarios">
+                ${{ item.montoLiquidacionHonorarios | number:'1.0-0'}}
+                <button *ngIf="!item.honorarioCobrado" mat-icon-button color="primary" (click)="cobrar('honorario', item)">
+                  <mat-icon>attach_money</mat-icon>
+                </button>
+                <mat-icon *ngIf="item.honorarioCobrado" style="color: limegreen">check_circle</mat-icon>
+              </span>
+            </td>
+            
+
+            
+          </tr>
+        </ng-container>
       </tbody>
+      
+      
+      
     </table>
   </div>
 

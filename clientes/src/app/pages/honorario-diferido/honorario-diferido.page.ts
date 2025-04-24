@@ -31,6 +31,10 @@ import { IonList, IonItemSliding, IonLabel, IonItem, IonInput } from "@ionic/ang
 import { JuzgadosService } from 'src/app/services/juzgados.service';
 import { JuzgadoModel } from 'src/app/models/juzgado/juzgado.component';
 
+import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
+
+import Swal from 'sweetalert2'
+
 
 @Component({
   selector: 'app-honorario-diferido',
@@ -54,6 +58,9 @@ export class HonorarioDiferidoPage implements OnInit {
   private destroy$ = new Subject<void>();
   busqueda: string = '';
 
+  ordenCampo: string = '';
+  ordenAscendente: boolean = true;
+
   constructor(
     private expedienteService: ExpedientesService,
     private juzgadoService: JuzgadosService,
@@ -62,7 +69,7 @@ export class HonorarioDiferidoPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.cargarHonorariosDiferidos();
+    this.cargarPorEstado('sentencia');
   }
   cargarHonorariosDiferidos() {
     this.cargando = true;
@@ -72,11 +79,14 @@ export class HonorarioDiferidoPage implements OnInit {
         (honorarios) => {
           this.honorariosDiferidos = honorarios;
           this.hayHonorarios = this.honorariosDiferidos.length > 0;
+
+      
   
           // ✅ Solo agregar el juzgado a cada expediente
           this.honorariosDiferidos.forEach(expediente => {
             this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
               expediente.juzgadoModel = juzgado;
+
             });
           });
   
@@ -97,6 +107,8 @@ export class HonorarioDiferidoPage implements OnInit {
         (honorarios) => {
           this.honorariosDiferidos = honorarios;
           this.hayHonorarios = this.honorariosDiferidos.length > 0;
+          console.log(this.honorariosDiferidos[2].fechaCapitalSubestado);
+
   
           // ✅ Solo agregar el juzgado a cada expediente
           this.honorariosDiferidos.forEach(expediente => {
@@ -162,6 +174,121 @@ export class HonorarioDiferidoPage implements OnInit {
 obtenerJuzgado(id: number){
 
 }
+
+
+
+get honorariosDiferidosOrdenados() {
+  return [...this.honorariosDiferidos].sort((a, b) => {
+    const campo = this.ordenCampo;
+
+    const valorA = this.obtenerValorOrden(a, campo);
+    const valorB = this.obtenerValorOrden(b, campo);
+
+    if (valorA < valorB) return this.ordenAscendente ? -1 : 1;
+    if (valorA > valorB) return this.ordenAscendente ? 1 : -1;
+    return 0;
+  });
+}
+
+ordenarPor(campo: string) {
+  if (this.ordenCampo === campo) {
+    this.ordenAscendente = !this.ordenAscendente;
+  } else {
+    this.ordenCampo = campo;
+    this.ordenAscendente = true;
+  }
+}
+
+obtenerValorOrden(item: any, campo: string): any {
+  switch (campo) {
+    case 'numero': return `${item.numero}/${item.anio}`;
+    case 'caratula':
+      return item.clientes.length > 0
+        ? `${item.clientes[0].nombre} ${item.clientes[0].apellido}`
+        : '(sin actora)';
+    case 'estadoCapital':
+      return item.subEstadoCapitalSeleccionado || item.estadoLiquidacionCapitalSeleccionado || '';
+    case 'fechaCapital':
+      return item.fechaCapitalSubestado || item.fechaLiquidacionCapital || '';
+    case 'estadoHonorarios':
+      return item.subEstadoHonorariosSeleccionado || item.estadoLiquidacionHonorariosSeleccionado || '';
+    case 'fechaHonorarios':
+      return item.fechaHonorariosSubestado || item.fechaLiquidacionHonorarios || '';
+    default:
+      return '';
+  }
+}
+
+
+//////////////////////////
+
+
+cobrar(tipo: 'capital' | 'honorario', expediente: ExpedienteModel) {
+  if (tipo === 'capital') {
+    expediente.capitalCobrado = true;
+  } else if (tipo === 'honorario') {
+    expediente.honorarioCobrado = true;
+  }
+
+  // Verificamos si se cobraron ambos
+  const ambosCobrados = expediente.capitalCobrado && expediente.honorarioCobrado;
+
+  if (ambosCobrados) {
+    expediente.estado = 'cobrado';
+  }
+
+  this.expedienteService.actualizarExpediente(expediente.id, expediente).subscribe({
+    next: () => {
+      this.cargarPorEstado('sentencia'); // Refrescar la tabla
+
+      if (ambosCobrados) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Se cobró el capital y el honorario. Estado actualizado a COBRADO.",
+          showConfirmButton: false,
+          timer: 3000
+        });
+      } else if (tipo === 'capital') {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Capital cobrado correctamente.",
+          showConfirmButton: false,
+          timer: 3000
+        });
+      } else if (tipo === 'honorario') {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Honorario cobrado correctamente.",
+          showConfirmButton: false,
+          timer: 3000
+        });
+      }
+    },
+    error: (err) => {
+      console.error('Error al actualizar el expediente:', err);
+
+      // Restaurar cambio si falló la actualización
+      if (tipo === 'capital') expediente.capitalCobrado = false;
+      if (tipo === 'honorario') expediente.honorarioCobrado = false;
+
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Error al cobrar. Intentalo nuevamente.",
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  });
+}
+
 
   
 }

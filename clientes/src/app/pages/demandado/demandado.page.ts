@@ -11,6 +11,9 @@ import { DemandadoModel } from 'src/app/models/demandado/demandado.component';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
 
+import { LocalidadesService } from 'src/app/services/localidades.service';
+import { LocalidadModel } from 'src/app/models/localidad/localidad.component';
+
 import { Subscription, Observable  } from 'rxjs';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -58,11 +61,18 @@ export class DemandadoPage implements OnInit {
 
   private demandadosService: DemandadosService;
   private expedientesService: ExpedientesService;
+  private LocalidadesService: LocalidadesService;
+
 
   demandados: DemandadoModel[] = [];
   demandadosOriginales: DemandadoModel[] = []; 
 
+  localidades: LocalidadModel[] = [];
+
+
   getDemandados$!: Subscription;
+  getLocalidades$!: Subscription;
+
   hayDemandados: boolean = true;
   busqueda: string = '';
   busquedaAnterior: string = ''; 
@@ -74,10 +84,13 @@ export class DemandadoPage implements OnInit {
 
 
 
-  constructor(demandadoService: DemandadosService, expedientesService: ExpedientesService, private dialog: MatDialog,
+  constructor(demandadoService: DemandadosService, expedientesService: ExpedientesService, 
+    localidadesService: LocalidadesService, private dialog: MatDialog,
     private router: Router) {
     this.demandadosService = demandadoService;
     this.expedientesService = expedientesService;
+    this.LocalidadesService = localidadesService;
+
 
   }
 
@@ -86,6 +99,8 @@ export class DemandadoPage implements OnInit {
           ngOnInit() {
             if(this.busqueda == ''){
               this.cargarDemandados(); 
+              this.obtenerLocalidades(); 
+
             }
           }
         
@@ -177,11 +192,36 @@ export class DemandadoPage implements OnInit {
         );
       }
 
-
-      buscar(){
-
+      obtenerLocalidades() {
+        this.getLocalidades$ = this.LocalidadesService.getLocalidades().subscribe(
+          (localidades) => {
+            this.localidades = localidades;
+            //this.localidadesOriginales = [...localidades]; 
+            //this.hayLocalidades = this.localidades.length > 0;
+          },
+          (error) => {
+            console.error('Error al obtener clientes:', error);
+          }
+        );
       }
 
+
+      async buscar() {
+
+        this.demandadosService.searchDemandados(this.busqueda).subscribe(
+          (demandados) => {
+            this.demandados = demandados;
+            this.demandadosOriginales = [...demandados];
+            this.hayDemandados = this.demandados.length > 0;
+            this.texto = 'No se encontraron demandados';
+          },
+          (error) => {
+            console.error('Error al obtener demandados:', error);
+          },
+          
+        );
+    }
+/*
       agregarDemandado() {
         Swal.fire({
           title: "Agregar Demandado",
@@ -203,7 +243,9 @@ export class DemandadoPage implements OnInit {
             const demandado: DemandadoModel = {
               nombre: result.value,
               id: '', 
-              estado: 'en gestión'
+              estado: 'en gestión',
+              direccion: '',
+              localidad_id: 1
             };
       
             // Intentar agregar el demandado
@@ -232,9 +274,77 @@ export class DemandadoPage implements OnInit {
             });
           }
         });
-      }
+      }*/
 
+        agregarDemandado() {
+          const opcionesLocalidades = this.localidades.map(loc => `<option value="${loc.id}">${loc.localidad}</option>`).join('');
+        
+          Swal.fire({
+            title: 'Agregar Demandado',
+            html:
+              `<input id="nombre" class="swal2-input" placeholder="Nombre del demandado">` +
+              `<input id="direccion" class="swal2-input" placeholder="Dirección">` +
+              `<select id="localidad_id" class="swal2-input">
+                <option value="">Seleccione localidad</option>
+                ${opcionesLocalidades}
+              </select>`,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Agregar',
+            preConfirm: () => {
+              const nombre = (document.getElementById('nombre') as HTMLInputElement).value.trim();
+              const direccion = (document.getElementById('direccion') as HTMLInputElement).value.trim();
+              const localidad_id = +(document.getElementById('localidad_id') as HTMLSelectElement).value;
+        
+              if (!nombre || !direccion || !localidad_id) {
+                Swal.showValidationMessage('Todos los campos son obligatorios');
+                return null;
+              }
+        
+              return { nombre, direccion, localidad_id };
+            }
+          }).then((result) => {
+            if (result.isConfirmed && result.value) {
+              const { nombre, direccion, localidad_id } = result.value;
+        
+              const demandado: DemandadoModel = {
+                id: '',
+                nombre,
+                direccion,
+                localidad_id,
+                estado: 'en gestión'
+              };
+        
+              this.demandadosService.addDemandado(demandado).subscribe({
+                next: () => {
+                  this.cargarDemandados();
+                  Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Demandado agregado correctamente',
+                    showConfirmButton: false,
+                    timer: 2000
+                  });
+                },
+                error: (error) => {
+                  console.error('Error al agregar el demandado:', error);
+                  Swal.fire({
+                    toast: true,
+                    title: 'Error',
+                    text: 'Hubo un problema al agregar al demandado. Intenta nuevamente.',
+                    icon: 'error'
+                  });
+                }
+              });
+            }
+          });
+        }
+        
+        
+        
 
+/*
       modificarDemandado(demandado: DemandadoModel) { 
         Swal.fire({
           title: "Modificar Demandado",
@@ -286,7 +396,78 @@ export class DemandadoPage implements OnInit {
             });
           }
         });
-      }
+      }*/
+
+        modificarDemandado(demandado: DemandadoModel) {
+          const opcionesLocalidades = this.localidades
+          .map(loc => `
+            <option value="${loc.id}" ${loc.id.toString() === String(demandado.localidad_id) ? 'selected' : ''}>
+              ${loc.localidad}
+            </option>
+          `)
+          .join('');
+        
+        
+          Swal.fire({
+            title: 'Modificar Demandado',
+            html: `
+              <input id="nombre" class="swal2-input" placeholder="Nombre" value="${demandado.nombre ?? ''}">
+              <input id="direccion" class="swal2-input" placeholder="Dirección" value="${demandado.direccion ?? ''}">
+              <select id="localidad" class="swal2-input">
+                <option value="">Seleccione localidad</option>
+                ${opcionesLocalidades}
+              </select>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Modificar',
+            preConfirm: () => {
+              const nombre = (document.getElementById('nombre') as HTMLInputElement).value.trim();
+              const direccion = (document.getElementById('direccion') as HTMLInputElement).value.trim();
+              const localidad_id = +(document.getElementById('localidad') as HTMLSelectElement).value;
+        
+              if (!nombre || !direccion || !localidad_id) {
+                Swal.showValidationMessage('Todos los campos son obligatorios');
+                return null;
+              }
+        
+              return { nombre, direccion, localidad_id };
+            }
+          }).then((result) => {
+            if (result.isConfirmed && result.value) {
+              const { nombre, direccion, localidad_id } = result.value;
+        
+              const demandadoModificado: DemandadoModel = {
+                ...demandado,
+                nombre,
+                direccion,
+                localidad_id
+              };
+        
+              this.demandadosService.actualizarDemandado(demandado.id, demandadoModificado).subscribe({
+                next: () => {
+                  this.cargarDemandados();
+                  Swal.fire({
+                    toast: true,
+                    title: 'Demandado modificado',
+                    text: `Se modificó a ${demandadoModificado.nombre} correctamente.`,
+                    icon: 'success'
+                  });
+                },
+                error: (error) => {
+                  console.error('Error al modificar el demandado:', error);
+                  Swal.fire({
+                    toast: true,
+                    title: 'Error',
+                    text: 'Hubo un problema al modificar al demandado. Intenta nuevamente.',
+                    icon: 'error'
+                  });
+                }
+              });
+            }
+          });
+        }
+        
       
       
       

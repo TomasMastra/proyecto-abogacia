@@ -199,7 +199,7 @@ export class DialogExpedienteModificarComponent   {
 
           // modificar
           juez_id: null,
-          juezModel: { id: '', nombre: '' },
+          juezModel: { id: '', nombre: '', apellido: '', estado: '' },
           juicio: this.juicioSeleccionado,
           ultimo_movimiento: this.data?.ultimo_movimiento,
           monto: this.data?.monto,
@@ -213,6 +213,8 @@ export class DialogExpedienteModificarComponent   {
           estadoLiquidacionCapitalSeleccionado: this.data?.estadoLiquidacionCapitalSeleccionado ?? null,
           fechaLiquidacionCapital: this.data?.fechaLiquidacionCapital ?? null,
           montoLiquidacionCapital: this.data?.montoLiquidacionCapital ?? null,
+          capitalCobrado: this.data?.capitalCobrado ??  null,
+
 
           // 📌 Campos nuevos - Honorarios
           estadoHonorariosSeleccionado: this.data?.estadoHonorariosSeleccionado ?? null,
@@ -220,7 +222,10 @@ export class DialogExpedienteModificarComponent   {
           fechaHonorariosSubestado: this.data?.fechaHonorariosSubestado ?? null,
           estadoLiquidacionHonorariosSeleccionado: this.data?.estadoLiquidacionHonorariosSeleccionado ?? null,
           fechaLiquidacionHonorarios: this.data?.fechaLiquidacionHonorarios ?? null,
-          montoLiquidacionHonorarios: this.data?.montoLiquidacionHonorarios ?? null
+          montoLiquidacionHonorarios: this.data?.montoLiquidacionHonorarios ?? null,
+          honorarioCobrado: this.data?.honorarioCobrado ??  null,
+          cantidadUMA:  this.data?.cantidadUMA ??  null,
+
 
 
         };

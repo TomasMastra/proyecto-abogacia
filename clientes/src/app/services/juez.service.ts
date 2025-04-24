@@ -34,4 +34,17 @@ export class JuezService {
       return this.juez$;  
     }
 
+      addJuez(juez: JuezModel): Observable<any> {
+        const url = `${this.apiUrl}/agregar`;
+        return this.http.post(`${this.apiUrl}/agregar`, juez);
+      }
+
+        actualizarJuez(id: string, juez: JuezModel): Observable<JuezModel> {
+        const url = `${this.apiUrl}/modificar/${id}`;
+          return this.http.put<JuezModel>(url, juez);
+        }
+
+        getExpedientesPorJuez(juez_id: string) {
+          return this.http.get<any[]>(`http://localhost:3000/expedientes/jueces?id=${juez_id}`);
+        }
 }

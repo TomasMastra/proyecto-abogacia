@@ -56,5 +56,20 @@ export class DemandadosService {
     }
 */
 
-
+  searchDemandados(texto: string): Observable<DemandadoModel[]> {
+    const textoLower = texto.toLowerCase();
+    const url = `${this.apiUrl}/buscar?texto=${textoLower}`;
+  
+    //console.log('URL de búsqueda:', url);
+  
+    return this.http.get<DemandadoModel[]>(url).pipe(
+      tap(response => {
+        console.log('Respuesta de la API:', response);  
+      }),
+      catchError(error => {
+        console.error('Error al buscar demandados', error);
+        return of([]);  
+      })
+    );
+  }
 }

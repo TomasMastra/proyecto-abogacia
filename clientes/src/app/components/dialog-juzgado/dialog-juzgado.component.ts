@@ -59,6 +59,8 @@ export class DialogJuzgadoComponent {
       nombre: new FormControl('', [Validators.required]),  
       direccion: new FormControl(/*'', [Validators.required]*/),
       localidad: new FormControl('', [Validators.required]),
+      tipo: new FormControl('', [Validators.required]),
+
     });
     
 
@@ -67,6 +69,9 @@ export class DialogJuzgadoComponent {
         localidad: data.localidad || '',
         nombre: data.nombre || '',
         //direccion: data.direccion || '',
+        tipo: data.tipo || '',
+
+        
 
       });
 

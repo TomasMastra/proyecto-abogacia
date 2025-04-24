@@ -28,6 +28,12 @@ export class EventosService {
     return this.eventos$;
   }
 
+    addEvento(evento: EventoModel): Observable<any> {
+      const url = `${this.apiUrl}/agregar`;
+      //console.log('URL de búsqueda:', url);
+      //console.log('Datos enviados:', cliente);
+          return this.http.post(`${this.apiUrl}/agregar`, evento);
+    }
 
 /*
     getDemandadoPorId(id: number) {

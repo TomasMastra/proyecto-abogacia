@@ -28,11 +28,12 @@
 
         <div class="form__group field full-width">
           <input type="input" class="form__field" placeholder="Año" name="anio" id="anio" required formControlName="anio"/>
-          <label for="titulo" class="form__label">Año</label>
+          <label for="anio" class="form__label">Año</label>
           <div class="error" *ngIf="form.controls?.['anio']?.invalid && (form.controls?.['anio']?.dirty || form.controls?.['anio']?.touched)">
             <div *ngIf="form.controls?.['anio']?.errors?.['required']" style="color: red;">El año es requerido</div>
           </div>
         </div>
+
 
 <!-- 
         <mat-form-field appearance="outline" class="full-width">

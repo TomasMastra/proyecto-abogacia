@@ -29,13 +29,13 @@
         <ion-item class="cliente" *ngIf="hayExpedientes && expedientes.length > 0">
           <ion-label>
             <h2 *ngIf="expediente.clientes.length === 1">
-              {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} contra {{ expediente.demandadoModel.nombre }}
+              {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} contra {{ expediente.demandadoModel!.nombre }}
             </h2>
             <h2 *ngIf="expediente.clientes.length > 1">
-              {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} y otros contra {{ expediente.demandadoModel.nombre }}
+              {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} y otros contra {{ expediente.demandadoModel!.nombre }}
             </h2>
             <h2 *ngIf="expediente.clientes.length === 0">
-              {{ expediente.numero }}/{{ expediente.anio }} (sin actora) contra {{ expediente.demandadoModel.nombre }}
+              {{ expediente.numero }}/{{ expediente.anio }} (sin actora) contra {{ expediente.demandadoModel!.nombre }}
             </h2>
           </ion-label>
 

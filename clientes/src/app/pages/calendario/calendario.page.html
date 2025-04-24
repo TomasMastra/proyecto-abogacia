@@ -1,4 +1,4 @@
-<div class="calendario-container">
+<!-- <div class="calendario-container">
   <h2 class="titulo">Calendario de vencimientos y audiencias</h2>
 
   <mat-card class="calendar-card">
@@ -18,6 +18,87 @@
       <mat-card-content>
         <p><strong>Fecha:</strong> {{ evento.fecha_evento }}</p>
         <p><strong>Tipo:</strong> {{ evento.tipo_evento }}</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div> -->
+
+
+<div class="calendario-container">
+  <h1 class="titulo">
+    <mat-icon style="color: white" class="titulo-icono">calendar_month</mat-icon>
+    Calendario de Vencimientos y Audiencias
+  </h1>
+
+
+  <!-- Botón para mostrar el formulario -->
+  <div class="toolbar">
+    <button mat-raised-button color="accent" (click)="mostrarFormulario = !mostrarFormulario">
+      <mat-icon>{{ mostrarFormulario ? 'close' : 'add' }}</mat-icon>
+      {{ mostrarFormulario ? 'Cerrar formulario' : 'Agregar evento' }}
+    </button>
+  </div>
+
+  <!-- Formulario de carga -->
+<div class="formulario-container" *ngIf="mostrarFormulario">
+  <mat-card class="calendar-card">
+    <mat-card-title>Cargar nuevo evento</mat-card-title>
+    <mat-card-content>
+      <form class="formulario-evento">
+        <mat-form-field appearance="outline" style="color: white;">
+          <mat-label style="color: white;">Título</mat-label>
+          <input matInput [(ngModel)]="nuevoEvento.titulo" name="titulo" style="color: white;">
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" style="color: white;">
+          <mat-label style="color: white;">Descripción</mat-label>
+          <textarea matInput [(ngModel)]="nuevoEvento.descripcion" name="descripcion" style="color: white;"></textarea>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" style="color: white;">
+          <mat-label style="color: white;">Fecha del evento</mat-label>
+          <input matInput [matDatepicker]="picker" [(ngModel)]="nuevoEvento.fecha_evento" name="fecha_evento" style="color: white;">
+          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" style="color: white;">
+          <mat-label style="color: white;">Hora</mat-label>
+          <input matInput type="time" [(ngModel)]="nuevoEvento.hora_evento" name="hora_evento" style="color: white;">
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" style="color: white;">
+          <mat-label style="color: white;">Tipo</mat-label>
+          <mat-select [(ngModel)]="nuevoEvento.tipo_evento" name="tipo_evento" style="color: white;">
+            <mat-option value="Audiencia">Audiencia</mat-option>
+            <mat-option value="Vencimiento">Vencimiento</mat-option>
+            <mat-option value="Sentencia">Sentencia</mat-option>
+            <mat-option value="Notificación">Notificación</mat-option>
+            <mat-option value="Mediación">Mediación</mat-option>
+          </mat-select>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline" style="color: white;">
+          <mat-label style="color: white;">Ubicación</mat-label>
+          <input matInput [(ngModel)]="nuevoEvento.ubicacion" name="ubicacion" style="color: white;">
+        </mat-form-field>
+        
+
+        <button mat-raised-button color="primary" (click)="guardarEvento()">Guardar evento</button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+  <!-- Lista de eventos -->
+  <div class="eventos">
+    <mat-card class="evento-card" *ngFor="let evento of eventos">
+      <mat-card-title>{{ evento.titulo }}</mat-card-title>
+      <mat-card-content>
+        <p><strong>Fecha:</strong> {{ evento.fecha_evento }}</p>
+        <p><strong>Tipo:</strong> {{ evento.tipo_evento }}</p>
+        <p><strong>Ubicación:</strong> {{ evento.ubicacion }}</p>
+        <p><strong>Descripción:</strong> {{ evento.descripcion }}</p>
       </mat-card-content>
     </mat-card>
   </div>

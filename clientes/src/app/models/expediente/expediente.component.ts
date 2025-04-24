@@ -13,7 +13,7 @@ export interface ExpedienteModel {
   demandado_id: number | null,
   numero: number,
   anio: number,
-  demandadoModel: DemandadoModel,
+  demandadoModel: DemandadoModel | null,
   estado: string,
   sala_radicacion: string | null,
   honorario: string | null,
@@ -35,13 +35,16 @@ export interface ExpedienteModel {
     estadoLiquidacionCapitalSeleccionado: string | null,
     fechaLiquidacionCapital: string | null,
     montoLiquidacionCapital: number | null,
-  
+    capitalCobrado: boolean | null,
+
     // 📌 Honorarios
     estadoHonorariosSeleccionado: string | null,
     subEstadoHonorariosSeleccionado: string | null,
     fechaHonorariosSubestado: string | null,
     estadoLiquidacionHonorariosSeleccionado: string | null,
     fechaLiquidacionHonorarios: string | null,
-    montoLiquidacionHonorarios: number | null
+    montoLiquidacionHonorarios: number | null,
+    honorarioCobrado: boolean | null,
+    cantidadUMA: Number | null
   }
   
