@@ -384,7 +384,8 @@ deshabilitarApeladoOFirme = false;
             monto: null,
             apela: esSentencia ? this.apela : null,
             juzgadoModel: null,
-      
+            usuario_id: this.expediente.usuario_id,
+
             // Capital
             estadoCapitalSeleccionado: esSentencia ? this.estadoCapitalSeleccionado ?? null : null,
             subEstadoCapitalSeleccionado: esSentencia ? this.subEstadoCapitalSeleccionado ?? null : null,

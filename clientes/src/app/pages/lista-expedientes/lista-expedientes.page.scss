@@ -312,13 +312,18 @@ ion-item.cliente {
   background-color: #f0f0f0 !important; /* Usar !important para forzar el estilo */
 }
 
-ion-item.cliente h1 {
-  color: #ffffff; /* Asegurarse de que el color del texto no cambie */
+ion-item.cliente h1,
+ion-item.cliente h2,
+ion-item.cliente h3,
+ion-item.cliente h4,
+ion-item.cliente h5,
+ion-item.cliente h6,
+ion-item.cliente span,
+ion-item.cliente p,
+ion-item.cliente ion-label {
+  color: white !important;
 }
 
-ion-item.cliente h6 {
-  color: #666;
-}
 
 .lista-clientes {
   --background: #002b5c;
@@ -361,3 +366,5 @@ ion-item.cliente h6 {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 }
+
+

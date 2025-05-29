@@ -10,21 +10,54 @@ import { BehaviorSubject, forkJoin, Observable, throwError, of   } from 'rxjs';
 
 import { catchError, tap } from 'rxjs/operators';
 
+import { UsuarioService } from 'src/app/services/usuario.service';
+
 
 @Injectable({
   providedIn: 'root'
 })
 export class ExpedientesService {
   //private apiUrl = 'http://localhost:3000/expedientes';  
-  private apiUrl = 'http://192.168.68.103:3000/expedientes';
+  private apiUrl = 'http://192.168.1.36:3000/expedientes';
 
   private expedientesSubject = new BehaviorSubject<ExpedienteModel[]>([]); // Emite un arreglo vacío inicialmente
   clientes$ = this.expedientesSubject.asObservable();  // Expone el observable de clientes
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private usuarioService: UsuarioService) {}
 
-      getExpedientes() {
-        this.http.get<ExpedienteModel[]>(this.apiUrl).subscribe(
+getExpedientes() {
+  const usuario = this.usuarioService.usuarioLogeado;
+
+  const params = {
+    usuario_id: usuario.id,
+    rol: usuario.rol
+  };
+
+  this.http.get<ExpedienteModel[]>(this.apiUrl, { params }).subscribe(
+    (expedientes) => {
+      expedientes.forEach((expediente) => {
+        this.getClientesPorExpediente(expediente.id).subscribe((clientes) => {
+          expediente.clientes = clientes;
+        });
+
+        this.getDemandadoPorId(expediente.demandado_id!).subscribe((demandado) => {
+          expediente.demandadoModel = demandado;
+        });
+      });
+
+      this.expedientesSubject.next(expedientes);
+    },
+    (error) => {
+      console.error('Error al obtener expedientes:', error);
+    }
+  );
+
+  return this.clientes$; // ¿Querías retornar this.expedientes$ acá? 🤔
+}
+
+
+      getHonorarios() {
+        this.http.get<ExpedienteModel[]>(`${this.apiUrl}/honorarios`).subscribe(
           (expedientes) => {
             expedientes.forEach((expediente) => {
               this.getClientesPorExpediente(expediente.id).subscribe((clientes) => {
@@ -61,7 +94,7 @@ export class ExpedientesService {
       console.error('ID de demandado no definido');
     }
 
-    const url = `http://192.168.68.103:3000/demandados/${id}`;
+    const url = `http://192.168.1.36:3000/demandados/${id}`;
     
     return this.http.get<DemandadoModel>(url);
   }
@@ -113,33 +146,43 @@ export class ExpedientesService {
         );
       }
 
-      buscarExpedientes(texto: string) {
-        const textoLower = texto.toLowerCase();
-        const url = `${this.apiUrl}/buscar?texto=${textoLower}`;
-      
-        return this.http.get<ExpedienteModel[]>(url).pipe(
-          switchMap(expedientes => {
-            if (expedientes.length === 0) {
-              return of([]);
-            }
-      
-            const requests = expedientes.map(expediente => {
-              const clientes$ = this.getClientesPorExpediente(expediente.id);
-              const demandado$ = this.getDemandadoPorId(expediente.demandado_id!);
-      
-              return forkJoin([clientes$, demandado$]).pipe(
-                map(([clientes, demandado]) => {
-                  expediente.clientes = clientes;
-                  expediente.demandadoModel = demandado;
-                  return expediente;
-                })
-              );
-            });
-      
-            return forkJoin(requests);
+buscarExpedientes(texto: string) {
+  const textoLower = texto.toLowerCase();
+  const usuario = this.usuarioService.usuarioLogeado;
+
+  const params = {
+    texto: textoLower,
+    usuario_id: usuario.id,
+    rol: usuario.rol
+  };
+
+  return this.http.get<ExpedienteModel[]>(`${this.apiUrl}/buscar`, { params }).pipe(
+    switchMap(expedientes => {
+      if (expedientes.length === 0) {
+        return of([]);
+      }
+
+      const requests = expedientes.map(expediente => {
+        const clientes$ = this.getClientesPorExpediente(expediente.id);
+        const demandado$ = this.getDemandadoPorId(expediente.demandado_id!);
+
+        return forkJoin([clientes$, demandado$]).pipe(
+          map(([clientes, demandado]) => {
+            expediente.clientes = clientes;
+            expediente.demandadoModel = demandado;
+            return expediente;
           })
         );
-      }
+      });
+
+      return forkJoin(requests);
+    })
+  );
+}
+
+
+   
+        
       
       agregarClientesAExpediente(expedienteId: number, clienteId: number): Observable<any> {
         console.log('id cliente: ', clienteId, ' expediente id: ', expedienteId);
@@ -175,29 +218,39 @@ export class ExpedientesService {
           params: { numero, anio }
         });
       }*/
-        getClientePorNumeroYAnio(numero: string, anio: string, tipo: string) {
+getClientePorNumeroYAnio(numero: string, anio: string, tipo: string) {
+  const usuario = this.usuarioService.usuarioLogeado;
 
-          return this.http.get<ExpedienteModel[]>(`${this.apiUrl}/buscarPorNumeroAnioTipo`, { params: { numero, anio, tipo } }).pipe(
-            mergeMap(expedientes => {
-              if (!expedientes.length) return of([]); // Si no hay expedientes, devolver un array vacío
-        
-              return forkJoin(
-                expedientes.map(expediente =>
-                  forkJoin({
-                    clientes: this.getClientesPorExpediente(expediente.id),
-                    demandado: this.getDemandadoPorId(expediente.demandado_id!)
-                  }).pipe(
-                    map(({ clientes, demandado }) => ({
-                      ...expediente,
-                      clientes,
-                      demandadoModel: demandado
-                    }))
-                  )
-                )
-              );
-            })
-          );
-        }
+  const params = {
+    numero,
+    anio,
+    tipo,
+    usuario_id: usuario.id,
+    rol: usuario.rol
+  };
+
+  return this.http.get<ExpedienteModel[]>(`${this.apiUrl}/buscarPorNumeroAnioTipo`, { params }).pipe(
+    mergeMap(expedientes => {
+      if (!expedientes.length) return of([]);
+
+      return forkJoin(
+        expedientes.map(expediente =>
+          forkJoin({
+            clientes: this.getClientesPorExpediente(expediente.id),
+            demandado: this.getDemandadoPorId(expediente.demandado_id!)
+          }).pipe(
+            map(({ clientes, demandado }) => ({
+              ...expediente,
+              clientes,
+              demandadoModel: demandado
+            }))
+          )
+        )
+      );
+    })
+  );
+}
+
         
 
         getExpedientesPorEstado(estado: string) {

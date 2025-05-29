@@ -14,7 +14,7 @@
         <span style="color: #ffffff">Agregar cliente</span>
       </button>
 
-      <button mat-button class="list-button" (click)="buscar()">
+      <button mat-button class="list-button" (click)="buscar()" mat-icon-button matTooltip="descargar">
         <mat-icon style="color: #ffffff">download</mat-icon>
       </button>
 
@@ -24,21 +24,52 @@
     </div>
 
     <div>
-      <ion-item-sliding *ngFor="let cliente of clientes" class="cliente">
-        <ion-item class="cliente" *ngIf="hayClientes && clientes.length > 0">
-          <ion-label>
-            <h1>{{ cliente.nombre }} {{ cliente.apellido }}</h1>
-          </ion-label>
+     <ion-item-sliding *ngFor="let cliente of clientes" class="cliente">
+  <ion-item 
+    class="cliente" 
+    (click)="toggleExpandirCliente(cliente)"
+ 
+    *ngIf="hayClientes && clientes.length > 0">
+    
+    <ion-label>
+      <h1>{{ cliente.nombre }} {{ cliente.apellido }}</h1>
+<!-- 
+      <div *ngIf="expandido === cliente.id" class="detalles-cliente">
+        <p><strong>DNI:</strong> {{ cliente.dni }}</p>
+        <p><strong>Teléfono:</strong> {{ cliente.telefono }}</p>
+        <p><strong>Fecha de nacimiento:</strong> {{ cliente.fecha_nacimiento | date:'dd/MM/yyyy' }}</p>
+        <p><strong>Email:</strong> {{ cliente.email }}</p>
+        <p><strong>Dirección:</strong> {{ cliente.direccion }}</p>
+      </div> -->
 
-          <button mat-button class="list-button" (click)="eliminarCliente(cliente)">
-            <mat-icon style="color: #ffffff">delete</mat-icon>
-          </button>
+      <div *ngIf="expandido === cliente.id" class="detalles-cliente">
+  <h3>Expedientes vinculados:</h3>
+<div *ngIf="expedientesPorCliente[cliente.id] && expedientesPorCliente[cliente.id].length > 0; else sinExpedientes">
+    <ul>
+<p *ngFor="let exp of expedientesPorCliente[cliente.id]">
+  Nº {{ exp.numero }}/{{ exp.anio }} ({{ exp.juzgadoModel?.nombre }})
+</p>
 
-          <button mat-button class="list-button" (click)="abrirModificar(cliente)">
-            <mat-icon style="color: #ffffff">edit</mat-icon>
-          </button>
-        </ion-item>
-      </ion-item-sliding>
+
+    </ul>
+  </div>
+  <ng-template #sinExpedientes>
+    <p>Este cliente no tiene expedientes vinculados.</p>
+  </ng-template>
+</div>
+
+    </ion-label>
+
+    <button mat-icon-button class="list-button" (click)="eliminarCliente(cliente); $event.stopPropagation()">
+      <mat-icon style="color: #ffffff">delete</mat-icon>
+    </button>
+
+    <button mat-icon-button class="list-button" (click)="abrirModificar(cliente); $event.stopPropagation()">
+      <mat-icon style="color: #ffffff">edit</mat-icon>
+    </button>
+  </ion-item>
+</ion-item-sliding>
+
 
       <ion-item *ngIf="!hayClientes && clientes.length <= 0" class="cliente">
         <ion-label text-center>{{ texto }}</ion-label>

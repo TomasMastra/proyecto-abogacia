@@ -8,7 +8,7 @@ app.use(express.json());
 
 // Configuración de la conexión a SQL Server con autenticación SQL
 const dbConfig = {
-    user: 'userMastrapasqua',         // Usuario de SQL Server
+    user: 'userMastrapasquaABOGACIA',         // Usuario de SQL Server
     password: '1503',  // Contraseña de SQL Server
     server: 'DESKTOP-Q9JTH4D', // Nombre del servidor
     database: 'ABOGACIA',      // Nombre de la base de datos
@@ -37,50 +37,132 @@ sql.connect(dbConfig)
                     res.status(500).send(err);  // En caso de error, devuelve 500
                 });
         });
+// VER
+        app.post('/login', async (req, res) => {
+  const { email, contraseña } = req.body;
+
+  try {
+    const result = await pool.request()
+      .input('email', sql.NVarChar, email)
+      .input('contraseña', sql.NVarChar, contraseña)
+      .query(`
+        SELECT * FROM usuario 
+        WHERE email = @email 
+          AND contraseña = @contraseña
+          AND estado = 'activo'
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+    }
+
+    const usuario = result.recordset[0];
+
+    // Podés devolver solo lo que necesites (sin contraseña)
+    res.status(200).json({
+      message: 'Login exitoso',
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al iniciar sesión:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 
         // Ruta para obtener clientes
-        app.get("/clientes", (req, res) => {
-            pool.request()
-            .query("SELECT * FROM clientes WHERE estado = 'en gestión'")  
-            .then(result => {
-                    res.json(result.recordset);
-                })
-                .catch(err => {
-                    res.status(500).send(err);
-                });
-        });
+app.get("/clientes", (req, res) => {
+  const usuario_id = parseInt(req.query.usuario_id);
+  const rol = req.query.rol;
+
+  let query = "SELECT * FROM clientes WHERE estado != 'eliminado'";
+  
+  // Solo filtra por usuario si no es admin
+  if (rol !== 'admin') {
+    query += " AND usuario_id = @usuario_id";
+  }
+
+  const request = pool.request();
+
+  if (rol !== 'admin') {
+    request.input('usuario_id', sql.Int, usuario_id);
+  }
+
+  request
+    .query(query)
+    .then(result => {
+      res.json(result.recordset);
+    })
+    .catch(err => {
+      console.error('Error al obtener clientes:', err);
+      res.status(500).send(err);
+    });
+});
 
         // Ruta para obtener expedientes
-        app.get("/expedientes", async (req, res) => {
-            try {
-                const result = await pool.request().query("SELECT * FROM expedientes WHERE estado != 'eliminado'");
-                res.json(result.recordset);
-            } catch (err) {
-                console.error("Error al obtener expedientes:", err);
-                res.status(500).send(err);
-            }
-        });
+app.get("/expedientes", async (req, res) => {
+  const usuario_id = parseInt(req.query.usuario_id);
+  const rol = req.query.rol;
+
+  try {
+    const request = pool.request();
+    let query = "SELECT * FROM expedientes WHERE estado != 'eliminado'";
+
+    if (rol !== 'admin') {
+      query += " AND usuario_id = @usuario_id";
+      request.input('usuario_id', sql.Int, usuario_id);
+    }
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error al obtener expedientes:", err);
+    res.status(500).send(err);
+  }
+});
+
 
         // Ruta para buscar clientes
-        app.get('/clientes/buscar', async (req, res) => {
-            const texto = req.query.texto; 
-            
-            try {
-              const result = await pool.request()
-                .input('texto', sql.NVarChar, `%${texto}%`)
-                .query("SELECT * FROM clientes WHERE estado = 'en gestión' AND (nombre LIKE @texto OR apellido LIKE @texto)")
-          
-              res.json(result.recordset);
-            } catch (err) {
-              console.error('Error al ejecutar la consulta:', err);
-              return res.status(500).send('Error al obtener clientes');
-            }
-          });
+app.get('/clientes/buscar', async (req, res) => {
+  const texto = req.query.texto;
+  const usuario_id = parseInt(req.query.usuario_id);
+  const rol = req.query.rol;
+
+  try {
+    const request = pool.request()
+      .input('texto', sql.NVarChar, `%${texto}%`);
+
+    let query = `
+      SELECT * FROM clientes 
+      WHERE estado = 'en gestión' 
+      AND (nombre LIKE @texto OR apellido LIKE @texto)
+    `;
+
+    if (rol !== 'admin') {
+      query += ' AND usuario_id = @usuario_id';
+      request.input('usuario_id', sql.Int, usuario_id);
+    }
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.error('Error al ejecutar la consulta:', err);
+    return res.status(500).send('Error al obtener clientes');
+  }
+});
+
 
 
           app.post('/clientes/agregar', async (req, res) => {
             try {
-              const { nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado } = req.body;
+              const { nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado, usuario_id  } = req.body;
           
               if (!nombre || !apellido || !dni || !email) {
                 return res.status(400).json({
@@ -98,10 +180,12 @@ sql.connect(dbConfig)
                 .input('fecha_nacimiento', sql.DateTime, fecha_nacimiento)
                 .input('email', sql.NVarChar, email)
                 .input('estado', sql.NVarChar, estado)
+                .input('usuario_id', sql.Int, usuario_id)
+
                 .query(`
-                  INSERT INTO clientes (nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado)
+                  INSERT INTO clientes (nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado, usuario_id)
                   OUTPUT INSERTED.id  -- Esto devuelve el id del nuevo cliente insertado
-                  VALUES (@nombre, @apellido, @dni, @telefono, @direccion, @fecha_nacimiento, @email, @estado)
+                  VALUES (@nombre, @apellido, @dni, @telefono, @direccion, @fecha_nacimiento, @email, @estado, @usuario_id)
                 `);
           
               // El id del cliente insertado estará en result.recordset[0].id
@@ -185,7 +269,7 @@ sql.connect(dbConfig)
 
     app.post('/expedientes/agregar', async (req, res) => {
       try {
-          const { titulo, descripcion, demandado_id, juzgado_id, numero, anio, clientes, estado, honorario, monto, ultimo_movimiento, fecha_inicio, juez_id, juicio, fecha_sentencia,  } = req.body;
+          const { titulo, descripcion, demandado_id, juzgado_id, numero, anio, clientes, usuario_id, estado, honorario, monto, ultimo_movimiento, fecha_inicio, juez_id, juicio, fecha_sentencia,  } = req.body;
   
           if (!numero || !anio || !demandado_id || !juzgado_id || !Array.isArray(clientes)) {
               return res.status(400).json({
@@ -251,11 +335,12 @@ sql.connect(dbConfig)
           .input('juez_id', sql.Int, juez_id)
           .input('juicio', sql.NVarChar, juicio)
           .input('monto', sql.NVarChar, monto)
-      
+          .input('usuario_id', sql.Int, usuario_id)
+
           .query(`
-              INSERT INTO expedientes (titulo, descripcion, numero, anio, demandado_id, juzgado_id, fecha_creacion, estado, fecha_inicio, honorario, juez_id, juicio, fecha_sentencia, ultimo_movimiento, monto)
+              INSERT INTO expedientes (titulo, descripcion, numero, anio, demandado_id, juzgado_id, fecha_creacion, estado, fecha_inicio, honorario, juez_id, juicio, fecha_sentencia, ultimo_movimiento, monto, usuario_id)
               OUTPUT INSERTED.id
-              VALUES (@titulo, @descripcion, @numero, @anio, @demandado_id, @juzgado_id, GETDATE(), @estado, @fecha_inicio, @honorario, @juez_id, @juicio, @fecha_sentencia, @fecha_inicio, @monto)
+              VALUES (@titulo, @descripcion, @numero, @anio, @demandado_id, @juzgado_id, GETDATE(), @estado, @fecha_inicio, @honorario, @juez_id, @juicio, @fecha_sentencia, @fecha_inicio, @monto, @usuario_id)
           `);
       
   
@@ -409,6 +494,12 @@ sql.connect(dbConfig)
   
             
             if (nuevosDatos.clientes.length > 0) {
+
+              // 🔥 Primero eliminar las relaciones existentes
+await pool.request()
+  .input('id_expediente', sql.Int, id)
+  .query(`DELETE FROM clientes_expedientes WHERE id_expediente = @id_expediente`);
+
               for (const cliente of nuevosDatos.clientes) {
                 // Realiza la actualización de los clientes si es necesario
                 await pool.request()
@@ -469,6 +560,7 @@ sql.connect(dbConfig)
       
       
       /*  BUSCAR EXPEDIENTES */
+/*    
       app.get('/expedientes/buscar', async (req, res) => {
         const texto = req.query.texto;  // Obtener el parámetro 'texto' de la URL
         
@@ -482,7 +574,47 @@ sql.connect(dbConfig)
           console.error('Error al ejecutar la consulta:', err);
           return res.status(500).send('Error al obtener expedientes');
         }
-      });
+      });*/
+    app.get('/expedientes/buscar', async (req, res) => {
+  try {
+    const { texto, usuario_id, rol } = req.query;
+
+    if (!texto) {
+      return res.status(400).json({ error: "Se requiere texto para buscar." });
+    }
+
+    const request = pool.request().input('texto', sql.NVarChar, `%${texto}%`);
+
+    let query = `
+      SELECT DISTINCT e.*
+      FROM expedientes e
+      LEFT JOIN clientes_expedientes ce ON e.id = ce.id_expediente
+      LEFT JOIN clientes c ON ce.id_cliente = c.id
+      WHERE (
+        LOWER(CONCAT(c.nombre, ' ', c.apellido)) LIKE LOWER(@texto)
+        OR LOWER(c.nombre) LIKE LOWER(@texto)
+        OR LOWER(c.apellido) LIKE LOWER(@texto)
+        OR CAST(e.numero AS NVARCHAR) LIKE @texto
+        OR CAST(e.anio AS NVARCHAR) LIKE @texto
+      )
+      AND e.estado != 'eliminado'
+    `;
+
+    if (rol !== 'admin') {
+      query += ' AND e.usuario_id = @usuario_id';
+      request.input('usuario_id', sql.Int, parseInt(usuario_id));
+    }
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+
+  } catch (err) {
+    console.error('Error al buscar expedientes:', err);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+      
 
       /*  BUSCAR DEMANDADOS */
       app.get('/demandados/buscar', async (req, res) => {
@@ -643,7 +775,7 @@ app.post('/juzgados/agregar', async (req, res) => {
 
 app.get("/juzgados", (req, res) => {
   pool.request()
-      .query("SELECT * FROM juzgados WHERE estado = 'activo'")  
+      .query("SELECT * FROM juzgados WHERE estado != 'eliminado'")  
       .then(result => {
           res.json(result.recordset);  
       })
@@ -684,7 +816,7 @@ app.get("/demandados/:id", async (req, res) => {
     }
 
     const result = await pool.request()
-        .input("id", sql.Int, parseInt(expedienteId)) // Asegurarse de que el ID sea un número entero
+        .input("id", sql.Int, parseInt(expedienteId)) 
         .query("SELECT * FROM demandados WHERE id = @id");
 
     if (result.recordset.length === 0) {
@@ -1055,33 +1187,41 @@ app.get("/expedientes/buscarPorNumeroyAnio", async (req, res) => {
 // BUSCAR EXPEDIENTES POR NUMERO, AÑO Y TIPO DE JUZGADO (JOIN)
 app.get("/expedientes/buscarPorNumeroAnioTipo", async (req, res) => {
   try {
-    const { numero, anio, tipo } = req.query;
+    const { numero, anio, tipo, usuario_id, rol } = req.query;
 
     if (!numero || !anio || !tipo) {
       return res.status(400).json({ error: "Se requieren 'numero', 'anio' y 'tipo'." });
     }
 
-    const result = await pool
-      .request()
-      .input("numero", sql.Int, numero)
-      .input("anio", sql.Int, anio)
-      .input("tipo", sql.NVarChar, tipo)
-      .query(`
-        SELECT e.*
-        FROM expedientes e
-        JOIN juzgados j ON e.juzgado_id = j.id
-        WHERE e.estado != 'eliminado'
-          AND e.numero = @numero
-          AND e.anio = @anio
-          AND j.tipo = @tipo
-      `);
+    const request = pool.request()
+      .input("numero", sql.Int, parseInt(numero))
+      .input("anio", sql.Int, parseInt(anio))
+      .input("tipo", sql.NVarChar, tipo);
 
+    let query = `
+      SELECT e.*
+      FROM expedientes e
+      JOIN juzgados j ON e.juzgado_id = j.id
+      WHERE e.estado != 'eliminado'
+        AND e.numero = @numero
+        AND e.anio = @anio
+        AND j.tipo = @tipo
+    `;
+
+    if (rol !== 'admin') {
+      query += " AND e.usuario_id = @usuario_id";
+      request.input('usuario_id', sql.Int, parseInt(usuario_id));
+    }
+
+    const result = await request.query(query);
     res.json(result.recordset);
+
   } catch (err) {
     console.error("Error al obtener expedientes:", err);
     res.status(500).send(err);
   }
 });
+
 
 
 //TRAE EXPEDIENTES FILTRADOS POR UN ESTADO
@@ -1108,8 +1248,11 @@ app.get("/expedientes/estado", async (req, res) => {
 
 /* OBTENER JUZGADO POR ID */
 app.get('/juzgados/:id', async (req, res) => {
-  const { id } = req.params;
-
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "El ID del juzgado debe ser un número válido." });
+  }
+  
   try {
     const result = await pool.request()
       .input('id', sql.Int, id)
@@ -1278,6 +1421,53 @@ app.put('/juez/modificar/:id', async (req, res) => {
       res.status(500).json({ mensaje: 'Error al actualizar juez' });
   }
 });
+
+app.get("/juzgados/BuscarPorTipo", async (req, res) => {
+  const { tipo } = req.query;
+
+  if (!tipo) {
+    return res.status(400).json({ error: "Falta el parámetro 'tipo'" });
+  }
+
+  try {
+    const result = await pool
+      .request()
+      .input("tipo", sql.VarChar, tipo)
+      .query("SELECT * FROM juzgados WHERE estado != 'eliminado' AND tipo = @tipo");
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error al obtener juzgados:", err);
+    res.status(500).send("Error al obtener juzgados");
+  }
+});
+
+
+
+app.get("/clientes/expedientesPorCliente", async (req, res) => {
+  const { id } = req.query;
+
+  try {
+    const result = await pool.request()
+      .input("id_cliente", sql.Int, id)
+      .query(`
+        SELECT 
+          e.id, e.numero, e.anio, e.estado, e.fecha_creacion, e.monto,
+          e.juzgado_id
+        FROM clientes_expedientes ce
+        JOIN expedientes e ON ce.id_expediente = e.id
+        WHERE ce.id_cliente = @id_cliente AND e.estado != 'eliminado'
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error al obtener expedientes del cliente:", err);
+    res.status(500).send("Error al obtener los expedientes.");
+  }
+});
+
+
+
 
 
 

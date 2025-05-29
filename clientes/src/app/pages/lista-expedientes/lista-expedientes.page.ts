@@ -158,24 +158,6 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
           });
         }
         
-/*
-      abrirDialog(): void { 
-        const dialogRef = this.dialog.open(DialogExpedienteComponent, {
-          width: '500px', 
-        });
-      
-        dialogRef.afterClosed().subscribe((expediente: ExpedienteModel) => {
-          if (expediente) {
-            console.log('clientes agregados a la lista: ', expediente.clientes)
-            this.expedienteService.addExpediente(expediente).subscribe(response => {
-              console.log('Expediente agregado:', response);
-              this.expedientes.push(expediente);
-            }, error => {
-              console.error('Error al agregar cliente:', error);
-            });
-          }
-        });
-      }*/
 
   goTo(path: string){
     this.router.navigate([path]); // Navega a la ruta deseada
@@ -218,34 +200,52 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
           
   
                 }, error => {
-                  console.error('Error al agregar expediente:', error);
-                  Swal.fire({
-                              toast: true,
-                              position: "top-end",
-                              icon: "error",
-                              title: "Error al cargar expediente",
-                              showConfirmButton: false,
-                              timer: 1500
-                            });
+                   console.error('Error al agregar expediente:', error);
+
+  let mensaje = 'Error al cargar expediente';
+  
+  if (error.status === 400 && error.error?.error === 'Ya existe un expediente con el mismo número, año y juzgado.') {
+    mensaje = `
+      Ya existe un expediente cargado con ese <strong>número</strong>, <strong>año</strong> y <strong>juzgado</strong>.<br>
+      Verificá los datos antes de continuar.
+    `;
+  }
+
+  Swal.fire({
+    icon: 'error',
+    title: 'Carga rechazada',
+    html: mensaje,
+    confirmButtonText: 'Entendido'
+  });
                 });
               }
             });
           }
 
-        async buscar() {
-          this.expedienteService.buscarExpedientes(this.busqueda).subscribe(
-            (expediente) => {
-              this.expedientes = expediente;
-              this.expedientesOriginales = [...expediente];
+          buscar() {
+            const texto = this.busqueda.trim();
+          
+            // ✅ Si está vacío, restaurar todos los expedientes
+            if (texto === '') {
+              this.expedientes = [...this.expedientesOriginales];
               this.hayExpedientes = this.expedientes.length > 0;
-              this.texto = 'No se encontraron expedientes';
-            },
-            (error) => {
-              console.error('Error al obtener expedientes:', error);
-            },
-            
-          );
-      }
+              return;
+            }
+          
+            // 🔎 Si hay texto, buscar
+            this.expedienteService.buscarExpedientes(texto).subscribe(
+              (expedientes) => {
+                this.expedientes = expedientes;
+                this.hayExpedientes = this.expedientes.length > 0;
+              },
+              (error) => {
+                console.error('Error al obtener expedientes:', error);
+              }
+            );
+          }
+          
+          
+          
 
 
       async agregarClientes(expedienteId: number, clientes: ClienteModel[]): Promise<void> {

@@ -220,10 +220,10 @@ mat-toolbar {
   
   /* Entrada de búsqueda */
   .input-busqueda {
-    flex-grow: 1; /* Hace que ocupe todo el espacio disponible */
-    margin-right: 10px; /* Espacio entre la búsqueda y los botones */
-    margin-left: 10px; /* Mueve el input hacia la derecha */
-    --padding-start: 15px; /* Asegura que el texto no esté tan pegado al borde izquierdo */
+    flex-grow: 1;
+    margin-right: 10px;
+    margin-left: 10px;
+    --padding-start: 15px;
     background-color: #015dbb;
     border-radius: 15px;
   }
@@ -416,3 +416,11 @@ mat-toolbar button.mat-icon-button:hover {
 }
 
   
+
+
+
+
+mat-sidenav {
+  display: block !important;
+  visibility: visible !important;
+}

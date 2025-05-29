@@ -19,7 +19,7 @@ export class LocalidadesService {
   };
 
   //private apiUrl = 'http://localhost:3000/localidades';  
-  private apiUrl = 'http://192.168.68.103:3000/localidades';
+  private apiUrl = 'http://192.168.1.36:3000/localidades';
 
   private localidadesSubject = new BehaviorSubject<LocalidadModel[]>([]); 
   localidades$ = this.localidadesSubject.asObservable();  
@@ -39,7 +39,7 @@ export class LocalidadesService {
   }
 
   getPartidos() {
-    this.http.get<any[]>('http://192.168.68.103:3000/partidos').subscribe(
+    this.http.get<any[]>('http://192.168.1.36:3000/partidos').subscribe(
       (partido) => {
         this.localidadesSubject.next(partido); 
       },

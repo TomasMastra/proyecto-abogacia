@@ -22,6 +22,8 @@ import { IonLabel, IonItem } from "@ionic/angular/standalone";
 
 import Swal from 'sweetalert2';
 
+import { UsuarioService } from 'src/app/services/usuario.service';
+
 @Component({
   selector: 'app-dialog-cliente',
   templateUrl: './dialog-cliente.component.html',
@@ -55,6 +57,7 @@ export class DialogClienteComponent {
 
   constructor(
     private clienteService: ClientesService,
+    private usuarioService: UsuarioService,
     private expedienteService: ExpedientesService,
     public dialogRef: MatDialogRef<DialogClienteComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
@@ -128,6 +131,7 @@ export class DialogClienteComponent {
       fecha_creacion: 'ejemplo',
       expedientes: this.expedientesSeleccionados,
       estado: 'en gestión',
+      usuario_id: this.usuarioService.usuarioLogeado.id,
       //expedientes: null
 
 
@@ -160,10 +164,41 @@ export class DialogClienteComponent {
       }
     });
 
-    alert(mensaje); 
+    //alert(mensaje); 
+    const camposFaltantes = this.obtenerCamposFaltantes();
+    if (camposFaltantes.length > 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Faltan completar campos',
+        html: `<strong>Por favor completá:</strong><br><ul style="text-align: left;">${camposFaltantes.map(campo => `<li>${campo}</li>`).join('')}</ul>`,
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
   }
+          
+  
     
   }
+
+     public obtenerCamposFaltantes(): string[] {
+      const camposObligatorios = [
+        { nombre: 'nombre', control: 'nombre' },
+        { nombre: 'apellido', control: 'apellido' },
+
+      ];
+    
+      const faltantes: string[] = [];
+    
+      camposObligatorios.forEach(campo => {
+        const control = this.form.get(campo.control);
+        if (control && control.validator && control.invalid) {
+          faltantes.push(campo.nombre);
+        }
+      });
+    
+      return faltantes;
+    } 
 
   cambiarMenu(menu: number){
     this.menu = menu;

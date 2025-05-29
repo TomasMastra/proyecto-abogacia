@@ -372,5 +372,65 @@ export class JuecesPage implements OnInit {
           });
         }
         
+
+modificarJuez(juez: JuezModel) {
+  Swal.fire({
+    title: 'Modificar Juez',
+    html: `
+      <input id="nombre" class="swal2-input" placeholder="Nombre" value="${juez.nombre}">
+      <input id="apellido" class="swal2-input" placeholder="Apellido" value="${juez.apellido}">
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar',
+    preConfirm: () => {
+      const nombre = (document.getElementById('nombre') as HTMLInputElement).value;
+      const apellido = (document.getElementById('apellido') as HTMLInputElement).value;
+
+      if (!nombre || !apellido) {
+        Swal.showValidationMessage('Debe completar ambos campos');
+        return null;
+      }
+
+      return { nombre, apellido };
+    }
+  }).then((result) => {
+    if (result.isConfirmed && result.value) {
+      const juezModificado: JuezModel = {
+        ...juez, // mantiene id y estado
+        nombre: result.value.nombre,
+        apellido: result.value.apellido,
+      };
+
+      this.juezService.actualizarJuez(juezModificado.id, juezModificado).subscribe({
+        next: () => {
+          this.cargarJueces();
+          Swal.fire({
+            toast: true,
+            icon: 'success',
+            title: 'Juez modificado',
+            text: `Se actualizó correctamente a ${juezModificado.nombre} ${juezModificado.apellido}`,
+            showConfirmButton: false,
+            timer: 3000,
+            position: 'top-end'
+          });
+        },
+        error: (error) => {
+          console.error('Error al modificar juez:', error);
+          Swal.fire({
+            toast: true,
+            icon: 'error',
+            title: 'Error',
+            text: 'Hubo un problema al modificar al juez.',
+            showConfirmButton: false,
+            timer: 3000,
+            position: 'top-end'
+          });
+        }
+      });
+    }
+  });
+}
+
+        
         
 }

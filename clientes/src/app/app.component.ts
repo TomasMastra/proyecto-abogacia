@@ -1,4 +1,7 @@
-import { Component } from '@angular/core';
+
+import { Component, OnInit, ViewChild, OnDestroy  } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -14,6 +17,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { RouterOutlet } from '@angular/router';
 import { Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
+import { UsuarioService } from 'src/app/services/usuario.service';
 
 @Component({
   selector: 'app-root',
@@ -22,13 +26,28 @@ import { filter } from 'rxjs/operators';
   standalone: true,
   imports: [RouterOutlet, IonApp, IonRouterOutlet, MatDatepickerModule, MatNativeDateModule,
       MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule,
-      MatMenuModule, MatIconModule, MatSidenavModule],
+      MatMenuModule, MatIconModule, MatSidenavModule, CommonModule],
 })
 export class AppComponent {
 
+    private usuarioService: UsuarioService;
+    logeado: boolean = false;
+
   activeRoute: string = '';
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, usuarioService: UsuarioService) {
+          this.usuarioService = usuarioService;    
+          this.usuarioService.logeado$.subscribe(valor => {
+          this.logeado = valor;
+
+              if (!valor) {
+      this.router.navigate(['login']);
+    }
+         });
+
+  }  
+  
+    
 
   goTo(path: string) {
     this.router.navigate([path]);

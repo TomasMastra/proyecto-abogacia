@@ -18,6 +18,8 @@ import { Subject } from 'rxjs';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { IonLabel, IonItem } from "@ionic/angular/standalone";
 
+import Swal from 'sweetalert2';
+
 @Component({
   selector: 'app-dialog-localidad',
   templateUrl: './dialog-localidad.component.html',
@@ -115,35 +117,37 @@ export class DialogLocalidadComponent {
 
     this.dialogRef.close(cliente);
   }else {
-    let mensaje = "Errores en los siguientes campos:\n";
-
-    Object.keys(this.form.controls).forEach(campo => {
-      const control = this.form.get(campo);
-      if (control?.invalid) {
-        mensaje += `- ${campo}: `;
-
-        if (control.errors?.['required']) {
-          mensaje += "Este campo es obligatorio.\n";
-        }
-        if (control.errors?.['email']) {
-          mensaje += "Debe ser un correo válido.\n";
-        }
-        if (control.errors?.['pattern']) {
-          mensaje += "Formato inválido.\n";
-        }
-        if (control.errors?.['minlength']) {
-          mensaje += `Debe tener al menos ${control.errors['minlength'].requiredLength} caracteres.\n`;
-        }
-        if (control.errors?.['maxlength']) {
-          mensaje += `Debe tener máximo ${control.errors['maxlength'].requiredLength} caracteres.\n`;
-        }
-      }
-    });
-
-    alert(mensaje); 
+    const camposFaltantes = this.obtenerCamposFaltantes();
+    if (camposFaltantes.length > 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Faltan completar campos',
+        html: `<strong>Por favor completá:</strong><br><ul style="text-align: left;">${camposFaltantes.map(campo => `<li>${campo}</li>`).join('')}</ul>`,
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
   }
     
   }
+        public obtenerCamposFaltantes(): string[] {
+      const camposObligatorios = [
+        { nombre: 'localidad', control: 'localidad' },
+        { nombre: 'partido', control: 'partido' },
+
+      ];
+    
+      const faltantes: string[] = [];
+    
+      camposObligatorios.forEach(campo => {
+        const control = this.form.get(campo.control);
+        if (control && control.validator && control.invalid) {
+          faltantes.push(campo.nombre);
+        }
+      });
+    
+      return faltantes;
+    } 
 
   cambiarMenu(menu: number){
     this.menu = menu;

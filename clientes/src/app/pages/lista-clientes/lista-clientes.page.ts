@@ -8,6 +8,9 @@ import { IonContent, IonHeader, IonTitle, IonToolbar, IonImg, IonCard, IonCardCo
 import { ClientesService } from 'src/app/services/clientes.service';
 import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 
+import { JuzgadosService } from 'src/app/services/juzgados.service';
+//import { JuzgadoModel } from 'src/app/models/juzgado/juzagdo.component';
+
 import { ClientesExpedientesService } from 'src/app/services/clientes-expedientes.service';
 
 import { Subscription, Observable  } from 'rxjs';
@@ -35,6 +38,8 @@ import { DialogClienteModificarComponent } from '../../components/dialog-cliente
 
 import Swal from 'sweetalert2'
 
+import { forkJoin } from 'rxjs';
+import { map } from 'rxjs/operators';
 // src\app\components\dialog-cliente\dialog-cliente.component.ts
 @Component({
   selector: 'app-lista-clientes',
@@ -57,6 +62,8 @@ export class ListaClientesPage implements OnInit {
 
   private clienteService: ClientesService;
   private cliExpServ: ClientesExpedientesService;
+  private juzgadoService: JuzgadosService;
+
 
   clientes: ClienteModel[] = [];
   clientesOriginales: ClienteModel[] = []; 
@@ -80,11 +87,16 @@ export class ListaClientesPage implements OnInit {
 
   cargando: boolean = false;
 
+  expandido: string | null = null;
+
+  expedientesPorCliente: { [clienteId: string]: any[] } = {};
+
 
   constructor(clientesService: ClientesService, private dialog: MatDialog,
-    private router: Router, cliExpServ: ClientesExpedientesService) {
+    private router: Router, cliExpServ: ClientesExpedientesService, juzgadoService: JuzgadosService) {
     this.clienteService = clientesService;
     this.cliExpServ = cliExpServ;
+    this.juzgadoService = juzgadoService;
 
   }
 
@@ -389,6 +401,33 @@ export class ListaClientesPage implements OnInit {
           }
 
 
+toggleExpandirCliente(cliente: ClienteModel) {
+  if (this.expandido === cliente.id) {
+    this.expandido = null;
+  } else {
+    this.expandido = cliente.id;
+
+    if (!this.expedientesPorCliente[cliente.id]) {
+      this.clienteService.ObtenerExpedientesPorCliente(cliente.id).subscribe(expedientes => {
+        const requests = expedientes.map(exp =>
+          this.juzgadoService.getJuzgadoPorId(exp.juzgado_id).pipe(
+            map(juzgado => {
+              exp.juzgadoModel = juzgado;
+              return exp;
+            })
+          )
+        );
+
+        forkJoin(requests).subscribe(expedientesConJuzgado => {
+          this.expedientesPorCliente[cliente.id] = expedientesConJuzgado;
+        });
+
+      }, error => {
+        console.error('Error al obtener expedientes del cliente:', error);
+      });
+    }
+  }
+}
       
 
 }

@@ -28,6 +28,11 @@ import { takeUntil } from 'rxjs/operators';
 import { ClientesService } from 'src/app/services/clientes.service';
 import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 
+import Swal from 'sweetalert2';
+
+
+import { UsuarioService } from 'src/app/services/usuario.service';
+
 @Component({
   selector: 'app-dialog-expediente-modificar',
   templateUrl: './dialog-expediente-modificar.component.html',
@@ -51,6 +56,8 @@ import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 export class DialogExpedienteModificarComponent   {
  protected form: FormGroup;
   juzgados: JuzgadoModel[] = [];
+  juzgadosOriginales: JuzgadoModel[] = [];
+
   demandados: DemandadoModel[] = [];
   clientes: ClienteModel[] = [];
   clientesAgregados: ClienteModel[] = [];
@@ -60,15 +67,21 @@ export class DialogExpedienteModificarComponent   {
   demandadoElegido: any;
   clienteSeleccionado: any; 
 
+  tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
+  tipoSeleccionado: any = 'todos';
+
   estados: any[] = ['en gestíon', 'inicio', 'prueba', 'clausura p.', 'fiscal', 'sentencia'];
   estadoSeleccionado: any;
 
   juicios: any[] = ['ordinario', 'sumarisimo'];
   juicioSeleccionado: any;
 
+  mensajeSelectJuzgado: any = 'Filtrar por juzgado';
+
   constructor(
     private expedienteService: ExpedientesService,
     private juzgadoService: JuzgadosService,
+    private usuarioService: UsuarioService,
     private demandadoService: DemandadosService,
     private clienteService: ClientesService,
 
@@ -84,6 +97,7 @@ export class DialogExpedienteModificarComponent   {
       juicio: new FormControl('', [Validators.required]),
       estado: new FormControl('', [Validators.required]),
       fechaInicio: new FormControl('', [Validators.required]),
+      tipo: new FormControl('todos', [Validators.required]),
 
 
     });
@@ -91,14 +105,16 @@ export class DialogExpedienteModificarComponent   {
     if (data) {
       
       this.form.setValue({ 
+        tipo: data.juzgadoModel?.tipo ?? 'todos',
         juzgado: data.juzgado_id || '' , 
         demandado: data.demandado_id || '',
         numero: data.numero || '', 
         anio: data.anio || ''  ,
         juicio: data.juicio,
         estado: data.estado,
-        fechaInicio: data.fecha_inicio
+        fechaInicio: data.fecha_inicio,
       });
+      
     }
 
     const estadoSeleccionado = this.estados.find(j => j === this.data.estado) || ''; 
@@ -122,25 +138,37 @@ export class DialogExpedienteModificarComponent   {
     this.dialogRef.close();
   }
         
-        cargarJuzgado() {
-          this.juzgadoService.getJuzgados()
-            .pipe(takeUntil(this.destroy$))
-            .subscribe(
-              (juzgados) => {
-                this.juzgados = juzgados;
-                // Si ya hay un juzgado seleccionado, asignarlo al formulario
-                if (this.data && this.data.juzgado_id) {
-                  const juzgadoSeleccionado = this.juzgados.find(j => +j.id === this.data.juzgado_id);
-                  this.form.get('juzgado')?.setValue(juzgadoSeleccionado || '');
-                  this.juzgadoElegido = juzgadoSeleccionado;
-                }
-              },
-              (error) => {
-                console.error('Error al obtener juzgados:', error);
-              }
-            );
-        }
+cambiarTipoJuzgado() {
+  const tipo = this.form.get('tipo')?.value;
+  console.log('Tipo seleccionado:', tipo);
 
+  if (!tipo || tipo === 'todos') {
+    this.juzgados = [...this.juzgadosOriginales];
+  } else {
+    this.juzgados = this.juzgadosOriginales.filter(j => j.tipo === tipo);
+  }
+}
+
+  
+cargarJuzgado() {
+  this.juzgadoService.getJuzgados()
+    .pipe(takeUntil(this.destroy$)) 
+    .subscribe(
+      (juzgados) => {
+        this.juzgadosOriginales = juzgados;
+        this.juzgados = [...juzgados];
+
+        if (this.data && this.data.juzgado_id) {
+          const juzgadoElegido = this.juzgados.find(d => +d.id === this.data.juzgado_id);
+          this.form.get('juzgado')?.setValue(juzgadoElegido || '');
+          this.juzgadoElegido = juzgadoElegido;
+        }
+      },
+      (error) => {
+        console.error('Error al obtener juzgados:', error);
+      }
+    );
+}
         cargarDemandado() {
           this.demandadoService.getDemandados()
             .pipe(takeUntil(this.destroy$))
@@ -205,6 +233,7 @@ export class DialogExpedienteModificarComponent   {
           monto: this.data?.monto,
           apela: this.data?.apela,
           juzgadoModel: null,
+          usuario_id: this.usuarioService.usuarioLogeado.id,
 
           // 📌 Campos nuevos - Capital
           estadoCapitalSeleccionado: this.data?.estadoCapitalSeleccionado ?? null,
@@ -232,32 +261,57 @@ export class DialogExpedienteModificarComponent   {
     
         this.dialogRef.close(expediente);
       } else {
-        let mensaje = "Errores en los siguientes campos:\n";
-    
-        Object.keys(this.form.controls).forEach(campo => {
-          const control = this.form.get(campo);
-          if (control?.invalid) {
-            mensaje += `- ${campo}: `;
-    
-            if (control.errors?.['required']) {
-              mensaje += "Este campo es obligatorio.\n";
-            }
-            if (control.errors?.['email']) {
-              mensaje += "Debe ser un correo válido.\n";
-            }
-            if (control.errors?.['pattern']) {
-              mensaje += "Formato inválido.\n";
-            }
-            if (control.errors?.['minlength']) {
-              mensaje += `Debe tener al menos ${control.errors['minlength'].requiredLength} caracteres.\n`;
-            }
-            if (control.errors?.['maxlength']) {
-              mensaje += `Debe tener máximo ${control.errors['maxlength'].requiredLength} caracteres.\n`;
-            }
+          const camposFaltantes = this.obtenerCamposFaltantes();
+          if (camposFaltantes.length > 0) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Faltan completar campos',
+              html: `<strong>Por favor completá:</strong><br><ul style="text-align: left;">${camposFaltantes.map(campo => `<li>${campo}</li>`).join('')}</ul>`,
+              confirmButtonText: 'Entendido',
+            });
+            return;
           }
-        });
       }
     }
+
+    /*
+          juzgado: new FormControl('', [Validators.required]),
+      demandado: new FormControl('', [Validators.required]),  
+      numero: new FormControl('', [Validators.required, Validators.min(0), Validators.max(999999)]),  
+      anio: new FormControl('', [Validators.required]),  
+      juicio: new FormControl('', [Validators.required]),
+      estado: new FormControl('', [Validators.required]),
+      fechaInicio: new FormControl('', [Validators.required]),
+      tipo: new FormControl('todos', [Validators.required]),
+
+    */
+     public obtenerCamposFaltantes(): string[] {
+      const camposObligatorios = [
+        { nombre: 'juzgado', control: 'juzgado' },
+        { nombre: 'demandado', control: 'demandado' },
+        { nombre: 'numero', control: 'numero' },
+        { nombre: 'anio', control: 'anio' },
+        { nombre: 'juicio', control: 'juicio' },
+        { nombre: 'estado', control: 'estado' },
+        { nombre: 'fechaInicio', control: 'fechaInicio' },
+        { nombre: 'tipo', control: 'tipo' },
+
+
+
+
+      ];
+    
+      const faltantes: string[] = [];
+    
+      camposObligatorios.forEach(campo => {
+        const control = this.form.get(campo.control);
+        if (control && control.validator && control.invalid) {
+          faltantes.push(campo.nombre);
+        }
+      });
+    
+      return faltantes;
+    } 
     
     seleccionarCliente(cliente: ClienteModel): void {    
       this.clienteSeleccionado = cliente;

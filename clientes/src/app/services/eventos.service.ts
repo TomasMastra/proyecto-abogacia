@@ -10,7 +10,7 @@ import { catchError, tap } from 'rxjs/operators';
   providedIn: 'root'
 })
 export class EventosService {
-  private apiUrl = 'http://192.168.68.103:3000/eventos';
+  private apiUrl = 'http://192.168.1.36:3000/eventos';
   private eventosSubject = new BehaviorSubject<EventoModel[]>([]);
   eventos$ = this.eventosSubject.asObservable();
 

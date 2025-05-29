@@ -17,9 +17,7 @@ export class JuzgadosService {
       'Accept': 'application/json'
     })
   };
-  private apiUrl = 'http://192.168.68.103:3000/juzgados';
-
-  //private apiUrl = 'http://localhost:3000/juzgados';  
+  private apiUrl = 'http://192.168.1.36:3000/juzgados';
   private juzgadosSubject = new BehaviorSubject<JuzgadoModel[]>([]); 
   juzgados$ = this.juzgadosSubject.asObservable();  
 
@@ -37,6 +35,23 @@ export class JuzgadosService {
     return this.juzgados$;  
   }
 
+  getJuzgadosPorTipo(tipo: string) { 
+    const params = { tipo }; 
+    console.log('tipo: ', tipo);
+    
+    this.http.get<JuzgadoModel[]>(`${this.apiUrl}/BuscarPorTipo`, { params }).subscribe(
+      (juzgados) => {
+        this.juzgadosSubject.next(juzgados);
+      },
+      (error) => {
+        console.error('Error al obtener juzgados:', error);
+      }
+    );
+  
+    return this.juzgados$;
+  }
+  
+  
   // NO ESTA EN EL SERVER
   getJuzgadoPorId(id: string) {
     return this.http.get<JuzgadoModel>(`${this.apiUrl}/${id}`);
@@ -75,7 +90,7 @@ export class JuzgadosService {
 
 
 getExpedientesPorJuzgado(juzgadoId: string) {
-  return this.http.get<any[]>(`http://192.168.68.103:3000/expedientes/clientes?id=${juzgadoId}`);
+  return this.http.get<any[]>(`http://192.168.1.36:3000/expedientes/clientes?id=${juzgadoId}`);
 }
 
 

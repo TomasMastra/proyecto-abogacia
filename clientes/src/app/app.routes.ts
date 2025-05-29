@@ -1,15 +1,16 @@
 import { Routes } from '@angular/router';
+import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   {
-    path: 'home',
-    loadComponent: () => import('./home/home.page').then((m) => m.HomePage),
+    path: 'login',
+    loadComponent: () => import('./pages/login/login.page').then((m) => m.LoginPage),
   },
-  {
+  /*{
     path: '',
     redirectTo: 'home',
     pathMatch: 'full',
-  },
+  },*/
   {
     path: 'error',
     loadComponent: () => import('./pages/error/error.page').then( m => m.ErrorPage)
@@ -27,8 +28,16 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/lista-clientes/lista-clientes.page').then( m => m.ListaClientesPage)
   },
   {
+    path: 'home',
+    canActivate: [AuthGuard],
+    data: { midata: 'datos de ruta' },
+    loadComponent: () => import('./home/home.page').then((m) => m.HomePage),
+  },
+    {
     path: 'lista-expedientes',
-    loadComponent: () => import('./pages/lista-expedientes/lista-expedientes.page').then( m => m.ListaExpedientesPage)
+    canActivate: [AuthGuard],
+    data: { midata: 'datos de ruta' },
+    loadComponent: () => import('./pages/lista-expedientes/lista-expedientes.page').then((m) => m.ListaExpedientesPage),
   },
   {
     path: 'localidades',

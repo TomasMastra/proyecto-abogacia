@@ -13,6 +13,7 @@ export interface ExpedienteModel {
   demandado_id: number | null,
   numero: number,
   anio: number,
+  usuario_id: string,
   demandadoModel: DemandadoModel | null,
   estado: string,
   sala_radicacion: string | null,

@@ -17,7 +17,7 @@ export class JuezService {
     };
   
     //private apiUrl = 'http://localhost:3000/juez';
-    private apiUrl = 'http://192.168.68.103:3000/juez';
+    private apiUrl = 'http://192.168.1.36:3000/juez';
   
     private juezSubject = new BehaviorSubject<JuezModel[]>([]); 
     juez$ = this.juezSubject.asObservable();  
@@ -47,6 +47,6 @@ export class JuezService {
         }
 
         getExpedientesPorJuez(juez_id: string) {
-          return this.http.get<any[]>(`http://192.168.68.103:3000/expedientes/jueces?id=${juez_id}`);
+          return this.http.get<any[]>(`http://192.168.1.36:3000/expedientes/jueces?id=${juez_id}`);
         }
 }

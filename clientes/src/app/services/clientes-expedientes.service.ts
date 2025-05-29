@@ -10,7 +10,7 @@ import { Observable, throwError, of } from 'rxjs';
   providedIn: 'root'
 })
 export class ClientesExpedientesService {
-  private apiUrl = 'http://192.168.68.103:3000/clientes-expedientes';
+  private apiUrl = 'http://192.168.1.36:3000/clientes-expedientes';
 
   //private apiUrl = 'http://localhost:3000/clientes-expedientes';  
   private expedientesSubject = new BehaviorSubject<ClienteExpedienteModel[]>([]); // Emite un arreglo vacío inicialmente

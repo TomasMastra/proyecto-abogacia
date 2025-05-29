@@ -12,4 +12,5 @@ fecha_creacion: string,
 email: string,
 expedientes: any[] | null;
 estado: string;
+usuario_id: string,
 }

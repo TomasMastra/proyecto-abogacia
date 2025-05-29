@@ -31,6 +31,11 @@ import { Subject } from 'rxjs';
 
 import { ClientesService } from 'src/app/services/clientes.service';
 import { ClienteModel } from 'src/app/models/cliente/cliente.component';
+
+import Swal from 'sweetalert2';
+
+import { UsuarioService } from 'src/app/services/usuario.service';
+
 @Component({
   selector: 'app-dialog-expediente',
   templateUrl: './dialog-expediente.component.html',
@@ -53,11 +58,15 @@ export class DialogExpedienteComponent {
   protected form: FormGroup;
 
    juzgados: JuzgadoModel[] = [];
+   juzgadosOriginales: JuzgadoModel[] = [];
+
    demandados: DemandadoModel[] = [];
    clientes: ClienteModel[] = [];
    clientesAgregados: ClienteModel[] = [];
    jueces: JuezModel[] = [];
 
+   tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
+   tipoSeleccionado: any = 'todos';
 
    estados: any[] = ['en gestíon', 'inicio', 'prueba', 'clausura p.', 'fiscal', 'sentencia'];
    estadoSeleccionado: any = 'inicio';
@@ -72,48 +81,11 @@ export class DialogExpedienteComponent {
     demandadoElegido: any;
     clienteSeleccionado: any; 
     juezSeleccionado: any;
-
-/*
-  constructor(
-    private expedienteService: ExpedientesService,
-    private juzgadoService: JuzgadosService,
-    private demandadoService: DemandadosService,
-    private clienteService: ClientesService,
-
-
-    public dialogRef: MatDialogRef<DialogExpedienteComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
-  ) {
-
-    this.form = new FormGroup({
-      //titulo: new FormControl('', [Validators.required]),  
-      //descripcion: new FormControl('', [ Validators.minLength(6), Validators.maxLength(200)]),  
-      juzgado: new FormControl('', [Validators.required]),
-      demandado: new FormControl('', [Validators.required]),  
-      numero: new FormControl('', [Validators.required, Validators.min(0), Validators.max(999999)]),  
-      anio: new FormControl('', [Validators.required]),  
-      clientes: new FormArray([])  // FormArray para los clientes
-
-
-    });
-
-    if (data) {
-      this.form.setValue({
-        //titulo: data.titulo || '',
-        //descripcion: data.descripcion || '',  
-        juzgado: data.juzgado || '' , 
-        demandado: data.demandado || '',
-        numero: data.numero || '', 
-        anio: data.anio || ''  
-
-
-      });
-    }
-  }*/
-
+    mensajeSelectJuzgado: any = 'Filtrar juzgado';
 
     constructor(
       private expedienteService: ExpedientesService,
+      private usuarioService: UsuarioService,
       private juzgadoService: JuzgadosService,
       private demandadoService: DemandadosService,
       private clienteService: ClientesService,
@@ -131,6 +103,7 @@ export class DialogExpedienteComponent {
         estado: new FormControl('', [Validators.required]),
         juicio: new FormControl('', [Validators.required]),
         fechaInicio: new FormControl('', [Validators.required]),
+        tipo: new FormControl('todos', [Validators.required]),
 
       });
     
@@ -158,7 +131,6 @@ export class DialogExpedienteComponent {
     this.cargarClientes();
     this.cargarJueces();
 
-
     this.form.get('estado')?.valueChanges.subscribe(estado => {
       this.estadoSeleccionado = estado;  // Puedes actualizar el valor si lo necesitas
       //this.actualizarValidadoresPorEstado(estado);  // Para actualizar los validadores según el estado
@@ -170,18 +142,34 @@ export class DialogExpedienteComponent {
     this.dialogRef.close();
   }
 
-  cargarJuzgado() {
-    this.juzgadoService.getJuzgados()
-      .pipe(takeUntil(this.destroy$)) 
-      .subscribe(
-        (juzgados) => {
-          this.juzgados = juzgados;
-        },
-        (error) => {
-          console.error('Error al obtener juzgados:', error);
-        }
-      );
+cambiarTipoJuzgado() {
+  const tipo = this.form.get('tipo')?.value;
+  console.log('Tipo seleccionado:', tipo);
+
+  if (!tipo || tipo === 'todos') {
+    this.juzgados = [...this.juzgadosOriginales];
+  } else {
+    this.juzgados = this.juzgadosOriginales.filter(j => j.tipo === tipo);
   }
+}
+
+  
+cargarJuzgado() {
+  this.juzgadoService.getJuzgados()
+    .pipe(takeUntil(this.destroy$)) 
+    .subscribe(
+      (juzgados) => {
+        this.juzgadosOriginales = juzgados;
+        this.juzgados = [...juzgados];
+      },
+      (error) => {
+        console.error('Error al obtener juzgados:', error);
+      }
+    );
+}
+
+
+
 
   cargarDemandados() {
     this.demandadoService.getDemandados()
@@ -202,7 +190,7 @@ export class DialogExpedienteComponent {
       .subscribe(
         (cliente) => {
           this.clientes = cliente;
-          console.log(this.clientes);
+          //console.log(this.clientes);
 
         },
         (error) => {
@@ -258,6 +246,8 @@ export class DialogExpedienteComponent {
         monto: null,
         apela: null,
         juzgadoModel: null,
+        usuario_id: this.usuarioService.usuarioLogeado.id,
+
 
         // 📌 Campos nuevos - Capital
         estadoCapitalSeleccionado: null,
@@ -284,10 +274,44 @@ export class DialogExpedienteComponent {
 
     this.dialogRef.close(expediente);
   }else {
+  const camposFaltantes = this.obtenerCamposFaltantes();
+          if (camposFaltantes.length > 0) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Faltan completar campos',
+              html: `<strong>Por favor completá:</strong><br><ul style="text-align: left;">${camposFaltantes.map(campo => `<li>${campo}</li>`).join('')}</ul>`,
+              confirmButtonText: 'Entendido',
+            });
+            return;
+          }
 
   }
 }
   
+     public obtenerCamposFaltantes(): string[] {
+      const camposObligatorios = [
+        { nombre: 'juzgado', control: 'juzgado' },
+        { nombre: 'demandado', control: 'demandado' },
+        { nombre: 'numero', control: 'numero' },
+        { nombre: 'anio', control: 'anio' },
+        { nombre: 'juicio', control: 'juicio' },
+        { nombre: 'estado', control: 'estado' },
+        { nombre: 'fechaInicio', control: 'fechaInicio' },
+        { nombre: 'tipo', control: 'tipo' },
+
+      ];
+    
+      const faltantes: string[] = [];
+    
+      camposObligatorios.forEach(campo => {
+        const control = this.form.get(campo.control);
+        if (control && control.validator && control.invalid) {
+          faltantes.push(campo.nombre);
+        }
+      });
+    
+      return faltantes;
+    } 
 
   seleccionarCliente(cliente: ClienteModel): void {
     // Mostrar una alerta (opcional, para ver el cliente seleccionado)

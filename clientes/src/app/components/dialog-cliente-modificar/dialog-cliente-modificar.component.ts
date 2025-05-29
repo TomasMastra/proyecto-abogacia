@@ -25,6 +25,10 @@ import { ExpedientesService } from 'src/app/services/expedientes.service';
 
 import { IonLabel, IonItem } from "@ionic/angular/standalone";
 
+import Swal from 'sweetalert2';
+
+import { UsuarioService } from 'src/app/services/usuario.service';
+
 @Component({
   selector: 'app-dialog-cliente-modificar',
   templateUrl: './dialog-cliente-modificar.component.html',
@@ -47,6 +51,7 @@ export class DialogClienteModificarComponent {
 
   constructor(
     private clienteService: ClientesService,
+    private usuarioService: UsuarioService,
     public dialogRef: MatDialogRef<DialogClienteModificarComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ClienteModel
   ) {
@@ -100,24 +105,47 @@ export class DialogClienteModificarComponent {
         email: this.form.value.nombre,
         expedientes: this.data?.expedientes ?? null,
         estado: this.data.estado, 
+        usuario_id: this.usuarioService.usuarioLogeado.id
       };
   
       this.dialogRef.close(cliente);
     } else {
-      let mensaje = "Errores en los siguientes campos:\n";
-      Object.keys(this.form.controls).forEach(campo => {
-        const control = this.form.get(campo);
-        if (control?.invalid) {
-          mensaje += `- ${campo}: `;
-          if (control.errors?.['required']) mensaje += "Este campo es obligatorio.\n";
-          if (control.errors?.['email']) mensaje += "Debe ser un correo válido.\n";
-          if (control.errors?.['pattern']) mensaje += "Formato inválido.\n";
-          if (control.errors?.['minlength']) mensaje += `Debe tener al menos ${control.errors['minlength'].requiredLength} caracteres.\n`;
-          if (control.errors?.['maxlength']) mensaje += `Debe tener máximo ${control.errors['maxlength'].requiredLength} caracteres.\n`;
-        }
-      });
+     const camposFaltantes = this.obtenerCamposFaltantes();
+               if (camposFaltantes.length > 0) {
+                 Swal.fire({
+                   icon: 'warning',
+                   title: 'Faltan completar campos',
+                   html: `<strong>Por favor completá:</strong><br><ul style="text-align: left;">${camposFaltantes.map(campo => `<li>${campo}</li>`).join('')}</ul>`,
+                   confirmButtonText: 'Entendido',
+                 });
+                 return;
+               }
     }
   }
   
+
+     public obtenerCamposFaltantes(): string[] {
+      const camposObligatorios = [
+        { nombre: 'Nombre', control: 'nombre' },
+        { nombre: 'Apellido', control: 'apellido' },
+        { nombre: 'Numero de telefono', control: 'telefono' },
+        { nombre: 'Direccion', control: 'direccion' },
+        { nombre: 'DNI', control: 'dni' },
+        { nombre: 'Fecha de nacimiento', control: 'fechaNacimiento' },
+
+
+      ];
+    
+      const faltantes: string[] = [];
+    
+      camposObligatorios.forEach(campo => {
+        const control = this.form.get(campo.control);
+        if (control && control.validator && control.invalid) {
+          faltantes.push(campo.nombre);
+        }
+      });
+    
+      return faltantes;
+    } 
 
 }

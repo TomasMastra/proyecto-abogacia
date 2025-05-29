@@ -4,35 +4,46 @@
 
     <div class="toolbar">
       <ion-input 
-        placeholder="Buscar por numero, actora o demandado"
+        placeholder="Buscar"
         class="input-busqueda"
         [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()">
+        (keyup.enter)="buscar()">
       </ion-input>
-
-      <button mat-button class="list-button" (click)="abrirDialog()">
-        <mat-icon style="color: #ffffff">person</mat-icon>
-        <span style="color: #ffffff">Agregar expediente</span>
+    
+      <!-- Mostrar solo si hay texto -->
+      <button *ngIf="busqueda" mat-button class="list-button" (click)="busqueda = ''; buscar()">
+        <mat-icon style="color:#ffffff">close</mat-icon>
       </button>
-
+    
+      <!-- Buscar -->
+      <button mat-button class="list-button" (click)="buscar()">
+        <mat-icon style="color:#ffffff">search</mat-icon>
+      </button>
+    
+      <!-- Resto de botones -->
+      <button mat-button class="list-button" (click)="abrirDialog()">
+        <mat-icon style="color: #ffffff">person_add</mat-icon>
+      </button>
+    
       <button mat-button class="list-button">
         <mat-icon style="color: #ffffff">download</mat-icon>
       </button>
-
+    
       <button mat-button class="list-button">
         <mat-icon style="color: #ffffff">more_vert</mat-icon>
       </button>
     </div>
+    
 
     <div>
       <ion-item-sliding *ngFor="let expediente of expedientes" class="cliente">
         <ion-item class="cliente" *ngIf="hayExpedientes && expedientes.length > 0">
           <ion-label>
             <h2 *ngIf="expediente.clientes.length === 1">
-              {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} contra {{ expediente.demandadoModel!.nombre }}
+              {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0]!.nombre }} {{ expediente.clientes[0].apellido }} contra {{ expediente.demandadoModel!.nombre }}
             </h2>
             <h2 *ngIf="expediente.clientes.length > 1">
-              {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0].nombre }} {{ expediente.clientes[0].apellido }} y otros contra {{ expediente.demandadoModel!.nombre }}
+              {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0]!.nombre }} {{ expediente.clientes[0].apellido }} y otros contra {{ expediente.demandadoModel!.nombre }}
             </h2>
             <h2 *ngIf="expediente.clientes.length === 0">
               {{ expediente.numero }}/{{ expediente.anio }} (sin actora) contra {{ expediente.demandadoModel!.nombre }}

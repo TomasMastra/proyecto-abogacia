@@ -59,9 +59,31 @@
           </mat-error>
         </mat-form-field>
         
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label style="color: white">Estado del expediente</mat-label>
+          <mat-select style="color: white" formControlName="estado" [(ngModel)]="estadoSeleccionado">
+            <mat-option *ngFor="let estado of estados" [value]="estado">
+              {{ estado }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.controls?.['estado']?.invalid && (form.controls?.['estado']?.dirty || form.controls?.['estado']?.touched)">
+            <span *ngIf="form.controls?.['estado']?.errors?.['required']" style="color:red">El estado es requerido</span>
+          </mat-error>
+        </mat-form-field>
 
-
-
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label style="color: white">{{mensajeSelectJuzgado}}</mat-label>
+          <mat-select style="color: white" formControlName="tipo" (selectionChange)="cambiarTipoJuzgado()">
+            <mat-option  *ngFor="let tipo of tipos" [value]="tipo">
+              {{ tipo }}
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="form.get('tipo')?.invalid && form.get('tipo')?.touched">
+            El tipo es requerido
+          </mat-error>
+        </mat-form-field>
+        
+        
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label style="color: white">Juzgados</mat-label>
@@ -72,18 +94,6 @@
         </mat-select>
         <mat-error *ngIf="form.controls?.['juzgado']?.invalid && (form.controls?.['juzgado']?.dirty || form.controls?.['juzgado']?.touched)">
           <span *ngIf="form.controls?.['juzgado']?.errors?.['required']" style="color:red">El juzgado es requerido</span>
-        </mat-error>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label style="color: white">Estado del expediente</mat-label>
-        <mat-select style="color: white" formControlName="estado" [(ngModel)]="estadoSeleccionado">
-          <mat-option *ngFor="let estado of estados" [value]="estado">
-            {{ estado }}
-          </mat-option>
-        </mat-select>
-        <mat-error *ngIf="form.controls?.['estado']?.invalid && (form.controls?.['estado']?.dirty || form.controls?.['estado']?.touched)">
-          <span *ngIf="form.controls?.['estado']?.errors?.['required']" style="color:red">El estado es requerido</span>
         </mat-error>
       </mat-form-field>
 

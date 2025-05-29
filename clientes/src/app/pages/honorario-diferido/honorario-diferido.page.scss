@@ -265,5 +265,74 @@ th:hover {
 }
 
 
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; // espacio entre grupos de filas
+
+  tr {
+    background-color: #001f3f;
+    border-left: 4px solid #007bff;
+    border-right: 4px solid #007bff;
+    transition: background-color 0.3s ease;
+  }
+
+  tr:nth-child(even) {
+    background-color: #002b5c;
+  }
+
+  tr:hover {
+    background-color: #535abd;
+  }
+
+  td, th {
+    padding: 10px;
+    text-align: left;
+    color: white;
+    border: none;
+  }
+
+  th {
+    background-color: #004080;
+    font-weight: bold;
+  }
+
+  td:first-child {
+    font-weight: bold;
+  }
+}
 
 
+table {
+  width: 100%;
+  border-collapse: collapse;
+
+  tbody {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2); // línea entre grupos de dos filas
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  td, th {
+    padding: 10px;
+    text-align: left;
+    border-right: 1px solid rgba(236, 5, 5, 0.966); // verticales suaves
+  }
+
+  th {
+    background-color: #1565c0;
+    color: white;
+  }
+}
+
+.hover-group {
+  background-color: #1e88e5 !important;
+}
+
+.fixed-cell {
+  background-color: #07295c !important;
+  font-weight: bold;
+  color: white;
+}

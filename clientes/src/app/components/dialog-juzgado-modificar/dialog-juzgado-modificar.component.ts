@@ -26,6 +26,8 @@ import { JuzgadosService } from 'src/app/services/juzgados.service';
 
 import { IonLabel, IonItem } from "@ionic/angular/standalone";
 
+import Swal from 'sweetalert2';
+
 @Component({
   selector: 'app-dialog-juzgado-modificar',
   templateUrl: './dialog-juzgado-modificar.component.html',
@@ -152,9 +154,36 @@ export class DialogJuzgadoModificarComponent {
   
       this.dialogRef.close(juzgado);
     } else {
-      console.log('Formulario inválido');
-    }
+    const camposFaltantes = this.obtenerCamposFaltantes();
+    if (camposFaltantes.length > 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Faltan completar campos',
+        html: `<strong>Por favor completá:</strong><br><ul style="text-align: left;">${camposFaltantes.map(campo => `<li>${campo}</li>`).join('')}</ul>`,
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }    }
   }
   
+       public obtenerCamposFaltantes(): string[] {
+      const camposObligatorios = [
+        { nombre: 'nombre', control: 'nombre' },
+        { nombre: 'localidad', control: 'localidad' },
+        { nombre: 'tipo', control: 'tipo' },
 
+
+      ];
+    
+      const faltantes: string[] = [];
+    
+      camposObligatorios.forEach(campo => {
+        const control = this.form.get(campo.control);
+        if (control && control.validator && control.invalid) {
+          faltantes.push(campo.nombre);
+        }
+      });
+    
+      return faltantes;
+    } 
 }
