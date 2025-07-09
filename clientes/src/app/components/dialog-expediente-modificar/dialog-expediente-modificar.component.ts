@@ -73,51 +73,69 @@ export class DialogExpedienteModificarComponent   {
 
   tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
   tipoSeleccionado: any = 'todos';
-
-
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
   'Inicio - Plantea Revocatoria',
   'Inicio - Da Cumplimiento',
+  'Inicio - Solicita',
   'Inicio - Apela',
+  'Inicio - Recusa',
   'Inicio - Plantea Nulidad',
+  'Inicio - Se Eleve',
   'Traslado demanda - Se Ordena',
-  'Traslado demanda - Cedula',
+
+  'Traslado demanda - Cedula Confronte',
+  'Traslado demanda - Cedula Liberada',
+  'Traslado demanda - Cedula Notificada',
+  'Traslado demanda - Cedula Sin Notificar',
   'Traslado demanda - Notificado',
+  'Traslado demanda - Previo Rebeldia',
+
   'Contesta demanda - Traslado',
   'Contesta demanda - Cedula',
   'Contesta Traslado',
+
   'Se resuelva',
+
   'Apertura a Prueba - Solicita',
   'Apertura a Prueba - Cedula',
   'Apertura a Prueba - Audiencia 360',
+
   'Pruebas - Se provean',
+  'Pruebas - Se provee',
   'Prueba - Cedula Perito',
   'Prueba - Cedula Parte',
-  'Prueba - Acredita Oficio',
-  'Prueba - Solicita Oficio reiteratorio',
+  'Prueba - Oficio deox',
+  'Prueba - Oficio acredita',
+  'Prueba - Oficio solicita reiteratorio',
+  'Prueba - Oficio solicita Astreinte',
+  'Prueba - Testimonial hace saber',
   'Prueba - Acredita Testimonial',
   'Prueba - Desiste',
   'Prueba - Impugna',
   'Prueba - Se intime parte',
   'Prueba - Se intime perito',
+
   'Clausura periodo Prueba - Solicita',
   'Clausura periodo Prueba - Pase a certificar',
+
   'Alegatos - Solicita',
   'Alegatos - Cedula',
   'Alegatos - Presenta',
+
   'Fiscal - Solicita',
   'Fiscal - Cedula',
+
   'Defensor Oficial - Solicita',
   'Defensor Oficial - Cedula',
   'Defensor Oficial - Ratifica lo actuado',
+  
   'Sentencia - Previo',
   'Sentencia - Solicita',
   'Sentencia - Pasen autos a Sentencia',
-  'Sentencia',
-  'Cobrado'
-];  
+  'Sentencia'
+];
 estadoSeleccionado: any;
 
   juicios: any[] = ['ordinario', 'sumarisimo', 'a definir'];

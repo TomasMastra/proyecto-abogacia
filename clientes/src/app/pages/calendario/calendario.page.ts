@@ -1,5 +1,3 @@
-// Estructura base para el calendario completo con navegación de meses, eventos y formulario
-
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -30,7 +28,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 
 
 import { takeUntil } from 'rxjs/operators';
-import { Subject, Observable } from 'rxjs';
+import { Subject, Observable, of } from 'rxjs';
 
 
 @Component({
@@ -108,6 +106,10 @@ export class CalendarioPage implements OnInit {
     map(value => this.filtrarClientes(value || ''))
   );
   clienteSeleccionado: ClienteModel | null = null;
+  expedienteCtrl = new FormControl('');
+  filteredExpedientes: Observable<ExpedienteModel[]> = of([]);
+
+
 
   constructor(
     private eventosService: EventosService,
@@ -124,7 +126,30 @@ export class CalendarioPage implements OnInit {
     this.cargarUsuarios();
     this.cargarDemandados();
     this.cargarExpedientes();
+
+    this.filteredExpedientes = this.expedienteCtrl.valueChanges.pipe(
+      startWith(''),
+      map(texto => this.filtrarExpedientes(texto!))
+    );
+
   }
+
+seleccionarExpediente(expediente: ExpedienteModel) {
+  this.nuevoEvento.expediente_id = Number(expediente.id);  // 👈 casteo explícito
+}
+
+
+  filtrarExpedientes(texto: string): ExpedienteModel[] {
+  const term = texto.toLowerCase();
+
+  return this.listaExpedientes.filter(exp => {
+    const numeroAnio = `${exp.numero}/${exp.anio}`.toLowerCase();
+    const clientes = exp.clientes?.map(c => `${c.nombre} ${c.apellido}`.toLowerCase()).join(' ') || '';
+
+    return numeroAnio.includes(term) || clientes.includes(term);
+  });
+}
+
 
   toggleFormulario() {
     this.mostrarFormulario = !this.mostrarFormulario;
@@ -473,6 +498,13 @@ actualizarEvento(evento: EventoModel) {
       Swal.fire('Error', 'No se pudo actualizar el evento.', 'error');
     }
   });
+}
+
+displayExpediente(expediente: ExpedienteModel): string {
+  if (!expediente) return '';
+  const cliente = expediente.clientes?.[0];
+  const demandado = expediente.demandados?.[0];
+  return `${expediente.numero}/${expediente.anio} ${cliente ? cliente.nombre + ' ' + cliente.apellido : '(sin actora)'} contra ${demandado?.nombre || '(sin demandado)'}`;
 }
 
 

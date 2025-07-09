@@ -890,6 +890,19 @@ app.get("/demandados", (req, res) => {
       });
 });
 
+app.get("/demandados/oficiados", (req, res) => {
+  pool.request()
+    .query("SELECT * FROM demandados WHERE estado != 'eliminado' AND esOficio = 1")
+    .then(result => {
+      res.json(result.recordset);
+    })
+    .catch(err => {
+      console.error("Error al obtener oficiados:", err);
+      res.status(500).send({ error: "Error al obtener oficiados" });
+    });
+});
+
+
 app.get("/demandados/:id", async (req, res) => {
   try {
     const expedienteId = req.params.id;
@@ -1055,35 +1068,39 @@ app.put('/demandados/modificar/:id', async (req, res) => {
   const nuevosDatos = req.body;
 
   try {
-      const resultado = await pool.request()
-          .input('id', sql.Int, id)
-          .input('nombre', sql.NVarChar, nuevosDatos.nombre)
-          .input('estado', sql.NVarChar, nuevosDatos.estado)
-          .input('localidad_id', sql.Int, nuevosDatos.localidad_id)
-          .input('direccion', sql.NVarChar, nuevosDatos.direccion)
-          .query(`
-              UPDATE demandados
-              SET nombre = @nombre,
-                  estado = @estado,
-                  localidad_id = @localidad_id,
-                  direccion = @direccion
-              WHERE id = @id
-          `);
+    const resultado = await pool.request()
+      .input('id', sql.Int, id)
+      .input('nombre', sql.NVarChar, nuevosDatos.nombre)
+      .input('estado', sql.NVarChar, nuevosDatos.estado)
+      .input('localidad_id', sql.Int, nuevosDatos.localidad_id)
+      .input('direccion', sql.NVarChar, nuevosDatos.direccion)
+      .input('esOficio', sql.Bit, nuevosDatos.esOficio ?? 0) // 👈 agregado
+      .query(`
+        UPDATE demandados
+        SET nombre = @nombre,
+            estado = @estado,
+            localidad_id = @localidad_id,
+            direccion = @direccion,
+            esOficio = @esOficio
+        WHERE id = @id
+      `);
 
-      if (resultado.rowsAffected[0] > 0) {
-          res.status(200).json({ mensaje: 'Demandado actualizado correctamente' });
-      } else {
-          res.status(404).json({ mensaje: 'Demandado no encontrado' });
-      }
+    if (resultado.rowsAffected[0] > 0) {
+      res.status(200).json({ mensaje: 'Demandado actualizado correctamente' });
+    } else {
+      res.status(404).json({ mensaje: 'Demandado no encontrado' });
+    }
+
   } catch (error) {
-      console.error('Error al actualizar demandado:', error);
-      res.status(500).json({ mensaje: 'Error al actualizar demandado' });
+    console.error('Error al actualizar demandado:', error);
+    res.status(500).json({ mensaje: 'Error al actualizar demandado' });
   }
 });
 
+
 app.post('/demandados/agregar', async (req, res) => {
   try {
-    const { nombre, estado, localidad_id, direccion } = req.body;
+    const { nombre, estado, localidad_id, direccion, esOficio } = req.body;
 
     if (!nombre) {
       return res.status(400).json({
@@ -1094,29 +1111,31 @@ app.post('/demandados/agregar', async (req, res) => {
 
     const result = await pool.request()
       .input('nombre', sql.NVarChar, nombre)
-      .input('estado', sql.NVarChar, 'en gestión')
-      .input('localidad_id', sql.Int, localidad_id) // ✅ corregido
-      .input('direccion', sql.NVarChar, direccion)
+      .input('estado', sql.NVarChar, estado || 'en gestión')
+      .input('localidad_id', sql.Int, localidad_id || null)
+      .input('direccion', sql.NVarChar, direccion || null)
+      .input('esOficio', sql.Bit, esOficio ?? 0) // 👈 nuevo campo con fallback a false (0)
       .query(`
-        INSERT INTO demandados (nombre, estado, localidad_id, direccion)
+        INSERT INTO demandados (nombre, estado, localidad_id, direccion, esOficio)
         OUTPUT INSERTED.id  
-        VALUES (@nombre, @estado, @localidad_id, @direccion)
+        VALUES (@nombre, @estado, @localidad_id, @direccion, @esOficio)
       `);
 
     res.status(201).json({
-      message: 'Juzgado agregado exitosamente',
+      message: 'Demandado agregado exitosamente',
       id: result.recordset[0].id
     });
 
   } catch (err) {
-    console.error('Error al agregar juzgado:', err.message);
+    console.error('Error al agregar demandado:', err.message);
     console.error('Error details:', err);
     res.status(500).json({
-      error: 'Error al agregar juzgado',
+      error: 'Error al agregar demandado',
       message: err.message
     });
   }
 });
+
 
 ////////////////
 
@@ -1702,12 +1721,13 @@ app.get('/mediaciones/:id', async (req, res) => {
     console.error('Error al obtener mediación por ID:', error.message);
     res.status(500).json({ error: 'Error interno al buscar la mediación' });
   }
-});app.put("/eventos/editar/:id", async (req, res) => {
+});
+app.put("/eventos/editar/:id", async (req, res) => {
   const id = req.params.id;
   const evento = req.body;
 
   try {
-    // Actualizar evento principal
+    // Actualizar evento principal con link_virtual agregado
     await pool.request().query(`
       UPDATE eventos_calendario SET 
         titulo = '${evento.titulo}',
@@ -1716,7 +1736,8 @@ app.get('/mediaciones/:id', async (req, res) => {
         tipo_evento = '${evento.tipo_evento}',
         ubicacion = '${evento.ubicacion}',
         estado = '${evento.estado}',
-        mediacion_id = ${evento.mediacion_id || 'NULL'}
+        mediacion_id = ${evento.mediacion_id || 'NULL'},
+        link_virtual = ${evento.link_virtual ? `'${evento.link_virtual}'` : 'NULL'}
       WHERE id = ${id}
     `);
 
@@ -1744,6 +1765,7 @@ app.get('/mediaciones/:id', async (req, res) => {
 
 
 
+
 app.put('/eventos/eliminar/:id', async (req, res) => {
   const id = req.params.id;
 
@@ -1762,6 +1784,85 @@ app.put('/eventos/eliminar/:id', async (req, res) => {
     res.status(500).json({ error: 'Error al eliminar evento', message: error.message });
   }
 });
+
+app.post('/oficios/agregar', async (req, res) => {
+  console.log('OFICIO:', req.body);
+
+  try {
+    const { expediente_id, demandado_id, parte, estado, fecha_diligenciado } = req.body;
+
+    if (!expediente_id || !demandado_id || !parte || !estado) {
+      return res.status(400).json({
+        error: 'Faltan campos obligatorios',
+        camposRequeridos: ['expediente_id', 'demandado_id', 'parte', 'estado']
+      });
+    }
+
+    const result = await pool.request()
+      .input('expediente_id', sql.Int, expediente_id)
+      .input('demandado_id', sql.Int, demandado_id)
+      .input('parte', sql.NVarChar, parte)
+      .input('estado', sql.NVarChar, estado)
+      .input('fecha_diligenciado', sql.Date, fecha_diligenciado || null)
+      .query(`
+        INSERT INTO oficios (expediente_id, demandado_id, parte, estado, fecha_diligenciado)
+        VALUES (@expediente_id, @demandado_id, @parte, @estado, @fecha_diligenciado)
+      `);
+
+    res.status(201).json({ message: 'Oficio agregado correctamente' });
+  } catch (err) {
+    console.error('Error al agregar oficio:', err.message);
+    res.status(500).json({ error: 'Error al agregar oficio', message: err.message });
+  }
+});
+
+app.get('/oficios', async (req, res) => {
+  try {
+    const result = await pool.request()
+      .query("SELECT * FROM oficios WHERE estado != 'eliminado'");
+
+    res.status(200).json(result.recordset);
+  } catch (err) {
+    console.error('Error al obtener oficios:', err.message);
+    res.status(500).json({ error: 'Error al obtener oficios' });
+  }
+});
+
+app.put('/oficios/modificar/:id', async (req, res) => {
+  const { id } = req.params;
+  const { expediente_id, demandado_id, parte, estado, fecha_diligenciado } = req.body;
+
+  console.log('Oficio: ', req.body)
+  try {
+    const result = await pool.request()
+      .input('id', sql.Int, id)
+      .input('expediente_id', sql.Int, expediente_id)
+      .input('demandado_id', sql.Int, demandado_id)
+      .input('parte', sql.NVarChar, parte)
+      .input('estado', sql.NVarChar, estado)
+      .input('fecha_diligenciado', sql.Date, fecha_diligenciado || null)
+      .query(`
+        UPDATE oficios
+        SET expediente_id = @expediente_id,
+            demandado_id = @demandado_id,
+            parte = @parte,
+            estado = @estado,
+            fecha_diligenciado = @fecha_diligenciado
+        WHERE id = @id
+      `);
+
+    if (result.rowsAffected[0] > 0) {
+      res.status(200).json({ mensaje: 'Oficio actualizado correctamente' });
+    } else {
+      res.status(404).json({ mensaje: 'Oficio no encontrado' });
+    }
+
+  } catch (error) {
+    console.error('Error al actualizar oficio:', error);
+    res.status(500).json({ mensaje: 'Error al actualizar oficio' });
+  }
+});
+
 
 
              // Iniciar el servidor

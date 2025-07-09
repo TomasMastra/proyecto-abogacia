@@ -67,7 +67,6 @@ export class EstadosHonorariosPage implements OnInit {
   tipoSeleccionado: any;
   juzgados: JuzgadoModel[] = [];
   juzgadoSeleccionado: any;
-
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -84,39 +83,48 @@ estados: any[] = [
   'Traslado demanda - Cedula Liberada',
   'Traslado demanda - Cedula Notificada',
   'Traslado demanda - Cedula Sin Notificar',
-
   'Traslado demanda - Notificado',
-  'Traslado demanda - Solicita',
   'Traslado demanda - Previo Rebeldia',
-  'Traslado demanda - Solicita',
 
   'Contesta demanda - Traslado',
   'Contesta demanda - Cedula',
   'Contesta Traslado',
+
   'Se resuelva',
+
   'Apertura a Prueba - Solicita',
   'Apertura a Prueba - Cedula',
   'Apertura a Prueba - Audiencia 360',
+
   'Pruebas - Se provean',
+  'Pruebas - Se provee',
   'Prueba - Cedula Perito',
   'Prueba - Cedula Parte',
-  'Prueba - Acredita Oficio',
-  'Prueba - Solicita Oficio reiteratorio',
+  'Prueba - Oficio deox',
+  'Prueba - Oficio acredita',
+  'Prueba - Oficio solicita reiteratorio',
+  'Prueba - Oficio solicita Astreinte',
+  'Prueba - Testimonial hace saber',
   'Prueba - Acredita Testimonial',
   'Prueba - Desiste',
   'Prueba - Impugna',
   'Prueba - Se intime parte',
   'Prueba - Se intime perito',
+
   'Clausura periodo Prueba - Solicita',
   'Clausura periodo Prueba - Pase a certificar',
+
   'Alegatos - Solicita',
   'Alegatos - Cedula',
   'Alegatos - Presenta',
+
   'Fiscal - Solicita',
   'Fiscal - Cedula',
+
   'Defensor Oficial - Solicita',
   'Defensor Oficial - Cedula',
   'Defensor Oficial - Ratifica lo actuado',
+  
   'Sentencia - Previo',
   'Sentencia - Solicita',
   'Sentencia - Pasen autos a Sentencia',

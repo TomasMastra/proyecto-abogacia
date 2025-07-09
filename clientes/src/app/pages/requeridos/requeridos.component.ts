@@ -100,10 +100,10 @@ cargarExpedientes() {
       (expedientes) => {
         // Filtrar acá: que NO sean 'Sentencia' ni 'Cobrado'
         const filtrados = expedientes!.filter(expediente => 
-  expediente.estado !== 'Sentencia' &&
-  expediente.estado !== 'Cobrado' &&
-  expediente.estado !== 'eliminado' &&
-  expediente.requiere_atencion
+        expediente.estado !== 'Sentencia' &&
+        expediente.estado !== 'Cobrado' &&
+        expediente.estado !== 'eliminado' &&
+        expediente.fecha_atencion
 );
 
 // ORDENAR por fecha_requerido descendente
@@ -267,6 +267,8 @@ filtrarPorEstado(estado: string) {
 }
 
 filtrar() {
+  const texto = this.busqueda.toLowerCase();
+
   this.expedientes = this.expedientesOriginales.filter(expediente => {
     const tipoOk = this.tipoSeleccionado ? expediente.juzgadoModel?.tipo === this.tipoSeleccionado : true;
     const juzgadoOk = this.juzgadoSeleccionado ? expediente.juzgado_id === +this.juzgadoSeleccionado : true;
@@ -274,9 +276,20 @@ filtrar() {
     const procuradorOk = this.procuradorSeleccionado ? expediente.procurador_id === +this.procuradorSeleccionado : true;
     const juicioOk = this.juicioSeleccionado ? expediente.juicio?.toLowerCase() === this.juicioSeleccionado.toLowerCase() : true;
 
-    return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk;
+    const numeroOk = expediente.numero?.toString().includes(texto);
+    const anioOk = expediente.anio?.toString().includes(texto);
+
+    const clienteOk = expediente.clientes?.some((cliente: any) =>
+      (cliente.nombre && cliente.nombre.toLowerCase().includes(texto)) ||
+      (cliente.apellido && cliente.apellido.toLowerCase().includes(texto))
+    ) ?? false;
+
+    const busquedaOk = texto === '' || numeroOk || anioOk || clienteOk;
+
+    return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && busquedaOk;
   });
 }
+
 
 async calcularDiasHabilesConFeriados(fechaStr: string, cantidad: number): Promise<string> {
   const feriados = await this.expedienteService.getFeriadosDesde(fechaStr).toPromise();

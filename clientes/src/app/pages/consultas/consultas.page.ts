@@ -254,7 +254,7 @@ esVisible(item: any): boolean {
 filtrarPorEstado(estado: string) {
   this.expedientes = this.expedientesOriginales.filter(expediente => expediente.estado !== 'Sentencia');
 }
-
+/*
 filtrar() {
   this.expedientes = this.expedientesOriginales.filter(expediente => {
     const tipoOk = this.tipoSeleccionado ? expediente.juzgadoModel?.tipo === this.tipoSeleccionado : true;
@@ -264,6 +264,31 @@ filtrar() {
     const juicioOk = this.juicioSeleccionado ? expediente.juicio?.toLowerCase() === this.juicioSeleccionado.toLowerCase() : true;
 
     return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk;
+  });
+}*/
+
+filtrar() {
+  const texto = this.busqueda.toLowerCase();
+
+  this.expedientes = this.expedientesOriginales.filter(expediente => {
+    const tipoOk = this.tipoSeleccionado ? expediente.juzgadoModel?.tipo === this.tipoSeleccionado : true;
+    const juzgadoOk = this.juzgadoSeleccionado ? expediente.juzgado_id === +this.juzgadoSeleccionado : true;
+    const abogadoOk = this.abogadoSeleccionado ? expediente.usuario_id === +this.abogadoSeleccionado : true;
+    const procuradorOk = this.procuradorSeleccionado ? expediente.procurador_id === +this.procuradorSeleccionado : true;
+    const juicioOk = this.juicioSeleccionado ? expediente.juicio?.toLowerCase() === this.juicioSeleccionado.toLowerCase() : true;
+
+    const numeroOk = expediente.numero?.toString().includes(texto);
+    const anioOk = expediente.anio?.toString().includes(texto);
+
+    const clienteOk = expediente.clientes?.some((cliente: any) =>
+      (cliente.nombre && cliente.nombre.toLowerCase().includes(texto)) ||
+      (cliente.apellido && cliente.apellido.toLowerCase().includes(texto))
+    ) ?? false;
+
+
+    const busquedaOk = texto === '' || numeroOk || anioOk || clienteOk;
+
+    return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && busquedaOk;
   });
 }
 

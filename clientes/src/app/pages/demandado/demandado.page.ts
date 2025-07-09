@@ -221,253 +221,220 @@ export class DemandadoPage implements OnInit {
           
         );
     }
-/*
-      agregarDemandado() {
-        Swal.fire({
-          title: "Agregar Demandado",
-          input: "text",
-          inputLabel: "Ingrese el nombre del demandado",
-          inputPlaceholder: "nombre del demandado",
-          showCancelButton: true,
-          confirmButtonText: "Agregar",
-          toast: true,
-          preConfirm: (nombre) => {
-            if (!nombre) {
-              Swal.showValidationMessage("Debe ingresar un nombre válido");
-              return null;  // Si no hay nombre, se detiene el proceso
-            }
-            return nombre;
-          }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            const demandado: DemandadoModel = {
-              nombre: result.value,
-              id: '', 
-              estado: 'en gestión',
-              direccion: '',
-              localidad_id: 1
-            };
-      
-            // Intentar agregar el demandado
-            this.demandadosService.addDemandado(demandado).subscribe({
-              next: (response) => {
-                // Si la adición es exitosa, recargamos los demandados y mostramos el mensaje
-                this.cargarDemandados();
-                console.log("Demandado agregado:", demandado);
-                Swal.fire({
-                  toast: true,
-                  title: "Demandado agregado",
-                  text: `Se agregó a ${demandado.nombre} correctamente.`,
-                  icon: "success"
-                });
-              },
-              error: (error) => {
-                // Si ocurre un error, mostramos un mensaje de error
-                console.error("Error al agregar el demandado:", error);
-                Swal.fire({
-                  toast: true,
-                  title: "Error",
-                  text: "Hubo un problema al agregar al demandado. Intenta nuevamente.",
-                  icon: "error"
-                });
-              }
-            });
-          }
-        });
-      }*/
 
-        agregarDemandado() {
-          const opcionesLocalidades = this.localidades.map(loc => `<option value="${loc.id}">${loc.localidad}</option>`).join('');
-        
+agregarDemandado() {
+  const opcionesLocalidades = this.localidades
+    .map(loc => `<option value="${loc.id}">${loc.localidad}</option>`)
+    .join('');
+
+  Swal.fire({
+    title: 'Agregar Demandado',
+    html: `
+      <style>
+        .input-estandar {
+          width: 100%;
+          background-color: white;
+          color: black;
+          height: 40px;
+          padding: 0 10px;
+          border: 1px solid #d9d9d9;
+          border-radius: 4px;
+          font-size: 16px;
+          box-sizing: border-box;
+        }
+        .checkbox-container {
+          display: flex;
+          align-items: center;
+          margin-top: 4px;
+        }
+        .checkbox-container input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          margin-right: 8px;
+          accent-color: white;
+        }
+      </style>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-top: 10px;">
+        <input id="nombre" class="input-estandar" placeholder="Nombre del demandado" />
+        <input id="direccion" class="input-estandar" placeholder="Dirección" />
+        <select id="localidad_id" class="input-estandar">
+          <option value="">Seleccione localidad</option>
+          ${opcionesLocalidades}
+        </select>
+        <div class="checkbox-container">
+          <input type="checkbox" id="esOficio" />
+          <label for="esOficio" style="font-size: 14px; color: black;">¿Es oficiado?</label>
+        </div>
+      </div>
+    `,
+    background: 'white',
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Agregar',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const nombre = (document.getElementById('nombre') as HTMLInputElement).value.trim();
+      const direccion = (document.getElementById('direccion') as HTMLInputElement).value.trim();
+      const localidad_id = +(document.getElementById('localidad_id') as HTMLSelectElement).value;
+      const esOficio = (document.getElementById('esOficio') as HTMLInputElement).checked;
+
+      if (!nombre || !direccion || !localidad_id) {
+        Swal.showValidationMessage('Todos los campos son obligatorios');
+        return null;
+      }
+
+      return { nombre, direccion, localidad_id, esOficio };
+    }
+  }).then((result) => {
+    if (result.isConfirmed && result.value) {
+      const { nombre, direccion, localidad_id, esOficio } = result.value;
+
+      const demandado: DemandadoModel = {
+        id: '',
+        nombre,
+        direccion,
+        localidad_id,
+        estado: 'en gestión',
+        esOficio
+      };
+
+      this.demandadosService.addDemandado(demandado).subscribe({
+        next: () => {
+          this.cargarDemandados();
           Swal.fire({
-            title: 'Agregar Demandado',
-            html:
-              `<input id="nombre" class="swal2-input" placeholder="Nombre del demandado">` +
-              `<input id="direccion" class="swal2-input" placeholder="Dirección">` +
-              `<select id="localidad_id" class="swal2-input">
-                <option value="">Seleccione localidad</option>
-                ${opcionesLocalidades}
-              </select>`,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'Agregar',
-            preConfirm: () => {
-              const nombre = (document.getElementById('nombre') as HTMLInputElement).value.trim();
-              const direccion = (document.getElementById('direccion') as HTMLInputElement).value.trim();
-              const localidad_id = +(document.getElementById('localidad_id') as HTMLSelectElement).value;
-        
-              if (!nombre || !direccion || !localidad_id) {
-                Swal.showValidationMessage('Todos los campos son obligatorios');
-                return null;
-              }
-        
-              return { nombre, direccion, localidad_id };
-            }
-          }).then((result) => {
-            if (result.isConfirmed && result.value) {
-              const { nombre, direccion, localidad_id } = result.value;
-        
-              const demandado: DemandadoModel = {
-                id: '',
-                nombre,
-                direccion,
-                localidad_id,
-                estado: 'en gestión'
-              };
-        
-              this.demandadosService.addDemandado(demandado).subscribe({
-                next: () => {
-                  this.cargarDemandados();
-                  Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: 'Demandado agregado correctamente',
-                    showConfirmButton: false,
-                    timer: 2000
-                  });
-                },
-                error: (error) => {
-                  console.error('Error al agregar el demandado:', error);
-                  Swal.fire({
-                    toast: true,
-                    title: 'Error',
-                    text: 'Hubo un problema al agregar al demandado. Intenta nuevamente.',
-                    icon: 'error'
-                  });
-                }
-              });
-            }
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Demandado agregado correctamente',
+            showConfirmButton: false,
+            timer: 2000
+          });
+        },
+        error: (error) => {
+          console.error('Error al agregar el demandado:', error);
+          Swal.fire({
+            toast: true,
+            title: 'Error',
+            text: 'Hubo un problema al agregar al demandado. Intenta nuevamente.',
+            icon: 'error'
           });
         }
-        
-        
-        
+      });
+    }
+  });
+}
 
-/*
-      modificarDemandado(demandado: DemandadoModel) { 
-        Swal.fire({
-          title: "Modificar Demandado",
-          input: "text",
-          inputLabel: "Ingrese el nombre del demandado",
-          inputPlaceholder: "nombre del demandado",
-          inputValue: demandado.nombre, // Aquí agregamos el nombre del demandado existente
-          showCancelButton: true,
-          confirmButtonText: "Modificar",
-          toast: true,
-          preConfirm: (nombre) => {
-            if (!nombre) {
-              Swal.showValidationMessage("Debe ingresar un nombre válido");
-              return null;  // Si no hay nombre, se detiene el proceso
-            }
-            return nombre;
-          }
-        }).then((result) => {
-          if (result.isConfirmed) {
-            const demandadoModificado: DemandadoModel = {
-              ...demandado,
-              nombre: result.value, // Modificamos el nombre del demandado con el nuevo valor
-              estado: demandado.estado  // Conservamos el estado del demandado actual
-            };
-      
-            // Intentar modificar el demandado
-            this.demandadosService.actualizarDemandado(demandado.id, demandadoModificado).subscribe({
-              next: (response) => {
-                // Si la modificación es exitosa, recargamos los demandados y mostramos el mensaje
-                this.cargarDemandados();
-                console.log("Demandado modificado:", demandadoModificado);
-                Swal.fire({
-                  toast: true,
-                  title: "Demandado modificado",
-                  text: `Se modificó a ${demandadoModificado.nombre} correctamente.`,
-                  icon: "success"
-                });
-              },
-              error: (error) => {
-                // Si ocurre un error, mostramos un mensaje de error
-                console.error("Error al modificar el demandado:", error);
-                Swal.fire({
-                  toast: true,
-                  title: "Error",
-                  text: "Hubo un problema al modificar al demandado. Intenta nuevamente.",
-                  icon: "error"
-                });
-              }
-            });
-          }
-        });
-      }*/
 
-        modificarDemandado(demandado: DemandadoModel) {
-          const opcionesLocalidades = this.localidades
-          .map(loc => `
-            <option value="${loc.id}" ${loc.id.toString() === String(demandado.localidad_id) ? 'selected' : ''}>
-              ${loc.localidad}
-            </option>
-          `)
-          .join('');
         
-        
+  
+
+modificarDemandado(demandado: DemandadoModel) {
+  const opcionesLocalidades = this.localidades
+    .map(loc => `
+      <option value="${loc.id}" ${loc.id.toString() === String(demandado.localidad_id) ? 'selected' : ''}>
+        ${loc.localidad}
+      </option>
+    `)
+    .join('');
+
+  const checked = demandado.esOficio ? 'checked' : '';
+
+  Swal.fire({
+    title: 'Modificar Demandado',
+    html: `
+      <style>
+        .input-estandar {
+          width: 100%;
+          background-color: white;
+          color: black;
+          height: 40px;
+          padding: 0 10px;
+          border: 1px solid #d9d9d9;
+          border-radius: 4px;
+          font-size: 16px;
+          box-sizing: border-box;
+        }
+        .checkbox-container {
+          display: flex;
+          align-items: center;
+          margin-top: 4px;
+        }
+        .checkbox-container input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          margin-right: 8px;
+          accent-color: white;
+        }
+      </style>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-top: 10px;">
+        <input id="nombre" class="input-estandar" placeholder="Nombre" value="${demandado.nombre ?? ''}">
+        <input id="direccion" class="input-estandar" placeholder="Dirección" value="${demandado.direccion ?? ''}">
+        <select id="localidad" class="input-estandar">
+          <option value="">Seleccione localidad</option>
+          ${opcionesLocalidades}
+        </select>
+        <div class="checkbox-container">
+          <input type="checkbox" id="esOficio" ${checked}>
+          <label for="esOficio" style="font-size: 14px; color: black;">¿Es oficiado?</label>
+        </div>
+      </div>
+    `,
+    background: 'white',
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Modificar',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const nombre = (document.getElementById('nombre') as HTMLInputElement).value.trim();
+      const direccion = (document.getElementById('direccion') as HTMLInputElement).value.trim();
+      const localidad_id = +(document.getElementById('localidad') as HTMLSelectElement).value;
+      const esOficio = (document.getElementById('esOficio') as HTMLInputElement).checked;
+
+      if (!nombre || !direccion || !localidad_id) {
+        Swal.showValidationMessage('Todos los campos son obligatorios');
+        return null;
+      }
+
+      return { nombre, direccion, localidad_id, esOficio };
+    }
+  }).then((result) => {
+    if (result.isConfirmed && result.value) {
+      const { nombre, direccion, localidad_id, esOficio } = result.value;
+
+      const demandadoModificado: DemandadoModel = {
+        ...demandado,
+        nombre,
+        direccion,
+        localidad_id,
+        esOficio
+      };
+
+      this.demandadosService.actualizarDemandado(demandado.id, demandadoModificado).subscribe({
+        next: () => {
+          this.cargarDemandados();
           Swal.fire({
-            title: 'Modificar Demandado',
-            html: `
-              <input id="nombre" class="swal2-input" placeholder="Nombre" value="${demandado.nombre ?? ''}">
-              <input id="direccion" class="swal2-input" placeholder="Dirección" value="${demandado.direccion ?? ''}">
-              <select id="localidad" class="swal2-input">
-                <option value="">Seleccione localidad</option>
-                ${opcionesLocalidades}
-              </select>
-            `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'Modificar',
-            preConfirm: () => {
-              const nombre = (document.getElementById('nombre') as HTMLInputElement).value.trim();
-              const direccion = (document.getElementById('direccion') as HTMLInputElement).value.trim();
-              const localidad_id = +(document.getElementById('localidad') as HTMLSelectElement).value;
-        
-              if (!nombre || !direccion || !localidad_id) {
-                Swal.showValidationMessage('Todos los campos son obligatorios');
-                return null;
-              }
-        
-              return { nombre, direccion, localidad_id };
-            }
-          }).then((result) => {
-            if (result.isConfirmed && result.value) {
-              const { nombre, direccion, localidad_id } = result.value;
-        
-              const demandadoModificado: DemandadoModel = {
-                ...demandado,
-                nombre,
-                direccion,
-                localidad_id
-              };
-        
-              this.demandadosService.actualizarDemandado(demandado.id, demandadoModificado).subscribe({
-                next: () => {
-                  this.cargarDemandados();
-                  Swal.fire({
-                    toast: true,
-                    title: 'Demandado modificado',
-                    text: `Se modificó a ${demandadoModificado.nombre} correctamente.`,
-                    icon: 'success'
-                  });
-                },
-                error: (error) => {
-                  console.error('Error al modificar el demandado:', error);
-                  Swal.fire({
-                    toast: true,
-                    title: 'Error',
-                    text: 'Hubo un problema al modificar al demandado. Intenta nuevamente.',
-                    icon: 'error'
-                  });
-                }
-              });
-            }
+            toast: true,
+            title: 'Demandado modificado',
+            text: `Se modificó a ${demandadoModificado.nombre} correctamente.`,
+            icon: 'success'
+          });
+        },
+        error: (error) => {
+          console.error('Error al modificar el demandado:', error);
+          Swal.fire({
+            toast: true,
+            title: 'Error',
+            text: 'Hubo un problema al modificar al demandado. Intenta nuevamente.',
+            icon: 'error'
           });
         }
-        
+      });
+    }
+  });
+}
+
       
       
       

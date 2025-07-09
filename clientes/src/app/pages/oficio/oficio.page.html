@@ -1,0 +1,87 @@
+<div class="content mat-elevation-z8">
+  <form [formGroup]="form" class="form-container">
+
+    <div class="section">
+      <h2 class="titulo-seccion">Formulario de Oficio</h2>
+
+<mat-form-field appearance="outline" class="full-width">
+  <mat-label style="color: rgb(0, 0, 0);">Expediente</mat-label>
+  
+  <input
+    type="text"
+    matInput
+    [formControl]="expedienteCtrl"
+    [matAutocomplete]="autoExp"
+    placeholder="Buscar por número, año o cliente"
+    style="color: rgb(0, 0, 0);" />
+
+  <mat-autocomplete 
+    #autoExp="matAutocomplete" 
+    [displayWith]="displayExpediente"
+    (optionSelected)="seleccionarExpediente($event.option.value)">
+    
+    <mat-option *ngFor="let expediente of filteredExpedientes | async" [value]="expediente">
+      {{ expediente.numero }}/{{ expediente.anio }}
+      {{ expediente.clientes.length > 1 
+          ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido + ' y otros' 
+          : expediente.clientes.length === 1 
+            ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido 
+            : '(sin actora)' 
+      }}
+      contra
+      {{ expediente.demandados.length > 1 
+          ? expediente.demandados[0].nombre + ' y otros'
+          : expediente.demandados.length === 1 
+            ? expediente.demandados[0].nombre 
+            : '(sin demandado)' 
+      }}
+    </mat-option>
+  </mat-autocomplete>
+</mat-form-field> 
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Oficiada</mat-label>
+        <mat-select formControlName="oficiada">
+          <mat-option *ngFor="let o of demandados" [value]="o">{{ o.nombre }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Pate -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Parte</mat-label>
+        <mat-select formControlName="parte">
+          <mat-option *ngFor="let p of partes" [value]="p">{{ p }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Estado -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Estado del oficio</mat-label>
+        <mat-select formControlName="estado" (selectionChange)="onEstadoChange($event.value)">
+          <mat-option *ngFor="let est of estadosOficio" [value]="est">{{ est }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Fecha diligenciado -->
+  <mat-form-field appearance="outline" class="full-width"   *ngIf="['diligenciado', 'reiteratorio solicitado'].includes(form.get('estado')?.value)">
+    <mat-label style="color: black;">Fecha diligenciado</mat-label>
+    <input matInput [matDatepicker]="picker" formControlName="fecha_diligenciado" style="color: black; background-color: white;" />
+    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-datepicker #picker></mat-datepicker>
+  </mat-form-field>
+
+    </div>
+
+    <div class="botones">
+      <button mat-button color="primary" class="boton-guardar" (click)="guardarOficio()" [disabled]="cargando">
+        <mat-icon>save</mat-icon>
+        Guardar oficio
+      </button>
+    </div>
+
+<!--     <div *ngIf="cargando" class="loader-container">
+      <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
+    </div> -->
+
+  </form>
+</div>

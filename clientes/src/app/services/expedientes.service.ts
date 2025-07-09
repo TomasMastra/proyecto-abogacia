@@ -40,8 +40,10 @@ getExpedientes() {
   this.http.get<ExpedienteModel[]>(this.apiUrl, { params }).subscribe(
     (expedientes) => {
 
-      
       expedientes.forEach((expediente) => {
+          expediente.clientes = []; // 👈 prevenís error
+          expediente.demandados = [];
+
         this.getClientesPorExpediente(expediente.id).subscribe((clientes) => {
           expediente.clientes = clientes;
         });
@@ -197,7 +199,7 @@ getExpedientes() {
 
   return this.http.get<ExpedienteModel[]>(`${this.apiUrl}/buscar`, { params }).pipe(
     switchMap(expedientes => {
-      if (expedientes.length === 0) {
+      if (expedientes.length! === 0) {
         return of([]);
       }
 
@@ -249,43 +251,7 @@ getExpedientes() {
     
       return this.http.get<ExpedienteModel[]>(`${this.apiUrl}/demandados`, { params });
     }
-/*
-getClientePorNumeroYAnio(numero: string, anio: string, tipo: string) {
-  const usuario = this.usuarioService.usuarioLogeado;
 
-  const params = {
-    numero,
-    anio,
-    tipo,
-    usuario_id: usuario!.id,
-    rol: usuario!.rol
-  };
-
-  return this.http.get<ExpedienteModel[]>(`${this.apiUrl}/buscarPorNumeroAnioTipo`, { params }).pipe(
-    mergeMap(expedientes => {
-      if (!expedientes.length) return of([]);
-
-      return forkJoin(
-        expedientes.map(expediente => {
-          const demandadoRequest = expediente.demandado_id
-            ? this.getDemandadoPorId(expediente.demandado_id)
-            : of(null); // 👈 Esto arregla el /null
-
-          return forkJoin({
-            clientes: this.getClientesPorExpediente(expediente.id),
-            demandado: demandadoRequest
-          }).pipe(
-            map(({ clientes, demandado }) => ({
-              ...expediente,
-              clientes,
-              demandadoModel: demandado
-            }))
-          );
-        })
-      );
-    })
-  );
-}*/
 
 getClientePorNumeroYAnio(numero: string, anio: string, tipo: string) {
   const usuario = this.usuarioService.usuarioLogeado;

@@ -45,11 +45,19 @@
           </button>
           <button mat-menu-item [class.active-route]="isActive('consultas')" (click)="goTo('consultas')">
             <mat-icon>upcoming</mat-icon>
-            <span>Consultas</span>
+            <span>Consultas expediente</span>
+          </button>
+            <button mat-menu-item [class.active-route]="isActive('consultas-oficio')" (click)="goTo('consultas-oficio')">
+            <mat-icon>upcoming</mat-icon>
+            <span>Consultas oficio</span>
           </button>
           <button mat-menu-item [class.active-route]="isActive('requeridos')" (click)="goTo('requeridos')">
             <mat-icon>exclamation</mat-icon>
             <span>Requieren Atención</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('oficio')" (click)="goTo('oficio')">
+            <mat-icon>exclamation</mat-icon>
+            <span>Oficios</span>
           </button>
         </mat-menu>
         

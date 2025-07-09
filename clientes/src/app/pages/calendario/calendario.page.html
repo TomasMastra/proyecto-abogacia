@@ -178,29 +178,43 @@
           <input matInput [(ngModel)]="nuevoEvento.ubicacion" name="ubicacion" style="color: white;">
         </mat-form-field> -->
 
-          <mat-form-field *ngIf="nuevoEvento.tipo_evento == 'Audiencia 360 virtual' || nuevoEvento.tipo_evento == 'Audiencia 360 personal'" appearance="outline">
-          <mat-label style="color: white;">Expediente</mat-label>
-          <mat-select [(ngModel)]="nuevoEvento.expediente_id" name="expediente_id" style="color: white;">
-            <mat-option *ngFor="let expediente of listaExpedientes" [value]="expediente.id">
-              {{ expediente.numero }}/{{ expediente.anio }}
-              {{ expediente.clientes.length > 1 
-                  ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido + ' y otros' 
-                  : expediente.clientes.length === 1 
-                    ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido 
-                    : '(sin actora)' 
-              }}
-              contra
-              {{ expediente.demandados.length > 1 
-                  ? expediente.demandados[0].nombre + ' y otros'
-                  : expediente.demandados.length === 1 
-                    ? expediente.demandados[0].nombre 
-                    : '(sin demandado)' 
-              }}
-            </mat-option>
+<mat-form-field appearance="outline" *ngIf="nuevoEvento.tipo_evento === 'Audiencia 360 virtual' || nuevoEvento.tipo_evento === 'Audiencia 360 personal'">
+  <mat-label style="color: white;">Expediente</mat-label>
+  
+  <input
+    type="text"
+    matInput
+    [formControl]="expedienteCtrl"
+    [matAutocomplete]="autoExp"
+    placeholder="Buscar por número, año o cliente"
+    style="color: white;" />
+
+  <mat-autocomplete 
+    #autoExp="matAutocomplete" 
+    [displayWith]="displayExpediente"
+    (optionSelected)="seleccionarExpediente($event.option.value)">
+    
+    <mat-option *ngFor="let expediente of filteredExpedientes | async" [value]="expediente">
+      {{ expediente.numero }}/{{ expediente.anio }}
+      {{ expediente.clientes.length > 1 
+          ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido + ' y otros' 
+          : expediente.clientes.length === 1 
+            ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido 
+            : '(sin actora)' 
+      }}
+      contra
+      {{ expediente.demandados.length > 1 
+          ? expediente.demandados[0].nombre + ' y otros'
+          : expediente.demandados.length === 1 
+            ? expediente.demandados[0].nombre 
+            : '(sin demandado)' 
+      }}
+    </mat-option>
+  </mat-autocomplete>
+</mat-form-field>
 
 
-          </mat-select>
-        </mat-form-field>
+
 
 
         <mat-form-field appearance="outline" *ngIf="nuevoEvento.tipo_evento === 'Audiencia 360 virtual'">

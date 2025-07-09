@@ -3,5 +3,6 @@ export interface DemandadoModel {
   nombre: string | null,
   estado: string,
   localidad_id: number,
-  direccion: string
+  direccion: string,
+  esOficio: boolean
 }

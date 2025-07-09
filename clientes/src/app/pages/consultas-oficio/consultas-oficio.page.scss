@@ -1,0 +1,338 @@
+
+/* honorario-diferido.page.scss */
+
+.mat-toolbar {
+  background: #004a9f;
+  color: white;
+}
+
+/*
+.mat-sidenav-container {
+  height: calc(100vh - 65px);
+}*/
+
+.mat-sidenav-content {
+  padding: 60px; /* Margen interno general */
+}
+
+
+.mat-sidenav {
+  margin: 16px;
+  width: 200px;
+  border-right: none;
+  background: #002b5c;
+  color: white;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  height: 100%;
+}
+
+.sidebar-content img.avatar {
+  margin-top: 16px;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+}
+
+.sidebar-content h4 {
+  margin-top: 8px;
+  font-weight: normal;
+}
+
+.sidebar-content p {
+  margin-top: 2px;
+  font-size: 0.7rem;
+  color: lightgrey;
+}
+
+.mat-divider {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.menu-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  font-size: 1rem;
+  color: white;
+  white-space: nowrap;
+
+  mat-icon {
+    margin-right: 8px;
+    color: white;
+  }
+}
+
+.mat-menu-item {
+  color: black;
+}
+
+/* Restante del CSS se mantiene como lo tenías para la tabla y contenido */
+
+.content {
+  background-color: #1565c0;
+  border-radius: 16px;
+  padding: 16px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  background-color: #1976d2;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.toolbar button {
+  color: white;
+  font-weight: bold;
+}
+
+.loader-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-grow: 1;
+}
+
+.table-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  //background-color: #0d47a1;
+  border-radius: 8px;
+  padding: 8px;
+  color: white;
+  background-color: #002b5c;
+  
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  color: white;
+}
+
+.table-container th,
+.table-container td {
+  border: 1px solid white;
+  padding: 8px;
+  text-align: left;
+}
+
+.table-container th {
+  background-color: #1976d2;
+}
+
+
+// SELECT
+
+
+.custom-select {
+  position: relative;
+  display: block;
+  max-width: 400px;
+  min-width: 180px;
+  margin: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background-color: #002b5c;
+  z-index: 10;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+
+  select {
+    border: none;
+    outline: none;
+    background: transparent;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0;
+    margin: 0;
+    display: block;
+    width: 100%;
+    padding: 12px 55px 12px 15px;
+    font-size: 14px;
+    color: white;
+    font-weight: bold;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    cursor: pointer;
+    background-color: #002b5c;
+  }
+
+  &:after {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 50px;
+    height: 100%;
+    line-height: 48px;
+    content: '\25BC'; /* ✅ Flecha correcta */
+    text-align: center;
+    color: white;
+    font-size: 18px;
+    border-left: 1px solid rgba(255, 255, 255, 0.5);
+    pointer-events: none;
+    transition: transform 0.3s ease;
+  }
+
+  &:hover {
+    background-color: #004a9f;
+
+  }
+}
+
+
+
+// agregado lista
+
+.mat-sidenav-content {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  padding: 45px;
+}
+
+.table-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  border-radius: 8px;
+  padding: 8px;
+  color: white;
+
+}
+
+
+.fullscreen-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  //background-color: rgba(13, 71, 161, 0.8); /* Fondo azul oscuro semitransparente */
+  display: flex;
+  justify-content: center; /* Centrado horizontal */
+  align-items: center;    /* Centrado vertical */
+  z-index: 9999;
+}
+
+
+.blur-content {
+  filter: blur(2px);
+  pointer-events: none;
+  user-select: none;
+}
+
+th {
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  position: relative;
+  user-select: none;
+}
+
+th:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.flecha {
+  margin-left: 6px;
+  font-size: 0.9rem;
+  color: #ffeb3b;
+}
+
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; // espacio entre grupos de filas
+
+  tr {
+    background-color: #001f3f;
+    border-left: 4px solid #007bff;
+    border-right: 4px solid #007bff;
+    transition: background-color 0.3s ease;
+  }
+
+  tr:nth-child(even) {
+    background-color: #002b5c;
+  }
+
+  tr:hover {
+    background-color: #535abd;
+  }
+
+  td, th {
+    padding: 10px;
+    text-align: left;
+    color: white;
+    border: none;
+  }
+
+  th {
+    background-color: #004080;
+    font-weight: bold;
+  }
+
+  td:first-child {
+    font-weight: bold;
+  }
+}
+
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+
+  tbody {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2); // línea entre grupos de dos filas
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  td, th {
+    padding: 10px;
+    text-align: left;
+    border-right: 1px solid rgba(236, 5, 5, 0.966); // verticales suaves
+  }
+
+  th {
+    background-color: #1565c0;
+    color: white;
+  }
+}
+
+.hover-group {
+  background-color: #1e88e5 !important;
+}
+
+.fixed-cell {
+  background-color: #07295c !important;
+  font-weight: bold;
+  color: white;
+}

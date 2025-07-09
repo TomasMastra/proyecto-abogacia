@@ -1,0 +1,56 @@
+.content {
+  padding: 16px;
+  background-color: #1876d3;
+  color: rgb(0, 0, 0);
+  min-height: 100vh;
+
+  .form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .section {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    color: black;
+  }
+
+  .titulo-seccion {
+    text-align: center;
+    color: #000000;
+    margin-bottom: 20px;
+  }
+
+  .full-width {
+    width: 100%;
+  }
+
+  .input-busqueda {
+    background-color: white;
+    color: black;
+    padding: 10px;
+    border-radius: 4px;
+    width: 100%;
+  }
+
+  .botones {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .boton-guardar {
+    background-color: #0228d1;
+    color: white;
+  }
+
+  .loader-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+}

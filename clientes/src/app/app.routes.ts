@@ -78,5 +78,13 @@ export const routes: Routes = [
   {
     path: 'estados-honorarios',
     loadComponent: () => import('./pages/estados-honorarios/estados-honorarios.page').then( m => m.EstadosHonorariosPage)
+  },
+  {
+    path: 'oficio',
+    loadComponent: () => import('./pages/oficio/oficio.page').then( m => m.OficiosPage)
+  },
+  {
+    path: 'consultas-oficio',
+    loadComponent: () => import('./pages/consultas-oficio/consultas-oficio.page').then( m => m.ConsultasOficioPage)
   }
 ];

@@ -4,7 +4,9 @@
     <ion-input style="color: white; font-weight: bold;"
       placeholder="Buscar por número o año"
       class="input-busqueda"
-      [(ngModel)]="busqueda">
+      [(ngModel)]="busqueda"
+      (ngModelChange)="filtrar()">
+
     </ion-input>
 
 <label for="styledSelect1" class="custom-select">

@@ -30,6 +30,17 @@ export class DemandadosService {
     return this.demandados$;  // Devuelve el observable para que el componente se suscriba
   }
 
+    getOficiados() {
+    this.http.get<DemandadoModel[]>(`${this.apiUrl}/oficiados`,).subscribe(
+      (demandados) => {
+        this.demandadosSubject.next(demandados); // Actualiza los datos emitidos por el BehaviorSubject
+      },
+      (error) => {
+        console.error('Error al obtener demandados:', error);
+      }
+    );
+    return this.demandados$;  // Devuelve el observable para que el componente se suscriba
+  }
 
 
     getDemandadoPorId(id: number) {
