@@ -34,8 +34,7 @@ import { UsuarioService } from 'src/app/services/usuario.service';
 import Swal from 'sweetalert2';
 
 // Chart.js
-import { Chart, registerables } from 'chart.js';
-Chart.register(...registerables);
+
 
 @Component({
   selector: 'app-consultas',
@@ -66,98 +65,31 @@ export class CobranzasPage implements OnInit {
   cobrosPorMes: { [mes: string]: any[] } = {};
 
   grafico: any;
+ngOnInit() {
+  const desdeAnio = 2016;
+  const hoy = new Date();
+  const hastaAnio = hoy.getFullYear();
+  const hastaMes = hoy.getMonth() + 1;
 
-  ngOnInit() {
-    const desdeAnio = 2016;
-    const hoy = new Date();
-    const hastaAnio = hoy.getFullYear();
-    const hastaMes = hoy.getMonth() + 1;
+  const mesesTemporales: string[] = [];
 
-    const mesesTemporales: string[] = [];
+  for (let anio = desdeAnio; anio <= hastaAnio; anio++) {
+    const mesFin = (anio === hastaAnio) ? hastaMes : 12;
 
-    for (let anio = desdeAnio; anio <= hastaAnio; anio++) {
-      const mesInicio = 1;
-      const mesFin = (anio === hastaAnio) ? hastaMes : 12;
-
-      for (let mes = mesInicio; mes <= mesFin; mes++) {
-        const clave = `${anio}-${mes.toString().padStart(2, '0')}`;
-        mesesTemporales.push(clave);
-      }
+    for (let mes = 1; mes <= mesFin; mes++) {
+      const clave = `${anio}-${mes.toString().padStart(2, '0')}`;
+      mesesTemporales.push(clave);
     }
-
-    // Invertimos el orden (meses más recientes primero)
-    this.mesesDisponibles = mesesTemporales.reverse();
-
-    this.mesesDisponibles.forEach(mes => {
-      const [anio, mesStr] = mes.split('-').map(Number);
-
-      this.expedienteService.obtenerCobrosPorMes(anio, mesStr).subscribe(cobros => {
-        let total = 0;
-
-        for (const item of cobros) {
-          if (item.fecha_cobro_capital) total += item.montoCapital || 0;
-          if (item.fecha_cobro) total += item.montoHonorarios || 0;
-          if (item.fechaCobroAlzada) total += item.montoAlzada || 0;
-          if (item.fechaCobroEjecucion) total += item.montoEjecucion || 0;
-          if (item.fechaCobroDiferencia) total += item.montoDiferencia || 0;
-        }
-
-        if (total > 0) {
-          this.cobrosPorMes[mes] = [{ monto: total }];
-        }
-
-        this.actualizarGrafico();
-      });
-    });
   }
 
-  actualizarGrafico() {
-    const canvas = document.getElementById('grafico-cobranzas') as HTMLCanvasElement;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  this.mesesDisponibles = mesesTemporales.reverse();
 
-    const labels = this.mesesDisponibles.filter(m => this.cobrosPorMes[m])
-      .map(m => `${this.convertirMes(m)} / ${m.split('-')[0]}`);
+  this.mesesDisponibles.forEach(mes => {
+    const [anio, mesStr] = mes.split('-').map(Number);
+    this.obtenerCobrosPorMes(anio, mesStr, mes);
+  });
+}
 
-    const data = this.mesesDisponibles.filter(m => this.cobrosPorMes[m])
-      .map(m => this.cobrosPorMes[m]?.[0]?.monto || 0);
-
-    if (this.grafico) this.grafico.destroy();
-
-    this.grafico = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Total Cobrado',
-          data,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (context) => `$${(context.raw as number).toLocaleString()}`
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: value => `$${value}`
-            }
-          }
-        }
-      }
-    });
-  }
 
   constructor(
     private expedienteService: ExpedientesService,
@@ -177,5 +109,38 @@ export class CobranzasPage implements OnInit {
   calcularTotalMes(mes: string): number {
     return (this.cobrosPorMes[mes] || []).reduce((acc, item) => acc + Number(item.monto || 0), 0);
   }
+
+
+  obtenerCobrosPorMes(anio: number, mes: number, claveMes: string) {
+  this.expedienteService.obtenerCobrosPorMes(anio, mes).subscribe(cobros => {
+    let total = 0;
+
+const validarYSumar = (fechaStr: string | null, monto: number) => {
+  if (!fechaStr) return;
+
+  const partes = fechaStr.split('T')[0].split('-'); // ["2025", "08", "01"]
+  const año = parseInt(partes[0], 10);
+  const mesStr = partes[1];
+
+  if (año === anio && parseInt(mesStr, 10) === mes) {
+    total += monto || 0;
+  }
+};
+
+
+    for (const item of cobros) {
+      validarYSumar(item.fecha_cobro_capital, item.montoCapital);
+      validarYSumar(item.fecha_cobro, item.montoHonorarios);
+      validarYSumar(item.fechaCobroAlzada, item.montoAlzada);
+      validarYSumar(item.fechaCobroEjecucion, item.montoEjecucion);
+      validarYSumar(item.fechaCobroDiferencia, item.montoDiferencia);
+    }
+
+    if (total > 0) {
+      this.cobrosPorMes[claveMes] = [{ monto: total }];
+    }
+  });
+}
+
 
 }

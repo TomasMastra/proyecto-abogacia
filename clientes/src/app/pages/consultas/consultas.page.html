@@ -55,6 +55,18 @@
   </select>
 </label>
 
+<label for="selectEstado" class="custom-select">
+  <select id="selectEstado" [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
+    <option [value]="''">Todos los estados</option>
+    <option *ngFor="let estado of estados" [value]="estado">
+      {{ estado }}
+    </option>
+  </select>
+</label>
+
+
+
+
     <button mat-button class="list-button">
       <mat-icon style="color: #ffffff">download</mat-icon>
     </button>

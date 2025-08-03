@@ -89,6 +89,11 @@
             <mat-icon>balance</mat-icon>
             <span>Jueces</span>
           </button>
+
+          <button mat-menu-item [class.active-route]="isActive('graficos')" (click)="goTo('graficos')">
+            <mat-icon>insert_chart</mat-icon>
+            <span>Estadisticas</span>
+          </button>
         </mat-menu>
         
 

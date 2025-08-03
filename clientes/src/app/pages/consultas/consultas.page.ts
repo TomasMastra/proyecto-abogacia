@@ -75,6 +75,72 @@ procuradorSeleccionado: string = '';
 tiposJuicio: string[] = ['sumarisimo', 'ordinario', 'a definir'];
 juicioSeleccionado: any;
 
+estados: any[] = [
+  'Sorteado',
+  'Inicio - Previo',
+  'Inicio - Plantea Revocatoria',
+  'Inicio - Da Cumplimiento',
+  'Inicio - Solicita',
+  'Inicio - Apela',
+  'Inicio - Recusa',
+  'Inicio - Plantea Nulidad',
+  'Inicio - Se Eleve',
+  'Traslado demanda - Se Ordena',
+
+  'Traslado demanda - Cedula Confronte',
+  'Traslado demanda - Cedula Liberada',
+  'Traslado demanda - Cedula Notificada',
+  'Traslado demanda - Cedula Sin Notificar',
+  'Traslado demanda - Notificado',
+  'Traslado demanda - Previo Rebeldia',
+
+  'Contesta demanda - Traslado',
+  'Contesta demanda - Cedula',
+  'Contesta Traslado',
+
+  'Se resuelva',
+
+  'Apertura a Prueba - Solicita',
+  'Apertura a Prueba - Cedula',
+  'Apertura a Prueba - Audiencia 360',
+
+  'Pruebas - Se provean',
+  'Pruebas - Se provee',
+  'Prueba - Cedula Perito',
+  'Prueba - Cedula Parte',
+  'Prueba - Oficio deox',
+  'Prueba - Oficio acredita',
+  'Prueba - Oficio solicita reiteratorio',
+  'Prueba - Oficio solicita Astreinte',
+  'Prueba - Testimonial hace saber',
+  'Prueba - Acredita Testimonial',
+  'Prueba - Desiste',
+  'Prueba - Impugna',
+  'Prueba - Se intime parte',
+  'Prueba - Se intime perito',
+
+  'Clausura periodo Prueba - Solicita',
+  'Clausura periodo Prueba - Pase a certificar',
+
+  'Alegatos - Solicita',
+  'Alegatos - Cedula',
+  'Alegatos - Presenta',
+
+  'Fiscal - Solicita',
+  'Fiscal - Cedula',
+
+  'Defensor Oficial - Solicita',
+  'Defensor Oficial - Cedula',
+  'Defensor Oficial - Ratifica lo actuado',
+  
+  'Sentencia - Previo',
+  'Sentencia - Solicita',
+  'Sentencia - Pasen autos a Sentencia',
+  'Sentencia'
+];
+
+estadoSeleccionado: string = '';
+
   constructor(
     private expedienteService: ExpedientesService,
     private juzgadoService: JuzgadosService,
@@ -86,9 +152,14 @@ juicioSeleccionado: any;
     this.cargarUsuarios();
     this.cargarExpedientes();
 
+        this.ordenCampo = 'dias_ultimo_movimiento';
+    this.ordenAscendente = false;
+
     this.juzgadoService.getJuzgados().subscribe(juzgados => {
   this.listaJuzgados = juzgados;
 });
+
+
 
   }
 
@@ -114,6 +185,8 @@ cargarExpedientes() {
         });
 
         this.cargando = false;
+
+
       },
       (error) => {
         console.error('Error al obtener expedientes:', error);
@@ -222,23 +295,37 @@ ordenarPor(campo: string) {
 
 obtenerValorOrden(item: any, campo: string): any {
   switch (campo) {
-    case 'numero': return `${item.numero}/${item.anio}`;
+    case 'numero':
+      return `${item.numero}/${item.anio}`;
+    
     case 'caratula':
       return item.clientes.length > 0
         ? `${item.clientes[0].nombre} ${item.clientes[0].apellido}`
         : '(sin actora)';
+    
     case 'ultimo_movimiento':
       return item.ultimo_movimiento;
-case 'abogado':
-  const abogado = this.listaUsuarios.find(u => u.id === item.usuario_id);
-  return abogado ? abogado.nombre : 'Sin abogado';
+    
+    case 'abogado':
+      const abogado = this.listaUsuarios.find(u => u.id === item.usuario_id);
+      return abogado ? abogado.nombre : 'Sin abogado';
+
+    case 'procurador':
+      const procurador = this.listaUsuarios.find(u => u.id === item.procurador_id);
+      return procurador ? procurador.nombre : 'Sin procurador';
+
+    case 'dias_ultimo_movimiento':
+      return this.diasDesdeUltimoMovimiento(item.ultimo_movimiento);
 
     case 'estado':
       return item.estado;
+
     default:
       return '';
   }
 }
+
+
 
 // Muestra el renglón si el expediente corresponde al estado seleccionado
 esVisible(item: any): boolean {
@@ -266,7 +353,6 @@ filtrar() {
     return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk;
   });
 }*/
-
 filtrar() {
   const texto = this.busqueda.toLowerCase();
 
@@ -276,6 +362,7 @@ filtrar() {
     const abogadoOk = this.abogadoSeleccionado ? expediente.usuario_id === +this.abogadoSeleccionado : true;
     const procuradorOk = this.procuradorSeleccionado ? expediente.procurador_id === +this.procuradorSeleccionado : true;
     const juicioOk = this.juicioSeleccionado ? expediente.juicio?.toLowerCase() === this.juicioSeleccionado.toLowerCase() : true;
+    const estadoOk = this.estadoSeleccionado ? expediente.estado?.toLowerCase() === this.estadoSeleccionado.toLowerCase() : true;
 
     const numeroOk = expediente.numero?.toString().includes(texto);
     const anioOk = expediente.anio?.toString().includes(texto);
@@ -288,9 +375,11 @@ filtrar() {
 
     const busquedaOk = texto === '' || numeroOk || anioOk || clienteOk;
 
-    return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && busquedaOk;
+    return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && estadoOk && busquedaOk;
   });
 }
+
+
 
 
 diasDesdeUltimoMovimiento(fecha: string): number {

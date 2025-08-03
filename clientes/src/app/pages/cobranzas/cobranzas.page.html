@@ -1,20 +1,5 @@
 <div class="content mat-elevation-z8" [class.blur-content]="cargando">
 
-  <div class="toolbar">
-    <ion-input style="color: white; font-weight: bold;"
-      placeholder="Buscar por número o año"
-      class="input-busqueda"
-      [(ngModel)]="busqueda">
-    </ion-input>
-
-    <button mat-button class="list-button">
-      <mat-icon style="color: #ffffff">download</mat-icon>
-    </button>
-    <button mat-button class="list-button">
-      <mat-icon style="color: #ffffff">more_vert</mat-icon>
-    </button>
-  </div>
-
   <div *ngIf="cargando" class="fullscreen-loader">
     <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
   </div>
@@ -42,7 +27,4 @@
 </div>
 
 
-<div>
-  <canvas id="grafico-cobranzas"></canvas>
-</div>
 

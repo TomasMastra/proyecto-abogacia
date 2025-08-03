@@ -30,7 +30,6 @@ export class ExpedientesService {
 
 getExpedientes() {
   const usuario = this.usuarioService.usuarioLogeado;
-
     const params = {
     usuario_id: usuario!.id,
     rol: usuario!.rol
@@ -421,6 +420,9 @@ obtenerCantidadHonorariosPendientes() {
 }
 
 
+obtenerDemandadosPorMes(): Observable<{ [mes: string]: number }> {
+  return this.http.get<{ [mes: string]: number }>(`${this.apiUrl}/expedientes/demandados-por-mes`);
+}
 
 
 

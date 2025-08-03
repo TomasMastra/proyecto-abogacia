@@ -547,6 +547,9 @@ app.get('/expedientes/demandadosPorExpediente/:id_expediente', async (req, res) 
             .input('honorarioEjecucionCobrado', sql.Bit, nuevosDatos.honorarioEjecucionCobrado ?? false)
             .input('fechaCobroEjecucion', sql.DateTime, nuevosDatos.fechaCobroEjecucion ?? null)
 
+            .input('cantidadUMA_ejecucion', sql.Decimal(15, 2), nuevosDatos.cantidadUMA_ejecucion)
+            .input('umaSeleccionado_ejecucion', sql.Int, nuevosDatos.umaSeleccionado_ejecucion ?? null)
+
             .input('honorarioDiferenciaCobrado', sql.Bit, nuevosDatos.honorarioDiferenciaCobrado ?? false)
             .input('fechaCobroDiferencia', sql.DateTime, nuevosDatos.fechaCobroDiferencia ?? null)
             .input('capitalPagoParcial', sql.Int, nuevosDatos.capitalPagoParcial ?? null)
@@ -617,6 +620,9 @@ app.get('/expedientes/demandadosPorExpediente/:id_expediente', async (req, res) 
                 fechaCobroAlzada = @fechaCobroAlzada,
                 honorarioEjecucionCobrado = @honorarioEjecucionCobrado,
                 fechaCobroEjecucion = @fechaCobroEjecucion,
+                cantidadUMA_ejecucion = @cantidadUMA_ejecucion,
+                umaSeleccionado_ejecucion = @umaSeleccionado_ejecucion,
+
                 honorarioDiferenciaCobrado = @honorarioDiferenciaCobrado,
                 fechaCobroDiferencia = @fechaCobroDiferencia,
                 capitalPagoParcial = @capitalPagoParcial
@@ -2047,6 +2053,30 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
   }
 });
 
+
+app.get("/expedientes/demandados-por-mes", async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+      SELECT 
+        FORMAT(e.fecha_inicio, 'yyyy-MM') AS mes,
+        COUNT(d.id) AS cantidad
+      FROM expedientes e
+      JOIN expedientes_demandados ed ON e.id = ed.expediente_id
+      JOIN demandados d ON d.id = ed.demandado_id
+      WHERE e.fecha_inicio IS NOT NULL
+      GROUP BY FORMAT(e.fecha_inicio, 'yyyy-MM')
+      ORDER BY mes DESC
+    `);
+    const datos = result.recordset.reduce((acc, row) => {
+      acc[row.mes] = row.cantidad;
+      return acc;
+    }, {});
+    res.json(datos);
+  } catch (err) {
+    console.error("Error al obtener demandados por mes:", err);
+    res.status(500).send("Error servidor");
+  }
+});
 
 
 

@@ -72,6 +72,8 @@ export interface ExpedienteModel {
     estadoHonorariosEjecucionSeleccionado?: string | null;
     subEstadoHonorariosEjecucionSeleccionado?: string | null;
     fechaHonorariosEjecucion?: string | null;
+    umaSeleccionado_ejecucion?: number | null;
+    cantidadUMA_ejecucion?: number | null;
     montoHonorariosEjecucion?: number | null;
 
     // Honorarios Diferencia

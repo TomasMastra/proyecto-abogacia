@@ -73,6 +73,7 @@ export class DialogExpedienteModificarComponent   {
 
   tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
   tipoSeleccionado: any = 'todos';
+
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -179,7 +180,9 @@ estadoSeleccionado: any;
     });
 
     if (data) {
-      
+      const fechaFormateada = data.fecha_inicio
+      ? new Date(data.fecha_inicio).toISOString().split('T')[0] 
+      : '';
       this.form.setValue({ 
         tipo: data.juzgadoModel?.tipo ?? 'todos',
         juzgado: data.juzgado_id || '' , 
@@ -188,12 +191,14 @@ estadoSeleccionado: any;
         anio: data.anio || ''  ,
         juicio: data.juicio,
         estado: data.estado,
-        fechaInicio: data.fecha_inicio,
+        fechaInicio: fechaFormateada,
         porcentaje: data.porcentaje,
         abogado: data.usuario_id,
         procurador: data.procurador_id,
 
       });
+
+
       
     }
 
@@ -406,6 +411,8 @@ cargarJuzgado() {
           estadoHonorariosEjecucionSeleccionado: this.data?.estadoHonorariosEjecucionSeleccionado ?? null,
           subEstadoHonorariosEjecucionSeleccionado: this.data?.subEstadoHonorariosEjecucionSeleccionado ?? null,
           fechaHonorariosEjecucion: this.data?.fechaHonorariosEjecucion ?? null,
+          umaSeleccionado_ejecucion: this.data?.umaSeleccionado_alzada ?? null,
+          cantidadUMA_ejecucion: this.data?.cantidadUMA_alzada ?? null,
           montoHonorariosEjecucion: this.data?.montoHonorariosEjecucion ?? null,
 
           estadoHonorariosDiferenciaSeleccionado: this.data?.estadoHonorariosDiferenciaSeleccionado ?? null,

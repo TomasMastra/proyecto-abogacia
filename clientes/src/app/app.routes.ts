@@ -90,5 +90,9 @@ export const routes: Routes = [
   {
     path: 'cobranzas',
     loadComponent: () => import('./pages/cobranzas/cobranzas.page').then( m => m.CobranzasPage)
+  },
+  {
+    path: 'graficos',
+    loadComponent: () => import('./pages/graficos/graficos.page').then( m => m.GraficosPage)
   }
 ];

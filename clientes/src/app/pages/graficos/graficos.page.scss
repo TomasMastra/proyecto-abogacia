@@ -1,0 +1,66 @@
+ion-content {
+  --background: #1976d2;
+  color: #fff;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+ion-toolbar {
+  --background: #1976d2;
+  color: #fff;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.titulo-centrado {
+  width: 100%;
+  text-align: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: white;
+  font-weight: bold;
+}
+
+.selector-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+select {
+  background-color: #1e1e1e;
+  color: #fff;
+  border: 1px solid #3f51b5;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 1rem;
+  outline: none;
+  width: 100%;
+  max-width: 300px;
+}
+
+.chart-container {
+  display: flex;
+  justify-content: center; 
+  width: 100%;
+}
+
+.chart-container > app-chart-cobranzas {
+  width: 100%;
+  max-width: 1000px;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+canvas {
+  width: 100% !important;
+  height: auto !important;
+}

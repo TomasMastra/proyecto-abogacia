@@ -1,0 +1,38 @@
+<ion-toolbar color="primary">
+  <ion-title class="titulo-centrado">Gráficos de Gestión</ion-title>
+</ion-toolbar>
+
+<ion-content class="ion-padding">
+
+  <div class="selector-container">
+    <label for="tipoGrafico">Mostrar:</label>
+    <select [(ngModel)]="tipoGrafico" id="tipoGrafico">
+      <option value="cobros">Total Cobrado por Mes</option>
+      <option value="demandados">Cantidad de Demandados</option>
+    </select>
+
+    <div *ngIf="tipoGrafico === 'demandados'">
+      <select [(ngModel)]="mesSeleccionado" (change)="actualizarDemandadosPorNombreEnMes(mesSeleccionado)">
+        <option *ngFor="let mes of mesesDisponibles" [value]="mes">{{ mes }}</option>
+      </select>
+      </div>
+  </div>
+
+  <div class="chart-container">
+    <app-chart-cobranzas
+      *ngIf="tipoGrafico === 'cobros'"
+      [cobrosPorMes]="cobrosPorMes"
+    ></app-chart-cobranzas>
+
+
+
+
+<app-chart-cobranzas
+  *ngIf="tipoGrafico === 'demandados'"
+  [demandadosPorNombre]="demandadosPorNombre">
+</app-chart-cobranzas>
+
+
+
+  </div>
+</ion-content>

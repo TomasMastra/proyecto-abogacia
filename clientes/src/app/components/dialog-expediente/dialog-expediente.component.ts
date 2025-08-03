@@ -75,6 +75,7 @@ export class DialogExpedienteComponent {
 
    tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
    tipoSeleccionado: any = 'todos';
+
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -136,7 +137,6 @@ estados: any[] = [
   'Sentencia - Previo',
   'Sentencia - Solicita',
   'Sentencia - Pasen autos a Sentencia',
-  'Sentencia'
 ];
    estadoSeleccionado: any = 'inicio';
 

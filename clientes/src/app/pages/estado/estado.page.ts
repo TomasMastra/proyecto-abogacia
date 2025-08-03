@@ -243,6 +243,8 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
           estado_ejecucion: new FormControl(''),
           subestado_ejecucion: new FormControl(''),
           fecha_ejecucion: new FormControl(''),
+          uma_ejecucion: new FormControl(''),
+          valorUMA_ejecucion: new FormControl(''),
           monto_ejecucion: new FormControl(''),
 
           // Diferencia
@@ -645,6 +647,8 @@ cambioTipoHonorarioExtra(valores: string[]) {
             estadoHonorariosEjecucionSeleccionado: this.expediente.estadoHonorariosEjecucionSeleccionado ?? null,
             subEstadoHonorariosEjecucionSeleccionado: this.expediente.subEstadoHonorariosEjecucionSeleccionado ?? null,
             fechaHonorariosEjecucion: this.expediente.fechaHonorariosEjecucion ?? null,
+            umaSeleccionado_ejecucion: this.expediente?.umaSeleccionado_ejecucion ?? null,
+            cantidadUMA_ejecucion: this.expediente?.cantidadUMA_ejecucion ?? null,
             montoHonorariosEjecucion: this.expediente.montoHonorariosEjecucion ?? null,
 
             // DIFERENCIA
@@ -1236,7 +1240,8 @@ obtenerResumenExpediente(expediente: ExpedienteModel): string {
                   </mat-select>
                 </mat-form-field>
 
-*/async abrirModalAlzada() {
+*/
+async abrirModalAlzada() {
 
     if (this.expediente.honorarioAlzadaCobrado === true) {
     await Swal.fire({
@@ -1424,7 +1429,7 @@ async abrirModalDiferencia() {
     }
   });
 }
-
+/*
 async abrirModalEjecucion() {
 
     if (this.expediente.honorarioEjecucionCobrado === true) {
@@ -1492,6 +1497,125 @@ async abrirModalEjecucion() {
       this.expediente.subEstadoHonorariosEjecucionSeleccionado = result.value.subestado;
       this.expediente.fechaHonorariosEjecucion = result.value.fecha;
       this.expediente.montoHonorariosEjecucion = result.value.monto;
+    }
+  });
+}*/
+
+
+async abrirModalEjecucion() {
+
+    if (this.expediente.honorarioEjecucionCobrado === true) {
+    await Swal.fire({
+      icon: 'info',
+      title: 'Honorario ya cobrado',
+      text: 'No es posible modificar los datos de ejecucion porque ya fue cobrado.',
+      confirmButtonText: 'Aceptar'
+    });
+    return; 
+  }
+
+  let umaSeleccionada = this.expediente.umaSeleccionado_ejecucion || '';
+  let cantidadUMA = this.expediente.cantidadUMA_ejecucion || '';
+  let montoCalculado = 0;
+
+  const estado = this.expediente.estadoHonorariosEjecucionSeleccionado || '';
+  const subestado = this.expediente.subEstadoHonorariosEjecucionSeleccionado || '';
+  const fecha = this.expediente.fechaHonorariosEjecucion?.split('T')[0] || '';
+
+  const optionsUMA = this.uma.map(uma => `<option value="${uma.valor}" ${uma.valor == umaSeleccionada ? 'selected' : ''}>${uma.valor}</option>`).join('');
+
+  const optionsEstado = ['apelado', 'pendiente', 'firme']
+    .map(est => `<option value="${est}" ${est === estado ? 'selected' : ''}>${est}</option>`)
+    .join('');
+
+  const subestadosIniciales = this.getSubestadosPorEstado('ejecucion', estado);
+  const optionsSubestado = subestadosIniciales
+    .map(sub => `<option value="${sub}" ${sub === subestado ? 'selected' : ''}>${sub}</option>`)
+    .join('');
+
+  await Swal.fire({
+    title: 'Honorario - Ejecucion',
+    html: `
+      <div style="display:flex; flex-direction:column; align-items:center; gap: 8px;">
+
+        <label for="estado">Estado</label>
+        <select id="estado" class="swal2-select" style="width:300px">
+          <option value="">Seleccionar estado</option>
+          ${optionsEstado}
+        </select>
+
+        <label for="subestado">Subestado</label>
+        <select id="subestado" class="swal2-select" style="width:300px">
+          ${optionsSubestado}
+        </select>
+
+        <label for="fecha">Fecha</label>
+        <input id="fecha" type="date" class="swal2-input" style="width:300px" value="${fecha}">
+
+        <label for="uma">UMA</label>
+        <select id="uma" class="swal2-select" style="width:300px">
+          <option value="">Seleccionar UMA</option>
+          ${optionsUMA}
+        </select>
+
+        <label for="cantidadUMA">Cantidad de UMA</label>
+        <input id="cantidadUMA" class="swal2-input" placeholder="Cantidad de UMA" value="${cantidadUMA}" type="number" style="width:300px">
+
+        <label for="montoCalculado">Monto Calculado</label>
+        <input id="montoCalculado" class="swal2-input" placeholder="Monto (calculado)" disabled style="width:300px" value="${montoCalculado || ''}">
+      </div>
+    `,
+    didOpen: () => {
+      const estadoSelect = document.getElementById('estado') as HTMLSelectElement;
+      const subestadoSelect = document.getElementById('subestado') as HTMLSelectElement;
+
+      const umaSelect = document.getElementById('uma') as HTMLSelectElement;
+      const cantidadInput = document.getElementById('cantidadUMA') as HTMLInputElement;
+      const montoInput = document.getElementById('montoCalculado') as HTMLInputElement;
+
+      const actualizarSubestados = () => {
+        const estadoActual = estadoSelect.value;
+        const nuevosSubestados = this.getSubestadosPorEstado('ejecucion', estadoActual);
+        subestadoSelect.innerHTML = nuevosSubestados.map(sub => `<option value="${sub}">${sub}</option>`).join('');
+      };
+
+      estadoSelect.addEventListener('change', actualizarSubestados);
+
+      const calcularMonto = () => {
+        const valorUMA = parseFloat(umaSelect.value);
+        const cantidad = parseFloat(cantidadInput.value);
+        if (!isNaN(valorUMA) && !isNaN(cantidad)) {
+          montoCalculado = valorUMA * cantidad;
+          montoInput.value = montoCalculado.toFixed(2);
+        } else {
+          montoInput.value = '';
+        }
+      };
+
+      umaSelect.addEventListener('change', calcularMonto);
+      cantidadInput.addEventListener('input', calcularMonto);
+
+      calcularMonto();
+    },
+    confirmButtonText: 'Guardar',
+    preConfirm: () => {
+      return {
+        estado: (document.getElementById('estado') as HTMLInputElement).value,
+        subestado: (document.getElementById('subestado') as HTMLInputElement).value,
+        fecha: (document.getElementById('fecha') as HTMLInputElement).value,
+        umaSeleccionada: (document.getElementById('uma') as HTMLSelectElement).value,
+        cantidadUMA: (document.getElementById('cantidadUMA') as HTMLInputElement).value,
+        montoCalculado: montoCalculado,
+      };
+    }
+  }).then((result) => {
+    if (result.isConfirmed && result.value) {
+      this.expediente.estadoHonorariosEjecucionSeleccionado = result.value.estado;
+      this.expediente.subEstadoHonorariosEjecucionSeleccionado = result.value.subestado;
+      this.expediente.fechaHonorariosEjecucion = result.value.fecha;
+      this.expediente.umaSeleccionado_ejecucion = result.value.umaSeleccionada;
+      this.expediente.cantidadUMA_ejecucion = result.value.cantidadUMA;
+      this.expediente.montoHonorariosEjecucion = result.value.montoCalculado;
     }
   });
 }
