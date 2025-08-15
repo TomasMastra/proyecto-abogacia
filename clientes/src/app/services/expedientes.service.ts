@@ -396,10 +396,15 @@ getFeriadosDesde(fecha: string) {
   return this.http.get<string[]>(`/api/feriados?fecha=${fecha}`);
 }
 
-  obtenerCobrosPorMes(anio: number, mes: number) {
-    const params = { anio: anio.toString(), mes: mes.toString() };
-    return this.http.get<any[]>(`${this.apiUrl}/cobrados-por-mes`, { params });
-  }
+obtenerTotalCobranzasPorMes(anio: number, mes: number) {
+  return this.http.get<any>(`${this.apiUrl}/total-cobranzas-por-mes`, {
+    params: {
+      anio: anio.toString(),
+      mes: mes.toString()
+    }
+  });
+}
+
 
 
   obtenerCantidadExpedientesActivos() {

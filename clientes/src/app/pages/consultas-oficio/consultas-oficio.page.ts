@@ -51,7 +51,7 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
 
   demandados: DemandadoModel[] = [];
   partes = ['actora', 'demanda', 'tercero'];
-  estados = ['diligenciado', 'pendiente', 'pedir reiteratoria', 'diligenciar'];
+  estados = ['diligenciado', 'pendiente', 'pedir reiteratoria', 'diligenciar', 'reiteratorio solicitado'];
 
   ordenCampo: string = '';
   ordenAscendente: boolean = true;
@@ -177,5 +177,146 @@ eliminarOficio(oficio: OficioModel) {
     this.destroy$.next();
     this.destroy$.complete();
   }
+modificarOficio(oficio: OficioModel) {
+  // Estados que requieren fecha
+  const estadosQueRequierenFecha = new Set(['ordenado', 'diligenciado', 'reiteratorio solicitado']);
+
+  // Opciones para selects (preseleccionadas)
+  const estadoOptions = this.estados
+    .map(e => `<option value="${e}">${e}</option>`)
+    .join('');
+
+  const parteOptions = this.partes
+    .map(p => `<option value="${p}" ${oficio.parte === p ? 'selected' : ''}>${p}</option>`)
+    .join('');
+
+  const demandadoOptions = this.demandados
+    .map(d => `<option value="${d.id}" ${Number(oficio.demandado_id) === Number(d.id) ? 'selected' : ''}>${d.nombre}</option>`)
+    .join('');
+
+  const expedienteTexto = oficio.expedienteModel
+    ? `${oficio.expedienteModel.numero}/${oficio.expedienteModel.anio}`
+    : '(sin expediente)';
+
+  // ¿El estado actual requiere fecha?
+  const estadoActual = (oficio.estado || '').toString().trim().toLowerCase();
+  const cargarFecha = estadosQueRequierenFecha.has(estadoActual);
+
+  // Cargar fecha solo si corresponde
+  const fechaISO = (cargarFecha && oficio.fecha_diligenciado)
+    ? new Date(oficio.fecha_diligenciado as string).toISOString().split('T')[0]
+    : '';
+
+  Swal.fire({
+    title: 'Modificar oficio',
+    html: `
+      <div style="text-align:left">
+        <label style="display:block;margin-top:6px;font-weight:600;">Expediente</label>
+        <input id="sw-expediente" class="swal2-input" type="text" value="${expedienteTexto}" readonly />
+
+        <label style="display:block;margin-top:6px;font-weight:600;">Oficiada / Demandado</label>
+        <select id="sw-demandado" class="swal2-select" style="width:100%">${demandadoOptions}</select>
+
+        <label style="display:block;margin-top:6px;font-weight:600;">Parte</label>
+        <select id="sw-parte" class="swal2-select" style="width:100%">${parteOptions}</select>
+
+        <label style="display:block;margin-top:6px;font-weight:600;">Estado</label>
+        <select id="sw-estado" class="swal2-select" style="width:100%">
+          ${estadoOptions}
+        </select>
+
+        <label style="display:block;margin-top:6px;font-weight:600;">Fecha (si corresponde)</label>
+        <input id="sw-fecha" class="swal2-input" type="date" value="${fechaISO}" />
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar',
+    cancelButtonText: 'Cancelar',
+    didOpen: () => {
+      // Seleccionar el estado actual correctamente (por si difiere en mayúsculas/acentos)
+      const sel = document.getElementById('sw-estado') as HTMLSelectElement;
+      // Intento seleccionar por coincidencia insensible a mayúsculas:
+      const idx = Array.from(sel.options).findIndex(
+        o => o.value.trim().toLowerCase() === estadoActual
+      );
+      if (idx >= 0) sel.selectedIndex = idx; 
+    },
+    preConfirm: () => {
+      const demandadoId = Number((document.getElementById('sw-demandado') as HTMLSelectElement)?.value);
+      const parte = (document.getElementById('sw-parte') as HTMLSelectElement)?.value as OficioModel['parte'];
+      const estadoSel = (document.getElementById('sw-estado') as HTMLSelectElement)?.value || '';
+      const estadoLower = estadoSel.trim().toLowerCase();
+      const fechaInput = (document.getElementById('sw-fecha') as HTMLInputElement)?.value || null;
+
+      const requiereFecha = estadosQueRequierenFecha.has(estadoLower);
+
+      // Validación
+      if (!demandadoId || !parte || !estadoSel) {
+        Swal.showValidationMessage('Completá todos los campos obligatorios.');
+        return;
+      }
+      if (requiereFecha && !fechaInput) {
+        Swal.showValidationMessage('Este estado requiere fecha.');
+        return;
+      }
+
+      // Si NO requiere fecha => enviar null aunque el input tenga algo
+      const fechaFinal: string | null = requiereFecha ? fechaInput : null;
+
+      const payload: OficioModel = {
+        ...oficio,
+        demandado_id: demandadoId,
+        parte,
+        estado: estadoSel as OficioModel['estado'],
+        fecha_diligenciado: fechaFinal
+      };
+
+      return payload;
+    }
+  }).then(res => {
+    if (!res.isConfirmed || !res.value) return;
+
+    const actualizado = res.value as OficioModel;
+
+    this.oficiosService.actualizarOficio(oficio.id!, actualizado).subscribe({
+      next: () => {
+        // Actualizar en memoria
+        const actualizarListado = (arr: OficioModel[]) => {
+          const idx = arr.findIndex(o => o.id === oficio.id);
+          if (idx !== -1) {
+            const nuevoDemandadoModel =
+              this.demandados.find(d => Number(d.id) === Number(actualizado.demandado_id)) || arr[idx].demandadoModel;
+
+            arr[idx] = {
+              ...arr[idx],
+              ...actualizado,
+              demandadoModel: nuevoDemandadoModel
+            };
+          }
+        };
+        actualizarListado(this.oficios);
+        actualizarListado(this.oficiosOriginales);
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Oficio actualizado',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      },
+      error: (err) => {
+        console.error('Error al actualizar oficio:', err);
+        Swal.fire({
+          icon: 'error',
+          title: 'No se pudo actualizar el oficio',
+          text: err?.message || 'Error inesperado'
+        });
+      }
+    });
+  });
+}
+
+
 }
 

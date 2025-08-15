@@ -61,8 +61,43 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
   ordenAscendente: boolean = true;
 
   estado: string = 'sentencia'; // o 'cobrado'
-listaUsuarios: UsuarioModel[] = [];
+  listaUsuarios: UsuarioModel[] = [];
   valorUMA: number = 70709;
+
+estadoHonorarioSeleccionado: any;
+estadosHonorarios: string[] = [
+  'espera que vuelva',
+  'honorario se intima',
+  'honorario cedula',
+  'honorario solicita embargo',
+  'honorario embargo',
+  'da en pago parcial',
+  'da en pago total',
+  'giro - solicita',
+  'giro - previo',
+  'giro - consiente',
+  'giro',
+  'esperar a que baje de sala',
+  'liquidacion pendiente',
+  'liquidacion practicada',
+  'liquidacion traslado - cedula',
+  'liquidacion impugnada',
+  'liquidacion contesta impugnacion',
+  'liquidacion se resuelve impugnacion',
+  'liquidacion - se apruebe',
+  'liquidacion aprobada - se intime',
+  'liquidacion aprobada - cedula',
+  'embargo solicita',
+  'embarga deox',
+  'embargo deox librado',
+  'embargo ejecutado',
+  'embargo citese de venta',
+  'giro - consentido' // este es diferente de 'giro - consiente'
+];
+
+
+
+
 
 
   constructor(
@@ -75,8 +110,6 @@ listaUsuarios: UsuarioModel[] = [];
   ngOnInit() {
     this.cargarUsuarios();
     this.cargarPorEstado('sentencia');
-    //this.cargarPorEstado('cobrado');
-
   }
 
 
@@ -118,6 +151,7 @@ listaUsuarios: UsuarioModel[] = [];
           //this.honorariosDiferidos = honorarios;
           this.honorariosDiferidos = honorarios!;
           this.hayHonorarios = this.honorariosDiferidos.length > 0;
+          this.honorariosOriginales = honorarios!
   
           this.honorariosDiferidos.forEach(expediente => {
             this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
@@ -126,6 +160,8 @@ listaUsuarios: UsuarioModel[] = [];
           });
   
           this.busqueda = '';
+        this.ordenarPor('giro');
+
           this.cargando = false;
         },
         (error) => {
@@ -135,10 +171,6 @@ listaUsuarios: UsuarioModel[] = [];
       );
   }
 
-  
-
-
-  
   goTo(path: string) {
     this.cargando = false;      // <— agrega esto
     this.router.navigate([path], { replaceUrl: true });
@@ -158,6 +190,7 @@ cargarUsuarios() {
       }
     );
 }
+
 cambiarEstado(event: Event) {
   const selectedValue = (event.target as HTMLSelectElement).value;
   console.log('Estado seleccionado:', selectedValue);
@@ -169,39 +202,12 @@ cambiarEstado(event: Event) {
   } else if (selectedValue === 'cobrado') {
     this.expedienteService.getExpedientesCobrados().subscribe(expedientes => {
       this.honorariosDiferidos = expedientes!;
-      //this.ordenar(); // si usás un ordenamiento custom
+      this.honorariosOriginales = expedientes!;
+      this.ordenarPor('giro');
     });
-            console.log(this.honorariosDiferidos);
-
   } else if (selectedValue === 'sentencia') {
     this.cargarPorEstado('sentencia'); // o podés hacer otro método si querés separar lógica
   }
-}
-
-
-  async buscar() {
-    this.expedienteService.buscarExpedientes(this.busqueda).subscribe(
-      (expediente) => {
-        this.honorariosDiferidos = expediente;
-        this.honorariosOriginales = [...expediente];
-        this.hayHonorarios = this.honorariosDiferidos.length > 0;
-
-        this.honorariosDiferidos.forEach(expediente => {
-          this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
-            expediente.juzgadoModel = juzgado;
-          });
-        });
-        //this.texto = 'No se encontraron expedientes';
-      },
-      (error) => {
-        console.error('Error al obtener expedientes:', error);
-      },
-      
-    );
-}
-
-obtenerJuzgado(id: number){
-
 }
 
 get honorariosDiferidosOrdenados() {
@@ -225,22 +231,42 @@ ordenarPor(campo: string) {
     this.ordenAscendente = true;
   }
 }
-
 obtenerValorOrden(item: any, campo: string): any {
   switch (campo) {
-    case 'numero': return `${item.numero}/${item.anio}`;
+    case 'numero':
+      return `${item.numero}/${item.anio}`;
+
     case 'caratula':
       return item.clientes.length > 0
         ? `${item.clientes[0].nombre} ${item.clientes[0].apellido}`
         : '(sin actora)';
+
     case 'estadoCapital':
-      return item.subEstadoCapitalSeleccionado || item.estadoLiquidacionCapitalSeleccionado || '';
+      return item.subEstadoCapitalSeleccionado || '';
+
     case 'fechaCapital':
-      return item.fechaCapitalSubestado || item.fechaLiquidacionCapital || '';
-    case 'estadoHonorarios':
-      return item.subEstadoHonorariosSeleccionado || item.estadoLiquidacionHonorariosSeleccionado || '';
+      return item.fechaCapitalSubestado || '';
+
+    case 'giro': {
+      const prioridad = (estado: string | null | undefined, fecha: string | null | undefined) =>
+        estado?.toLowerCase() === 'giro' && !fecha ? '0' : '1' + (estado?.toLowerCase() || '');
+
+      // Chequea prioridad en orden: honorarios, capital, alzada, ejecución, diferencia
+      const prioridades = [
+        prioridad(item.subEstadoHonorariosSeleccionado, item.fecha_cobro),
+        prioridad(item.subEstadoCapitalSeleccionado, item.fecha_cobro_capital),
+        prioridad(item.subEstadoAlzadaSeleccionado, item.fechaCobroAlzada),
+        prioridad(item.subEstadoEjecucionSeleccionado, item.fechaCobroEjecucion),
+        prioridad(item.subEstadoDiferenciaSeleccionado, item.fechaCobroDiferencia),
+      ];
+
+      // Tomamos el menor (si hay alguno con '0...', se prioriza)
+      return prioridades.sort()[0];
+    }
+
     case 'fechaHonorarios':
-      return item.fechaHonorariosSubestado || item.fechaLiquidacionHonorarios || '';
+      return item.fechaHonorariosSubestado || '';
+
     default:
       return '';
   }
@@ -248,83 +274,6 @@ obtenerValorOrden(item: any, campo: string): any {
 
 
 
-//////////////////////////
-/*
-cobrar(tipo: 'capital' | 'honorario', expediente: ExpedienteModel) {
-  Swal.fire({
-    title: `¿Seguro que querés cobrar el ${tipo === 'capital' ? 'capital' : 'honorario'}?`,
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, cobrar',
-    cancelButtonText: 'Cancelar',
-  }).then((result) => {
-    if (result.isConfirmed) {
-      // Marcar como cobrado
-      if (tipo === 'capital') {
-        expediente.capitalCobrado = true;
-      } else if (tipo === 'honorario') {
-        expediente.honorarioCobrado = true;
-      }
-
-      const ambosCobrados = expediente.capitalCobrado && expediente.honorarioCobrado;
-
-      if (ambosCobrados) {
-        expediente.estado = 'cobrado';
-      }
-
-      this.expedienteService.actualizarExpediente(expediente.id, expediente).subscribe({
-        next: () => {
-          this.cargarPorEstado('sentencia');
-
-          if (ambosCobrados) {
-            this.honorariosDiferidos = this.honorariosDiferidos.filter(e => e.id !== expediente.id);
-
-            Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "success",
-              title: "Se cobró el capital y el honorario. Estado actualizado a COBRADO.",
-              showConfirmButton: false,
-              timer: 3000
-            });
-          } else if (tipo === 'capital') {
-            Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "success",
-              title: "Capital cobrado correctamente.",
-              showConfirmButton: false,
-              timer: 3000
-            });
-          } else if (tipo === 'honorario') {
-            Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "success",
-              title: "Honorario cobrado correctamente.",
-              showConfirmButton: false,
-              timer: 3000
-            });
-          }
-        },
-        error: (err) => {
-          console.error('Error al actualizar el expediente:', err);
-          if (tipo === 'capital') expediente.capitalCobrado = false;
-          if (tipo === 'honorario') expediente.honorarioCobrado = false;
-
-          Swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "error",
-            title: "Error al cobrar. Intentalo nuevamente.",
-            showConfirmButton: false,
-            timer: 3000
-          });
-        }
-      });
-    }
-  });
-}*/
 async cobrar(tipo: 'capital' | 'honorario' | 'alzada' | 'ejecucion' | 'diferencia', expediente: ExpedienteModel) {
   const tipoTexto = tipo.charAt(0).toUpperCase() + tipo.slice(1);
 
@@ -593,7 +542,82 @@ getCantidadColumnas(item: any): number {
 existeCapital(item: any): boolean {
   return item.capitalCobrado || this.mostrarCapital(item);
 }
+filtrar() {
+  const texto = this.busqueda.toLowerCase();
 
+  this.honorariosDiferidos = this.honorariosOriginales.filter(expediente => {
+    const estadoBuscado = this.estadoHonorarioSeleccionado?.toLowerCase();
+
+    const coincideEstado = (estado: string | null | undefined, fechaCobro: string | null | undefined) => {
+      return estado?.toLowerCase() === estadoBuscado && !fechaCobro;
+    };
+
+    const estadoCoincide = this.estadoHonorarioSeleccionado
+      ? (
+        coincideEstado(expediente.subEstadoHonorariosSeleccionado, expediente.fecha_cobro) ||
+        coincideEstado(expediente.subEstadoCapitalSeleccionado, expediente.fecha_cobro_capital) ||
+        coincideEstado(expediente.subEstadoAlzadaSeleccionado, expediente.fechaCobroAlzada) ||
+        coincideEstado(expediente.subEstadoEjecucionSeleccionado, expediente.fechaCobroEjecucion) ||
+        coincideEstado(expediente.subEstadoDiferenciaSeleccionado, expediente.fechaCobroDiferencia)
+      )
+      : true;
+
+    const numeroOk = expediente.numero?.toString().includes(texto);
+    const anioOk = expediente.anio?.toString().includes(texto);
+
+    const clienteOk = expediente.clientes?.some((cliente: any) =>
+      (cliente.nombre && cliente.nombre.toLowerCase().includes(texto)) ||
+      (cliente.apellido && cliente.apellido.toLowerCase().includes(texto))
+    ) ?? false;
+
+    const busquedaOk = texto === '' || numeroOk || anioOk || clienteOk;
+
+    return estadoCoincide && busquedaOk;
+  });
+}
+
+tieneEstadoGiroPorTipo(item: any, tipo: string): boolean {
+  const revisar = (estado: string | undefined) =>
+    estado?.toLowerCase() === 'giro';
+
+  if (this.estado !== 'sentencia') {
+    return false;
+  }
+    switch (tipo) {
+    case 'capital':
+      return (
+        !item.capitalCobrado &&
+        (revisar(item.subEstadoCapitalSeleccionado) || revisar(item.estadoLiquidacionCapitalSeleccionado))
+      );
+
+    case 'honorarios':
+      return (
+        !item.honorarioCobrado &&
+        (revisar(item.subEstadoHonorariosSeleccionado) || revisar(item.estadoLiquidacionHonorariosSeleccionado))
+      );
+
+    case 'alzada':
+      return (
+        !item.alzadaCobrado &&
+        revisar(item.subEstadoAlzadaSeleccionado)
+      );
+
+    case 'ejecucion':
+      return (
+        !item.ejecucionCobrado &&
+        revisar(item.subEstadoEjecucionSeleccionado)
+      );
+
+    case 'diferencia':
+      return (
+        !item.diferenciaCobrado &&
+        revisar(item.subEstadoDiferenciaSeleccionado)
+      );
+
+    default:
+      return false;
+  }
+}
 
 
   

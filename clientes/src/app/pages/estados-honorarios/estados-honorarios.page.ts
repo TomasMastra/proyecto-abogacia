@@ -67,7 +67,6 @@ export class EstadosHonorariosPage implements OnInit {
   tipoSeleccionado: any;
   juzgados: JuzgadoModel[] = [];
   juzgadoSeleccionado: any;
-
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -121,7 +120,9 @@ estados: any[] = [
 
   'Fiscal - Solicita',
   'Fiscal - Cedula',
-
+  'Fiscal - Previo',
+  'Fiscal - Se ordena',
+  'Fiscal - Contesta traslado',
   'Defensor Oficial - Solicita',
   'Defensor Oficial - Cedula',
   'Defensor Oficial - Ratifica lo actuado',

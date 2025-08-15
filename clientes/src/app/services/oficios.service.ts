@@ -44,7 +44,15 @@ getOficios(): Observable<OficioModel[]> {
 }
 
 
-actualizarOficio(id: number, oficio: OficioModel): Observable<any> {
-  return this.http.put(`${this.apiUrl}/modificar/${id}`, oficio);
-}
+  actualizarOficio(id: number, data: Partial<OficioModel>): Observable<any> {
+    const body = {
+      // Si en tu caso no querés cambiar el expediente, podés omitirlo
+      expediente_id: data.expediente_id,
+      demandado_id: data.demandado_id,
+      parte: data.parte,
+      estado: data.estado,
+      fecha_diligenciado: data.fecha_diligenciado || null,
+    };
+    return this.http.put(`${this.apiUrl}/modificar/${id}`, body);
+  }
 }

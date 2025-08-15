@@ -1938,7 +1938,8 @@ app.put('/oficios/modificar/:id', async (req, res) => {
   }
 });
 
-app.get("/expedientes/cobrados-por-mes", async (req, res) => {
+// Tu endpoint ya armado para obtener cobros por mes
+app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const { anio, mes } = req.query;
 
   try {
@@ -1946,40 +1947,62 @@ app.get("/expedientes/cobrados-por-mes", async (req, res) => {
       .input("anio", sql.Int, parseInt(anio))
       .input("mes", sql.Int, parseInt(mes))
       .query(`
-       SELECT 
-        id, 
-        numero, 
-        anio, 
-        -- Capital
-        ISNULL(capitalPagoParcial, montoLiquidacionCapital) AS montoCapital,
-        fecha_cobro_capital,
+        SELECT 
+          -- Capital (sin descuento)
+          SUM(CASE WHEN MONTH(e.fecha_cobro_capital) = @mes AND YEAR(e.fecha_cobro_capital) = @anio
+                   THEN ISNULL(e.capitalPagoParcial, e.montoLiquidacionCapital) ELSE 0 END) AS totalCapital,
 
-        -- Honorarios principales
-        ISNULL(montoLiquidacionHonorarios, 0) AS montoHonorarios,
-        fecha_cobro,
+          -- Honorarios
+          SUM(CASE WHEN MONTH(e.fecha_cobro) = @mes AND YEAR(e.fecha_cobro) = @anio
+                   THEN ROUND(ISNULL(e.montoLiquidacionHonorarios, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100, 2)
+                   ELSE 0 END) AS totalHonorarios,
 
-        -- Alzada
-        ISNULL(montoAcuerdo_alzada, 0) AS montoAlzada,
-        fechaCobroAlzada,
+          -- Alzada
+          SUM(CASE WHEN MONTH(e.fechaCobroAlzada) = @mes AND YEAR(e.fechaCobroAlzada) = @anio
+                   THEN ROUND(ISNULL(e.montoAcuerdo_alzada, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100, 2)
+                   ELSE 0 END) AS totalAlzada,
 
-        -- Ejecución
-        ISNULL(montoHonorariosEjecucion, 0) AS montoEjecucion,
-        fechaCobroEjecucion,
+          -- Ejecución
+          SUM(CASE WHEN MONTH(e.fechaCobroEjecucion) = @mes AND YEAR(e.fechaCobroEjecucion) = @anio
+                   THEN ROUND(ISNULL(e.montoHonorariosEjecucion, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100, 2)
+                   ELSE 0 END) AS totalEjecucion,
 
-        -- Diferencia
-        ISNULL(montoHonorariosDiferencia, 0) AS montoDiferencia,
-        fechaCobroDiferencia
+          -- Diferencia
+          SUM(CASE WHEN MONTH(e.fechaCobroDiferencia) = @mes AND YEAR(e.fechaCobroDiferencia) = @anio
+                   THEN ROUND(ISNULL(e.montoHonorariosDiferencia, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100, 2)
+                   ELSE 0 END) AS totalDiferencia,
 
-      FROM expedientes
-WHERE (estado = 'sentencia' OR estado = 'cobrado')
-  AND (
-    (MONTH(fecha_cobro_capital) = @mes AND YEAR(fecha_cobro_capital) = @anio)
-    OR (MONTH(fecha_cobro) = @mes AND YEAR(fecha_cobro) = @anio)
-    OR (MONTH(fechaCobroAlzada) = @mes AND YEAR(fechaCobroAlzada) = @anio)
-    OR (MONTH(fechaCobroEjecucion) = @mes AND YEAR(fechaCobroEjecucion) = @anio)
-    OR (MONTH(fechaCobroDiferencia) = @mes AND YEAR(fechaCobroDiferencia) = @anio)
-  )
+          -- Total general
+          SUM(
+            CASE WHEN MONTH(e.fecha_cobro_capital) = @mes AND YEAR(e.fecha_cobro_capital) = @anio
+                 THEN ISNULL(e.capitalPagoParcial, e.montoLiquidacionCapital) ELSE 0 END
+            +
+            CASE WHEN MONTH(e.fecha_cobro) = @mes AND YEAR(e.fecha_cobro) = @anio
+                 THEN ROUND(ISNULL(e.montoLiquidacionHonorarios, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100, 2) ELSE 0 END
+            +
+            CASE WHEN MONTH(e.fechaCobroAlzada) = @mes AND YEAR(e.fechaCobroAlzada) = @anio
+                 THEN ROUND(ISNULL(e.montoAcuerdo_alzada, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100, 2) ELSE 0 END
+            +
+            CASE WHEN MONTH(e.fechaCobroEjecucion) = @mes AND YEAR(e.fechaCobroEjecucion) = @anio
+                 THEN ROUND(ISNULL(e.montoHonorariosEjecucion, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100, 2) ELSE 0 END
+            +
+            CASE WHEN MONTH(e.fechaCobroDiferencia) = @mes AND YEAR(e.fechaCobroDiferencia) = @anio
+                 THEN ROUND(ISNULL(e.montoHonorariosDiferencia, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100, 2) ELSE 0 END
+          ) AS totalGeneral
+        FROM expedientes e
+        LEFT JOIN usuario u ON e.usuario_id = u.id
+        WHERE e.estado IN ('sentencia', 'cobrado');
       `);
+
+    res.json(result.recordset[0]);
+
+  } catch (error) {
+    console.error("Error al obtener total de cobranzas por mes:", error);
+    res.status(500).send("Error en el servidor");
+  }
+});
+
+
 
 
   app.get("/expedientes/expedientes-activos", async (req, res) => {
@@ -2025,33 +2048,80 @@ app.get("/expedientes/sentencias-emitidas", async (req, res) => {
     res.status(500).send("Error en sentencias-emitidas");
   }
 });
-
-
-app.get("/expedientes/honorarios-pendientes", async (req, res) => {
+app.get('/expedientes/honorarios-pendientes', async (req, res) => {
   try {
     const result = await pool.request().query(`
-      SELECT
-        SUM(CASE WHEN fecha_cobro IS NULL THEN ISNULL(montoLiquidacionHonorarios, 0) ELSE 0 END) AS pendienteHonorarios,
-        SUM(CASE WHEN fechaCobroAlzada IS NULL THEN ISNULL(montoAcuerdo_alzada, 0) ELSE 0 END) AS pendienteAlzada,
-        SUM(CASE WHEN fechaCobroEjecucion IS NULL THEN ISNULL(montoHonorariosEjecucion, 0) ELSE 0 END) AS pendienteEjecucion,
-        SUM(CASE WHEN fechaCobroDiferencia IS NULL THEN ISNULL(montoHonorariosDiferencia, 0) ELSE 0 END) AS pendienteDiferencia
-      FROM expedientes
-      WHERE estado != 'eliminado'
+
+      DECLARE @valorUMA FLOAT;
+      SELECT TOP 1 @valorUMA = valor FROM uma ORDER BY valor DESC;
+
+      SELECT 
+        SUM(pendienteCapital + pendienteHonorarios + pendienteAlzada + pendienteEjecucion + pendienteDiferencia) AS totalPendiente
+      FROM (
+        SELECT
+          -- CAPITAL
+          CASE 
+            WHEN e.fecha_cobro_capital IS NULL AND e.montoLiquidacionCapital > 0
+              THEN ROUND(
+                e.montoLiquidacionCapital * 
+                ISNULL(e.porcentaje, 100) / 100.0 * 
+                (100.0 - ISNULL(u.porcentaje, 0)) / 100.0,
+              2)
+            ELSE 0
+          END AS pendienteCapital,
+
+          -- HONORARIOS
+          CASE 
+            WHEN e.fecha_cobro IS NULL THEN
+              CASE 
+                WHEN LOWER(ISNULL(e.subEstadoHonorariosSeleccionado, '')) IN ('giro', 'da en pago parcial', 'da en pago total')
+                  THEN ROUND(ISNULL(e.montoLiquidacionHonorarios, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+                ELSE ROUND(ISNULL(e.cantidadUMA, 0) * @valorUMA * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+              END
+            ELSE 0
+          END AS pendienteHonorarios,
+
+          -- ALZADA
+          CASE 
+            WHEN e.fechaCobroAlzada IS NULL THEN
+              ROUND(ISNULL(e.montoAcuerdo_alzada, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+            ELSE 0
+          END AS pendienteAlzada,
+
+          -- EJECUCIÓN
+          CASE 
+            WHEN e.fechaCobroEjecucion IS NULL THEN
+              ROUND(ISNULL(e.montoHonorariosEjecucion, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+            ELSE 0
+          END AS pendienteEjecucion,
+
+          -- DIFERENCIA
+          CASE 
+            WHEN e.fechaCobroDiferencia IS NULL THEN
+              ROUND(ISNULL(e.montoHonorariosDiferencia, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+            ELSE 0
+          END AS pendienteDiferencia
+
+        FROM expedientes e
+        LEFT JOIN usuario u ON e.usuario_id = u.id
+        WHERE e.estado != 'eliminado'
+      ) AS MontosPendientes
+      WHERE (pendienteCapital + pendienteHonorarios + pendienteAlzada + pendienteEjecucion + pendienteDiferencia) > 0;
+
     `);
 
-    const row = result.recordset[0];
-    const total =
-      (row.pendienteHonorarios ?? 0) +
-      (row.pendienteAlzada ?? 0) +
-      (row.pendienteEjecucion ?? 0) +
-      (row.pendienteDiferencia ?? 0);
+    const total = result.recordset[0]?.totalPendiente || 0;
+    res.status(200).json(total);
 
-    res.json(total);
   } catch (err) {
-    console.error("Error al calcular honorarios pendientes:", err);
-    res.status(500).send("Error en honorarios-pendientes");
+    console.error('Error al calcular honorarios pendientes:', err);
+    res.status(500).json({ error: 'Error al calcular honorarios pendientes' });
   }
 });
+
+
+
+
 
 
 app.get("/expedientes/demandados-por-mes", async (req, res) => {
@@ -2079,15 +2149,43 @@ app.get("/expedientes/demandados-por-mes", async (req, res) => {
 });
 
 
+app.put('/oficios/modificar/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { expediente_id, demandado_id, parte, estado, fecha_diligenciado } = req.body;
 
+    const poolConn = await pool.connect();
+    const r = await poolConn.request()
+      .input('id', sql.Int, Number(id))
+      .input('expediente_id', sql.Int, expediente_id || null) // si no querés permitir cambios, quitá esta línea
+      .input('demandado_id', sql.Int, demandado_id)
+      .input('parte', sql.VarChar(20), parte)
+      .input('estado', sql.VarChar(30), estado)
+      .input('fecha_diligenciado', sql.Date, fecha_diligenciado || null)
+      .query(`
+        UPDATE oficios
+        SET 
+          expediente_id = COALESCE(@expediente_id, expediente_id),
+          demandado_id = @demandado_id,
+          parte = @parte,
+          estado = @estado,
+          fecha_diligenciado = @fecha_diligenciado
+        WHERE id = @id;
 
+        SELECT @@ROWCOUNT AS rows;
+      `);
 
-    res.json(result.recordset);
+    if (r.recordset[0].rows === 0) {
+      return res.status(404).json({ error: 'Oficio no encontrado' });
+    }
+
+    res.json({ ok: true });
   } catch (err) {
-    console.error("Error al obtener expedientes cobrados:", err);
-    res.status(500).send(err);
+    console.error('Error al modificar oficio:', err);
+    res.status(500).json({ error: 'Error al modificar oficio' });
   }
 });
+
 
 
              // Iniciar el servidor

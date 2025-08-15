@@ -9,22 +9,18 @@
       <thead>
         <tr>
           <th>Mes / Año</th>
-          <th>Total Cobrado</th>
+          <th><strong>Total</strong></th>
         </tr>
       </thead>
-<tbody>
-  <ng-container *ngFor="let mes of mesesDisponibles">
-    <tr *ngIf="cobrosPorMes[mes]?.[0]?.monto > 0">
-      <td>{{ convertirMes(mes) }} / {{ mes.split('-')[0] }}</td>
-      <td>${{ cobrosPorMes[mes][0].monto | number:'1.0-0' }}</td>
-    </tr>
-  </ng-container>
-</tbody>
-
+      <tbody>
+        <ng-container *ngFor="let mes of mesesDisponibles">
+          <tr *ngIf="cobrosPorMes[mes]!.total > 0">
+            <td>{{ convertirMes(mes) }} / {{ mes.split('-')[0] }}</td>
+            <td><strong>${{ cobrosPorMes[mes].total | number:'1.0-0' }}</strong></td>
+          </tr>
+        </ng-container>
+      </tbody>
     </table>
   </div>
 
 </div>
-
-
-

@@ -73,7 +73,6 @@ export class DialogExpedienteModificarComponent   {
 
   tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
   tipoSeleccionado: any = 'todos';
-
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -127,7 +126,9 @@ estados: any[] = [
 
   'Fiscal - Solicita',
   'Fiscal - Cedula',
-
+  'Fiscal - Previo',
+  'Fiscal - Se ordena',
+  'Fiscal - Contesta traslado',
   'Defensor Oficial - Solicita',
   'Defensor Oficial - Cedula',
   'Defensor Oficial - Ratifica lo actuado',

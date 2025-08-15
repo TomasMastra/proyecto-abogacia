@@ -57,7 +57,7 @@ demandadosPorNombre: { [nombre: string]: number } = {};
     this.mesesDisponibles.forEach(mes => {
       const [anio, mesStr] = mes.split('-').map(Number);
 
-      this.expedienteService.obtenerCobrosPorMes(anio, mesStr).subscribe(cobros => {
+     /* this.expedienteService.obtenerCobrosPorMes(anio, mesStr).subscribe(cobros => {
         let total = 0;
 
         for (const item of cobros) {
@@ -71,7 +71,7 @@ demandadosPorNombre: { [nombre: string]: number } = {};
         if (total > 0) {
           this.cobrosPorMes[mes] = [{ monto: total }];
         }
-      });
+      });*/
     });
   }
 

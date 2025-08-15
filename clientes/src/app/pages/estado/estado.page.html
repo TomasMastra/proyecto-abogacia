@@ -71,7 +71,6 @@
                 </mat-option>
               </mat-select>
             </mat-form-field>
-
           </div>
 
 
@@ -277,6 +276,7 @@
     <mat-form-field *ngIf="estadoCapitalSeleccionado == 'apelado'" appearance="outline" style="flex: 1;">
       <mat-label style="color: white">Subestado del Capital</mat-label>
       <mat-select style="color: white" [(ngModel)]="subEstadoCapitalSeleccionado" name="subEstadoCapitalSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
+        <mat-option value="concede en relacion">Concede en relación</mat-option>
         <mat-option value="pendiente de elevacion">Pendiente de elevación</mat-option>
         <mat-option value="en sala">En sala</mat-option>
         <mat-option value="resolucion sala">A resolver</mat-option>
@@ -322,11 +322,13 @@
     <!-- GESTIONES POSTERIORES -->
     <mat-option value="da en pago total">Da en pago total</mat-option>
     <mat-option value="da en pago parcial">Da en pago parcial</mat-option>
+    <mat-option value="CBU peniente">cbu pendiente</mat-option>
 
     <!-- GIROS -->
     <mat-option value="giro - solicita">Giro - solicita</mat-option>
     <mat-option value="giro - previo">Giro - previo</mat-option>
     <mat-option value="giro - consentido">Giro - consentido</mat-option>
+     <mat-option value="giro rechazado">Giro rechazado</mat-option>
     <mat-option value="giro">Giro</mat-option>
   </mat-select>
 </mat-form-field>
@@ -419,6 +421,9 @@
     <mat-form-field *ngIf="estadoHonorariosSeleccionado === 'apelado'" appearance="outline" style="flex: 1;">
       <mat-label style="color: white">Subestado de Honorarios</mat-label>
       <mat-select style="color: white" [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
+          <mat-option value="prorrateo - se resuelve">Prorrateo- Se resuelve</mat-option>
+          <mat-option value="prorrateo - a resolver">Prorrateo - A resolver</mat-option>
+
         <mat-option value="pendiente de elevacion" [disabled]="deshabilitarApeladoOFirme">Pendiente de elevación</mat-option>
         <mat-option value="en sala" [disabled]="deshabilitarApeladoOFirme">En sala</mat-option>
         <mat-option value="resolucion sala - confirma" [disabled]="deshabilitarApeladoOFirme">Resolución sala - Confirma</mat-option>
@@ -448,8 +453,10 @@
       [(ngModel)]="subEstadoHonorariosSeleccionado"
       name="subEstadoHonorariosSeleccionado"
       (selectionChange)="actualizarValidacionesCondicionales()">
-    
+
       <mat-option value="espera que vuelva">Espera que vuelva</mat-option>
+      <mat-option value="intimacion pendiente">Intimacion pendiente</mat-option>
+
       <mat-option value="honorario se intima">Honorario se intima</mat-option>
       <mat-option value="honorario cedula">honorario cedula</mat-option>
 
@@ -462,6 +469,7 @@
       <mat-option value="giro - solicita">Giro - solicita</mat-option>
       <mat-option value="giro - previo">Giro - previo</mat-option>
       <mat-option value="giro - consiente">Giro - consiente</mat-option>
+      <mat-option value="giro rechazado">Giro rechazado</mat-option>
 
       <mat-option value="giro">Giro</mat-option>
     

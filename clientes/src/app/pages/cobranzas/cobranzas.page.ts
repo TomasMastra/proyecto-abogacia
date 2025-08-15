@@ -62,9 +62,19 @@ export class CobranzasPage implements OnInit {
   ordenAscendente: boolean = true;
 
   mesesDisponibles: string[] = [];
-  cobrosPorMes: { [mes: string]: any[] } = {};
+  cobrosPorMes: {
+    [mes: string]: {
+      capital: number;
+      honorarios: number;
+      alzada: number;
+      ejecucion: number;
+      diferencia: number;
+      total: number;
+    }
+  } = {};
 
   grafico: any;
+
 ngOnInit() {
   const desdeAnio = 2016;
   const hoy = new Date();
@@ -106,41 +116,27 @@ ngOnInit() {
     return meses[numeroMes - 1];
   }
 
-  calcularTotalMes(mes: string): number {
-    return (this.cobrosPorMes[mes] || []).reduce((acc, item) => acc + Number(item.monto || 0), 0);
-  }
 
 
-  obtenerCobrosPorMes(anio: number, mes: number, claveMes: string) {
-  this.expedienteService.obtenerCobrosPorMes(anio, mes).subscribe(cobros => {
-    let total = 0;
+obtenerCobrosPorMes(anio: number, mes: number, claveMes: string) {
+  this.expedienteService.obtenerTotalCobranzasPorMes(anio, mes).subscribe(totales => {
 
-const validarYSumar = (fechaStr: string | null, monto: number) => {
-  if (!fechaStr) return;
-
-  const partes = fechaStr.split('T')[0].split('-'); // ["2025", "08", "01"]
-  const año = parseInt(partes[0], 10);
-  const mesStr = partes[1];
-
-  if (año === anio && parseInt(mesStr, 10) === mes) {
-    total += monto || 0;
-  }
-};
-
-
-    for (const item of cobros) {
-      validarYSumar(item.fecha_cobro_capital, item.montoCapital);
-      validarYSumar(item.fecha_cobro, item.montoHonorarios);
-      validarYSumar(item.fechaCobroAlzada, item.montoAlzada);
-      validarYSumar(item.fechaCobroEjecucion, item.montoEjecucion);
-      validarYSumar(item.fechaCobroDiferencia, item.montoDiferencia);
-    }
-
-    if (total > 0) {
-      this.cobrosPorMes[claveMes] = [{ monto: total }];
-    }
+      this.cobrosPorMes[claveMes] = {
+        capital: totales.totalCapital,
+        honorarios: totales.totalHonorarios,
+        alzada: totales.totalAlzada,
+        ejecucion: totales.totalEjecucion,
+        diferencia: totales.totalDiferencia,
+        total: totales.totalGeneral
+      };
+    
   });
 }
+
+
+
+
+
 
 
 }

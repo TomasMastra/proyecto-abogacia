@@ -75,7 +75,6 @@ export class DialogExpedienteComponent {
 
    tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
    tipoSeleccionado: any = 'todos';
-
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -129,7 +128,9 @@ estados: any[] = [
 
   'Fiscal - Solicita',
   'Fiscal - Cedula',
-
+  'Fiscal - Previo',
+  'Fiscal - Se ordena',
+  'Fiscal - Contesta traslado',
   'Defensor Oficial - Solicita',
   'Defensor Oficial - Cedula',
   'Defensor Oficial - Ratifica lo actuado',
@@ -357,7 +358,7 @@ cargarJuzgado() {
         estado: this.estadoSeleccionado, // Este es el valor por defecto. Se actualizaría si el estado es 'sentencia'.
         sala_radicacion: null,
         honorario: this.form.value.honorario ?? null,
-        fecha_inicio: this.form.value.fecha_inicio ?? new Date().toISOString().split('T')[0],
+        fecha_inicio: this.form.value.fechaInicio ?? null,
         fecha_sentencia: null,
         hora_sentencia: null,
         juez_id: this.juezSeleccionado?.id ?? null,

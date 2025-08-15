@@ -106,12 +106,16 @@ cargarExpedientes() {
         expediente.fecha_atencion
 );
 
-// ORDENAR por fecha_requerido descendente
-      filtrados.sort((a, b) => {
-        const fechaA = new Date(a.fecha_atencion!).getTime();
-        const fechaB = new Date(b.fecha_atencion!).getTime();
-        return fechaA - fechaB; // Más nuevo primero
-      });
+filtrados.sort((a, b) => {
+  // Si uno está en sentencia y el otro no, el que está en sentencia va primero
+  if (a.estado === 'Sentencia' && b.estado !== 'Sentencia') return -1;
+  if (a.estado !== 'Sentencia' && b.estado === 'Sentencia') return 1;
+
+  // Si ambos son 'Sentencia' o ninguno lo es, ordenamos por fecha (más reciente primero)
+  const fechaA = new Date(a.fecha_atencion!).getTime();
+  const fechaB = new Date(b.fecha_atencion!).getTime();
+  return fechaA - fechaB; 
+});
 
       this.expedientes = filtrados;
       this.expedientesOriginales = [...filtrados];

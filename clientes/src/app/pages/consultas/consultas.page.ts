@@ -74,7 +74,6 @@ procuradorSeleccionado: string = '';
 
 tiposJuicio: string[] = ['sumarisimo', 'ordinario', 'a definir'];
 juicioSeleccionado: any;
-
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -128,7 +127,9 @@ estados: any[] = [
 
   'Fiscal - Solicita',
   'Fiscal - Cedula',
-
+  'Fiscal - Previo',
+  'Fiscal - Se ordena',
+  'Fiscal - Contesta traslado',
   'Defensor Oficial - Solicita',
   'Defensor Oficial - Cedula',
   'Defensor Oficial - Ratifica lo actuado',
