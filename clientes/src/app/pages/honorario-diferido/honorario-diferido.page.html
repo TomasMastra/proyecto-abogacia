@@ -86,30 +86,7 @@
       <tr [class.hover]="item.hover" >
         <td [attr.rowspan]="5" style="background-color: #07295c;">{{ item.numero }}/{{ item.anio }}</td>
         <td [attr.rowspan]="5" style="background-color: #07295c;">
-        <div *ngIf="item.clientes && item.clientes.length === 1 && item.demandados && item.demandados?.length === 1">
-          {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} contra {{ item.demandados[0].nombre }}
-        </div>
-
-        <div *ngIf="item.clientes && item.clientes.length === 1 && item.demandados && item.demandados?.length > 1">
-          {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} contra {{ item.demandados[0].nombre }} y otros
-        </div>
-
-        <div *ngIf="item.clientes && item.clientes.length > 1 && item.demandados && item.demandados?.length === 1">
-          {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} y otros contra {{ item.demandados[0].nombre }}
-        </div>
-
-        <div *ngIf="item.clientes && item.clientes.length > 1 && item.demandados && item.demandados?.length > 1">
-          {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} y otros contra {{ item.demandados[0].nombre }} y otros
-        </div>
-
-        <div *ngIf="item.clientes && item.clientes.length === 0 && item.demandados && item.demandados?.length === 1">
-          (sin actora) contra {{ item.demandados[0].nombre }}
-        </div>
-
-        <div *ngIf="item.clientes && item.clientes.length === 0 && item.demandados && item.demandados?.length > 1">
-          (sin actora) contra {{ item.demandados[0].nombre }} y otros
-        </div>
-
+          {{item.caratula}}
         </td>
         <td [attr.rowspan]="5" *ngIf="estado == 'sentencia'" style="background-color: #07295c;">{{ item.juzgadoModel?.tipo }}</td>
 
@@ -149,8 +126,12 @@
         Ya está todo cobrado
       </td>
 
-        <td *ngIf="!item.capitalCobrado && item.capitalPagoParcial == null && estado == 'cobrado'" [attr.colspan]="5" style="text-align: center; color: yellow;">
+        <td *ngIf="!item.capitalCobrado && item.capitalPagoParcial == null && estado == 'cobrado' && item.estado!='Archivo'" [attr.colspan]="5" style="text-align: center; color: yellow;">
         Pendiente a cobrar
+      </td>
+
+      <td *ngIf="item.estado == 'Archivo' && estado == 'cobrado'" [attr.colspan]="5" style="text-align: center; color: yellow;">
+        Archivo
       </td>
       </tr>
 
@@ -193,8 +174,12 @@
         Ya está todo cobrado
       </td>
 
-      <td *ngIf="!item.honorarioCobrado && estado == 'cobrado'" [attr.colspan]="5" style="text-align: center; color: yellow;">
+      <td *ngIf="!item.honorarioCobrado && estado == 'cobrado' && item.estado!='Archivo'" [attr.colspan]="5" style="text-align: center; color: yellow;">
         Pendiente a cobrar
+      </td>
+
+      <td *ngIf="item.estado == 'Archivo' && estado == 'cobrado'" [attr.colspan]="5" style="text-align: center; color: yellow;">
+        Archivo
       </td>
       </tr>
 
@@ -235,6 +220,10 @@
       <td *ngIf="!item.honorarioAlzadaCobrado && estado == 'cobrado' && item.estadoHonorariosAlzadaSeleccionado" [attr.colspan]="5" style="text-align: center; color: yellow;">
         Pendiente a cobrar
       </td>
+
+      <td *ngIf="item.estado == 'Archivo' && estado == 'cobrado' && mostrarAlzada(item)" [attr.colspan]="5" style="text-align: center; color: yellow;">
+        Archivo
+      </td>
       </tr>
 
       <!-- EJECUCIÓN -->
@@ -273,6 +262,10 @@
       <td *ngIf="!item.honorarioEjecucionCobrado && estado == 'cobrado' && item.estadoHonorariosEjecucionSeleccionado" [attr.colspan]="5" style="text-align: center; color: yellow;">
         Pendiente a cobrar
       </td>
+
+      <td *ngIf="item.estado == 'Archivo' && estado == 'cobrado' && mostrarEjecucion(item)" [attr.colspan]="5" style="text-align: center; color: yellow;">
+        Archivo
+      </td>
       </tr>
 
       <!-- DIFERENCIA -->
@@ -310,6 +303,10 @@
 
       <td *ngIf="!item.honorarioDiferenciaCobrado && estado == 'cobrado' && item.estadoHonorariosDiferenciaSeleccionado" [attr.colspan]="5" style="text-align: center; color: yellow;">
         Pendiente a cobrar
+      </td>
+
+        <td *ngIf="item.estado == 'Archivo' && estado == 'cobrado' && mostrarDiferencia(item)" [attr.colspan]="5" style="text-align: center; color: yellow;">
+        Archivo
       </td>
         
       </tr>

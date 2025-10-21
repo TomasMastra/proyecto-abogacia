@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, Observable } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
+import { forkJoin, Observable, of } from 'rxjs';
+import { switchMap, map, catchError } from 'rxjs/operators';
 import { OficioModel } from '../models/oficio/oficio.component';
 import { ExpedientesService } from './expedientes.service';
 import { DemandadosService } from './demandado.service';

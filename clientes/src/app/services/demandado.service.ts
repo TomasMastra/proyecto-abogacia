@@ -43,9 +43,19 @@ export class DemandadosService {
   }
 
 
-    getDemandadoPorId(id: number) {
-      return this.http.get<DemandadoModel>(`${this.apiUrl}/${id}`);
-    }
+getDemandadoPorId(id: number) {
+  if (id === null || id === undefined || id <= 0) {
+    console.error("ID de demandado inválido:", id);
+    return of(null); // RxJS: devolvemos un observable vacío en vez de hacer la request
+  }
+
+  return this.http.get<DemandadoModel>(`${this.apiUrl}/${id}`).pipe(
+    catchError(err => {
+      console.error("Error al obtener el demandado con id", id, err);
+      return of(null);
+    })
+  );
+}
 
 
     actualizarDemandado(id: string, demandado: DemandadoModel): Observable<DemandadoModel> {

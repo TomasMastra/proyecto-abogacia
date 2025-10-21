@@ -94,6 +94,8 @@ export interface ExpedienteModel {
 
     capitalPagoParcial: number | null;
 
+    caratula?: any;
+
 
 
   }

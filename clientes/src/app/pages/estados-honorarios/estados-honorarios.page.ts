@@ -130,7 +130,9 @@ estados: any[] = [
   'Sentencia - Previo',
   'Sentencia - Solicita',
   'Sentencia - Pasen autos a Sentencia',
-  'Sentencia'
+  'Sentencia',
+  'Archivo',
+  'Caducidad'
 ];
   estadoSeleccionado: any;
 

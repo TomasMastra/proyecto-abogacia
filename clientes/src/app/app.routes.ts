@@ -94,5 +94,9 @@ export const routes: Routes = [
   {
     path: 'graficos',
     loadComponent: () => import('./pages/graficos/graficos.page').then( m => m.GraficosPage)
+  },
+  {
+    path: 'datos-importantes',
+    loadComponent: () => import('./pages/datos-importantes/datos-importantes.page').then( m => m.DatosImportantesPage)
   }
 ];

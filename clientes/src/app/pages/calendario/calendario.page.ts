@@ -290,7 +290,7 @@ seleccionarExpediente(expediente: ExpedienteModel) {
 cargarEventos() {
   this.eventosService.getEventos().subscribe(eventos => {
     this.eventos = eventos;
-    this.actualizarCalendario(); // 🧠 Recalcula los días con eventos
+    this.actualizarCalendario();
     if (this.fechaSeleccionada) {
       const fechaStr = this.fechaSeleccionada.toISOString().slice(0, 10);
       this.eventosSeleccionados = eventos.filter(e => 
@@ -326,7 +326,7 @@ cargarEventos() {
   }
 
 mostrarDetallesEvento(evento: EventoModel) {
-
+//debugger;
   const expediente = evento.expediente;
 let caratula = '';
 
@@ -373,10 +373,11 @@ if (expediente) {
     : '';
 
   Swal.fire({
-    title: evento.titulo || evento.tipo_evento,
+    title: evento.descripcion || evento.titulo || evento.tipo_evento,
     
     html: `<div style='text-align:left;'>
       ${caratula ? `<p><strong>Carátula:</strong> ${caratula}</p>` : ''}
+     <!--  <p><strong>Caratula:</strong> ${caratula}</p> -->
       <p><strong>Fecha:</strong> ${fecha.toLocaleDateString('es-AR')}</p>
       <p><strong>Hora:</strong> ${hora}</p>
       <p><strong>Estado:</strong> ${estado}</p>

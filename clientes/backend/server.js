@@ -336,51 +336,89 @@ app.get('/expedientes/demandadosPorExpediente/:id_expediente', async (req, res) 
  *  (Si no hay clientes: "(sin actora) contra <Demandado>")
  *  ============================================================ */
 async function recalcularCaratula(pool, expedienteId) {
-  // Traigo datos base (nro/año y demandado)
-  const resBase = await pool.request()
+  // === ACTORAS (clientes_expedientes) ===
+  const rsAct = await pool.request()
     .input('id', sql.Int, expedienteId)
     .query(`
-      SELECT e.numero, e.anio, d.nombre AS demandadoNombre
-      FROM dbo.expedientes e
-      LEFT JOIN dbo.demandados d ON d.id = e.demandado_id
-      WHERE e.id = @id
-    `);
-
-  if (resBase.recordset.length === 0) return; // no existe
-
-  const { numero, anio, demandadoNombre } = resBase.recordset[0];
-  const dem = demandadoNombre || '(sin demandado)';
-
-  // Primer cliente + cantidad total de clientes
-  const resCli = await pool.request()
-    .input('id', sql.Int, expedienteId)
-    .query(`
-      SELECT TOP (1)
-        c.nombre, c.apellido,
-        COUNT(*) OVER() AS total
-      FROM dbo.clientes c
-      INNER JOIN dbo.clientes_expedientes ce ON ce.id_cliente = c.id
+      SELECT ce.tipo,
+             cli.nombre  AS c_nombre,  cli.apellido AS c_apellido,
+             emp.nombre  AS e_nombre
+      FROM clientes_expedientes ce
+      LEFT JOIN clientes   cli ON cli.id = ce.id_cliente
+      LEFT JOIN demandados emp ON emp.id = ce.id_empresa
       WHERE ce.id_expediente = @id
-      ORDER BY c.id
+      ORDER BY ce.id ASC
     `);
 
-  let caratula;
-  if (resCli.recordset.length === 0) {
-    caratula = `(sin actora) contra ${dem}`;
-  } else {
-    const { nombre, apellido, total } = resCli.recordset[0];
-    const primer = `${nombre ?? ''} ${apellido ?? ''}`.trim() || '(sin actora)';
-    caratula = total > 1
-      ? `${primer} y otros contra ${dem}`
-      : `${primer} contra ${dem}`;
-  }
+  const actoras = rsAct.recordset.map(r => {
+    if ((r.tipo || '').toLowerCase() === 'cliente') {
+      const nombre = (r.c_nombre || '').trim();
+      const ape    = (r.c_apellido || '').trim();
+      return (nombre || ape) ? `${nombre} ${ape}`.trim() : 'Cliente';
+    } else {
+      return (r.e_nombre || '').trim() || 'Empresa';
+    }
+  });
 
-  // Guardar
+  let actoraStr = '(sin actora)';
+  if (actoras.length === 1) actoraStr = actoras[0];
+  else if (actoras.length > 1) actoraStr = `${actoras[0]} y otros`;
+
+  // === DEMANDADOS (expedientes_demandados) ===
+  const rsDem = await pool.request()
+    .input('id', sql.Int, expedienteId)
+    .query(`
+      SELECT ed.tipo,
+             cli.nombre  AS c_nombre,  cli.apellido AS c_apellido,
+             emp.nombre  AS e_nombre
+      FROM expedientes_demandados ed
+      LEFT JOIN clientes   cli ON cli.id = ed.id_cliente
+      LEFT JOIN demandados emp ON emp.id = ed.id_demandado
+      WHERE ed.id_expediente = @id
+      ORDER BY ed.id ASC
+    `);
+
+  const demandados = rsDem.recordset.map(r => {
+    if ((r.tipo || '').toLowerCase() === 'cliente') {
+      const nombre = (r.c_nombre || '').trim();
+      const ape    = (r.c_apellido || '').trim();
+      return (nombre || ape) ? `${nombre} ${ape}`.trim() : 'Cliente';
+    } else {
+      return (r.e_nombre || '').trim() || 'Empresa';
+    }
+  });
+
+  let demandadoStr = '(sin demandado)';
+  if (demandados.length === 1) demandadoStr = demandados[0];
+  else if (demandados.length > 1) demandadoStr = `${demandados[0]} y otros`;
+
+  // === Juicio para el "s/ ..." (opcional) ===
+  const rsExp = await pool.request()
+    .input('id', sql.Int, expedienteId)
+    .query(`SELECT juicio, ISNULL(NULLIF(LTRIM(RTRIM(titulo)), ''), NULL) AS titulo FROM expedientes WHERE id = @id`);
+
+  const juicio = (rsExp.recordset[0]?.juicio || '').toString().trim();
+  const caratula = juicio ? `${actoraStr} c/ ${demandadoStr} s/ ${juicio}` : `${actoraStr} c/ ${demandadoStr}`;
+
+  // === Guardar carátula y (si corresponde) también título ===
+  const tituloActual = rsExp.recordset[0]?.titulo || null;
+  const tituloNuevo  = tituloActual ?? caratula; // si estaba null/vacío, lo seteamos igual a carátula
+
   await pool.request()
     .input('id', sql.Int, expedienteId)
-    .input('car', sql.NVarChar(400), caratula)
-    .query(`UPDATE dbo.expedientes SET caratula = @car WHERE id = @id;`);
+    .input('caratula', sql.NVarChar, caratula)
+    .input('titulo', sql.NVarChar, tituloNuevo)
+    .query(`
+      UPDATE expedientes
+         SET caratula = @caratula,
+             titulo   = @titulo
+       WHERE id = @id
+    `);
+
+  return caratula;
 }
+
+
 
 
 /*** ============================================================
@@ -392,129 +430,145 @@ async function recalcularCaratula(pool, expedienteId) {
 app.post('/expedientes/agregar', async (req, res) => {
   try {
     const {
-      titulo, descripcion, demandado_id, juzgado_id, numero, anio, clientes, usuario_id, estado, honorario, monto, ultimo_movimiento,
-      fecha_inicio, juez_id, juicio, requiere_atencion, fecha_sentencia, numeroCliente, minutosSinLuz, periodoCorte,
-      demandados, porcentaje, procurador_id
+      titulo, descripcion, demandado_id, juzgado_id, numero, anio,
+      usuario_id, estado, honorario, monto, ultimo_movimiento,
+      fecha_inicio, juez_id, juicio, requiere_atencion, fecha_sentencia,
+      numeroCliente, minutosSinLuz, periodoCorte,
+      actoras, demandados, porcentaje, procurador_id
     } = req.body;
 
-    if (!numero || !anio || !demandado_id || !juzgado_id || !Array.isArray(clientes)) {
-      return res.status(400).json({
-        error: 'Faltan campos obligatorios',
-        camposRequeridos: ['numero', 'anio', 'demandado', 'juzgado', 'clientes']
-      });
+    if (!numero || !anio || !juzgado_id) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios', camposRequeridos: ['numero','anio','juzgado'] });
     }
 
-    // Validar tipo de juzgado (para unicidad nro/año/tipo)
+    // Tipo juzgado para unicidad
     const tipoJuzgadoResult = await pool.request()
       .input('juzgado_id', sql.Int, juzgado_id)
       .query(`SELECT tipo FROM juzgados WHERE id = @juzgado_id`);
-
     if (!tipoJuzgadoResult.recordset.length) {
       return res.status(400).json({ error: 'No se encontró el tipo del juzgado especificado.' });
     }
-    const tipo = tipoJuzgadoResult.recordset[0].tipo;
+    const tipoJ = tipoJuzgadoResult.recordset[0].tipo;
 
-    // Unicidad (numero/anio/tipo de juzgado) y no eliminado
+    // Unicidad nro/año/tipo
     const resultExiste = await pool.request()
       .input('numero', sql.Int, numero)
       .input('anio', sql.Int, anio)
-      .input('tipo', sql.NVarChar, tipo)
+      .input('tipo', sql.NVarChar, tipoJ)
       .query(`
         SELECT COUNT(*) AS count
         FROM expedientes e
         JOIN juzgados j ON e.juzgado_id = j.id
-        WHERE e.numero = @numero AND e.anio = @anio
-          AND j.tipo = @tipo AND e.estado != 'eliminado'
+        WHERE e.numero=@numero AND e.anio=@anio AND j.tipo=@tipo AND e.estado!='eliminado'
       `);
-
     if (resultExiste.recordset[0].count > 0) {
-      return res.status(400).json({
-        error: 'Ya existe un expediente con el mismo número, año y juzgado.'
-      });
+      return res.status(400).json({ error: 'Ya existe un expediente con el mismo número, año y juzgado.' });
     }
 
-    // Insert del expediente
+    // Insert expediente
     const result = await pool.request()
-      .input('titulo', sql.NVarChar, titulo)
-      .input('descripcion', sql.NVarChar, descripcion)
+      .input('titulo', sql.NVarChar, (titulo ?? '').toString())
+      .input('descripcion', sql.NVarChar, (descripcion ?? '').toString())
       .input('numero', sql.Int, numero)
       .input('anio', sql.Int, anio)
-      .input('demandado_id', sql.Int, demandado_id)
+      .input('demandado_id', sql.Int, demandado_id ?? null)
       .input('juzgado_id', sql.Int, juzgado_id)
       .input('estado', sql.NVarChar, estado)
-      .input('fecha_inicio', sql.DateTime, fecha_inicio)
-      .input('fecha_sentencia', sql.DateTime, fecha_sentencia)
-      .input('honorario', sql.NVarChar, honorario)
-      .input('juez_id', sql.Int, juez_id)
-      .input('juicio', sql.NVarChar, juicio)
-      .input('monto', sql.NVarChar, monto)
-      .input('usuario_id', sql.Int, usuario_id)
-      .input('numeroCliente', sql.NVarChar, numeroCliente)
-      .input('minutosSinLuz', sql.Int, minutosSinLuz)
-      .input('periodoCorte', sql.NVarChar, periodoCorte)
-      .input('porcentaje', sql.Int, porcentaje)
-      .input('procurador_id', sql.Int, procurador_id)
-      .input('requiere_atencion', sql.Bit, requiere_atencion)
+      .input('fecha_inicio', sql.DateTime, fecha_inicio ?? null)
+      .input('fecha_sentencia', sql.DateTime, fecha_sentencia ?? null)
+      .input('honorario', sql.NVarChar, honorario ?? null)
+      .input('juez_id', sql.Int, juez_id ?? null)
+      .input('juicio', sql.NVarChar, juicio ?? null)
+      .input('monto', sql.NVarChar, monto ?? null)
+      .input('usuario_id', sql.Int, usuario_id ?? null)
+      .input('numeroCliente', sql.NVarChar, numeroCliente ?? null)
+      .input('minutosSinLuz', sql.Int, minutosSinLuz ?? null)
+      .input('periodoCorte', sql.NVarChar, periodoCorte ?? null)
+      .input('porcentaje', sql.Int, porcentaje ?? null)
+      .input('procurador_id', sql.Int, procurador_id ?? null)
+      .input('requiere_atencion', sql.Bit, !!requiere_atencion)
       .query(`
         INSERT INTO expedientes (
-          titulo, descripcion, numero, anio, demandado_id, juzgado_id, fecha_creacion, estado, fecha_inicio, honorario,
-          juez_id, juicio, fecha_sentencia, ultimo_movimiento, monto, usuario_id,
-          numeroCliente, minutosSinLuz, periodoCorte, porcentaje, procurador_id, requiere_atencion
+          titulo, descripcion, numero, anio, demandado_id, juzgado_id,
+          fecha_creacion, estado, fecha_inicio, honorario,
+          juez_id, juicio, fecha_sentencia, ultimo_movimiento,
+          monto, usuario_id, numeroCliente, minutosSinLuz, periodoCorte,
+          porcentaje, procurador_id, requiere_atencion
         )
         OUTPUT INSERTED.id
         VALUES (
-          @titulo, @descripcion, @numero, @anio, @demandado_id, @juzgado_id, GETDATE(), @estado, @fecha_inicio, @honorario,
-          @juez_id, @juicio, @fecha_sentencia, @fecha_inicio, @monto, @usuario_id,
-          @numeroCliente, @minutosSinLuz, @periodoCorte, @porcentaje, @procurador_id, @requiere_atencion
+          @titulo, @descripcion, @numero, @anio, @demandado_id, @juzgado_id,
+          GETDATE(), @estado, @fecha_inicio, @honorario,
+          @juez_id, @juicio, @fecha_sentencia, @fecha_inicio,
+          @monto, @usuario_id, @numeroCliente, @minutosSinLuz, @periodoCorte,
+          @porcentaje, @procurador_id, @requiere_atencion
         )
       `);
 
-    if (!result.recordset || result.recordset.length === 0) {
-      return res.status(400).json({ error: 'No se pudo generar el expediente' });
-    }
-
+    if (!result.recordset?.length) return res.status(400).json({ error: 'No se pudo generar el expediente' });
     const expedienteId = result.recordset[0].id;
 
-    // Relaciones con demandados (tabla link)
-    if (Array.isArray(demandados)) {
-      for (const demandado of demandados) {
+    // ===== ACTORAS (usa CASE para respetar el CHECK "uno u otro") =====
+    if (Array.isArray(actoras)) {
+      for (const a of actoras) {
+        const tipoA = (a?.tipo || '').toLowerCase();
+        const idA   = Number(a?.id) || null;
+        if (!idA || (tipoA !== 'cliente' && tipoA !== 'empresa')) {
+          return res.status(400).json({ error: 'Actora inválida', detalle: a });
+        }
+
         await pool.request()
-          .input('id_demandado', sql.Int, demandado.id)
           .input('id_expediente', sql.Int, expedienteId)
+          .input('tipo', sql.NVarChar, tipoA)
+          .input('id', sql.Int, idA)
           .query(`
-            INSERT INTO expedientes_demandados (id_demandado, id_expediente)
-            VALUES (@id_demandado, @id_expediente)
+            INSERT INTO clientes_expedientes (id_expediente, id_cliente, id_empresa, tipo)
+            VALUES (
+              @id_expediente,
+              CASE WHEN @tipo = 'cliente' THEN @id ELSE NULL END,
+              CASE WHEN @tipo = 'empresa' THEN @id ELSE NULL END,
+              @tipo
+            )
           `);
       }
     }
 
-    // Relaciones con clientes
-    for (const cliente of clientes) {
-      await pool.request()
-        .input('id_cliente', sql.Int, cliente.id)
-        .input('id_expediente', sql.Int, expedienteId)
-        .query(`
-          INSERT INTO clientes_expedientes (id_cliente, id_expediente)
-          VALUES (@id_cliente, @id_expediente)
-        `);
+    // ===== DEMANDADOS (misma idea) =====
+    if (Array.isArray(demandados)) {
+      for (const d of demandados) {
+        const tipoD = (d?.tipo || '').toLowerCase();
+        const idD   = Number(d?.id) || null;
+        if (!idD || (tipoD !== 'cliente' && tipoD !== 'empresa')) {
+          return res.status(400).json({ error: 'Demandado inválido', detalle: d });
+        }
+
+        await pool.request()
+          .input('id_expediente', sql.Int, expedienteId)
+          .input('tipo', sql.NVarChar, tipoD)
+          .input('id', sql.Int, idD)
+          .query(`
+            INSERT INTO expedientes_demandados (id_expediente, id_cliente, id_demandado, tipo)
+            VALUES (
+              @id_expediente,
+              CASE WHEN @tipo = 'cliente' THEN @id ELSE NULL END,
+              CASE WHEN @tipo = 'empresa' THEN @id ELSE NULL END,
+              @tipo
+            )
+          `);
+      }
     }
 
-    // ✅ Recalcular y guardar carátula
     await recalcularCaratula(pool, expedienteId);
 
-    res.status(201).json({
-      message: 'Expediente y clientes agregados correctamente',
-      expedienteId
-    });
+    res.status(201).json({ message: 'Expediente agregado correctamente', expedienteId });
 
   } catch (err) {
-    console.error('Error al agregar expediente:', err.message);
-    res.status(500).json({
-      error: 'Error al agregar expediente',
-      message: err.message
-    });
+    console.error('POST /expedientes/agregar ERROR =>', err);
+    res.status(500).json({ error: 'Error al agregar expediente', message: err?.message || String(err) });
   }
 });
+
+
 
 
 /*** ============================================================
@@ -523,6 +577,7 @@ app.post('/expedientes/agregar', async (req, res) => {
  *  - Reemplaza vínculos con demandados/clientes si vienen
  *  - Recalcula y persiste carátula
  *  ============================================================ */
+/*
 app.put('/expedientes/modificar/:id', async (req, res) => {
   const { id } = req.params;
   const nuevosDatos = req.body;
@@ -750,6 +805,263 @@ app.put('/expedientes/modificar/:id', async (req, res) => {
     console.error('Error al actualizar expediente:', error);
     res.status(500).json({ mensaje: 'Error al actualizar expediente' });
   }
+});*/
+app.put('/expedientes/modificar/:id', async (req, res) => {
+  const { id } = req.params;
+  const nuevosDatos = req.body;
+
+  console.log('Datos recibidos para actualizar:', nuevosDatos);
+
+  // Unicidad nro/año/juzgado (excluyendo el propio)
+  const resultExiste = await pool.request()
+    .input('id', sql.Int, id)
+    .input('numero', sql.Int, nuevosDatos.numero)
+    .input('anio', sql.Int, nuevosDatos.anio)
+    .input('juzgado_id', sql.Int, nuevosDatos.juzgado_id)
+    .query(`
+      SELECT COUNT(*) AS count
+      FROM expedientes
+      WHERE numero = @numero
+        AND anio = @anio
+        AND juzgado_id = @juzgado_id
+        AND id <> @id
+        AND estado != 'eliminado'
+    `);
+
+  if (resultExiste.recordset[0].count > 0) {
+    return res.status(400).json({
+      error: 'Ya existe un expediente con el mismo número, año y juzgado.'
+    });
+  }
+
+  try {
+    // =========================
+    // Update del expediente (SE MANTIENEN TODOS TUS INPUTS)
+    // =========================
+    const resultado = await pool.request()
+      .input('id', sql.Int, id)
+      .input('titulo', sql.NVarChar, nuevosDatos.titulo)
+      .input('descripcion', sql.NVarChar, nuevosDatos.descripcion)
+      .input('numero', sql.Int, nuevosDatos.numero)
+      .input('anio', sql.Int, nuevosDatos.anio)
+      .input('juzgado_id', sql.Int, nuevosDatos.juzgado_id)
+      .input('estado', sql.NVarChar, nuevosDatos.estado)
+      .input('juez_id', sql.Int, nuevosDatos.juez_id)
+      .input('honorario', sql.NVarChar, nuevosDatos.honorario)
+      .input('fecha_inicio', sql.DateTime, nuevosDatos.fecha_inicio)
+      .input('juicio', sql.NVarChar, nuevosDatos.juicio)
+      .input('fecha_sentencia', sql.DateTime, nuevosDatos.fecha_sentencia)
+      .input('monto', sql.Int, nuevosDatos.monto)
+      .input('apela', sql.Bit, nuevosDatos.apela)
+      .input('ultimo_movimiento', sql.DateTime, nuevosDatos.ultimo_movimiento)
+      .input('porcentaje', sql.Int, nuevosDatos.porcentaje)
+      .input('usuario_id', sql.Int, nuevosDatos.usuario_id)
+      .input('fecha_cobro', sql.DateTime, nuevosDatos.fecha_cobro)
+      .input('fecha_cobro_capital', sql.DateTime, nuevosDatos.fecha_cobro_capital)
+      .input('valorUMA', sql.Int, nuevosDatos.valorUMA)
+      .input('procurador_id', sql.Int, nuevosDatos.procurador_id)
+      .input('sala', sql.NVarChar, nuevosDatos.sala)
+      .input('requiere_atencion', sql.Bit, nuevosDatos.requiere_atencion)
+      .input('fecha_atencion', sql.Date, (nuevosDatos.fecha_atencion && nuevosDatos.fecha_atencion !== '') ? new Date(nuevosDatos.fecha_atencion) : null)
+
+      // Capital
+      .input('estadoCapitalSeleccionado', sql.NVarChar, nuevosDatos.estadoCapitalSeleccionado)
+      .input('subEstadoCapitalSeleccionado', sql.NVarChar, nuevosDatos.subEstadoCapitalSeleccionado)
+      .input('fechaCapitalSubestado', sql.DateTime, nuevosDatos.fechaCapitalSubestado)
+      .input('estadoLiquidacionCapitalSeleccionado', sql.NVarChar, nuevosDatos.estadoLiquidacionCapitalSeleccionado)
+      .input('fechaLiquidacionCapital', sql.DateTime, nuevosDatos.fechaLiquidacionCapital)
+      .input('montoLiquidacionCapital', sql.Decimal(15, 2), nuevosDatos.montoLiquidacionCapital)
+      .input('capitalCobrado', sql.Bit, nuevosDatos.capitalCobrado)
+
+      // Honorarios
+      .input('estadoHonorariosSeleccionado', sql.NVarChar, nuevosDatos.estadoHonorariosSeleccionado)
+      .input('subEstadoHonorariosSeleccionado', sql.NVarChar, nuevosDatos.subEstadoHonorariosSeleccionado)
+      .input('fechaHonorariosSubestado', sql.DateTime, nuevosDatos.fechaHonorariosSubestado)
+      .input('estadoLiquidacionHonorariosSeleccionado', sql.NVarChar, nuevosDatos.estadoLiquidacionHonorariosSeleccionado)
+      .input('fechaLiquidacionHonorarios', sql.DateTime, nuevosDatos.fechaLiquidacionHonorarios)
+      .input('montoLiquidacionHonorarios', sql.Decimal(15, 2), nuevosDatos.montoLiquidacionHonorarios)
+      .input('honorarioCobrado', sql.Bit, nuevosDatos.honorarioCobrado)
+      .input('cantidadUMA', sql.Decimal(15, 2), nuevosDatos.cantidadUMA)
+
+      // Alzada
+      .input('estadoHonorariosAlzadaSeleccionado', sql.NVarChar, nuevosDatos.estadoHonorariosAlzadaSeleccionado)
+      .input('subEstadoHonorariosAlzadaSeleccionado', sql.NVarChar, nuevosDatos.subEstadoHonorariosAlzadaSeleccionado)
+      .input('fechaHonorariosAlzada', sql.DateTime, nuevosDatos.fechaHonorariosAlzada)
+      .input('umaSeleccionado_alzada', sql.Int, nuevosDatos.umaSeleccionado_alzada ?? null)
+      .input('cantidadUMA_alzada', sql.Decimal(15, 2), nuevosDatos.cantidadUMA_alzada)
+      .input('montoAcuerdo_alzada', sql.Decimal(15, 2), nuevosDatos.montoAcuerdo_alzada)
+      .input('honorarioAlzadaCobrado', sql.Bit, nuevosDatos.honorarioAlzadaCobrado ?? false)
+      .input('fechaCobroAlzada', sql.DateTime, nuevosDatos.fechaCobroAlzada ?? null)
+
+      // Ejecución
+      .input('estadoHonorariosEjecucionSeleccionado', sql.NVarChar, nuevosDatos.estadoHonorariosEjecucionSeleccionado)
+      .input('subEstadoHonorariosEjecucionSeleccionado', sql.NVarChar, nuevosDatos.subEstadoHonorariosEjecucionSeleccionado)
+      .input('fechaHonorariosEjecucion', sql.DateTime, nuevosDatos.fechaHonorariosEjecucion)
+      .input('montoHonorariosEjecucion', sql.Decimal(15, 2), nuevosDatos.montoHonorariosEjecucion)
+      .input('honorarioEjecucionCobrado', sql.Bit, nuevosDatos.honorarioEjecucionCobrado ?? false)
+      .input('fechaCobroEjecucion', sql.DateTime, nuevosDatos.fechaCobroEjecucion ?? null)
+      .input('cantidadUMA_ejecucion', sql.Decimal(15, 2), nuevosDatos.cantidadUMA_ejecucion)
+      .input('umaSeleccionado_ejecucion', sql.Int, nuevosDatos.umaSeleccionado_ejecucion ?? null)
+
+      // Diferencia
+      .input('estadoHonorariosDiferenciaSeleccionado', sql.NVarChar, nuevosDatos.estadoHonorariosDiferenciaSeleccionado)
+      .input('subEstadoHonorariosDiferenciaSeleccionado', sql.NVarChar, nuevosDatos.subEstadoHonorariosDiferenciaSeleccionado)
+      .input('fechaHonorariosDiferencia', sql.DateTime, nuevosDatos.fechaHonorariosDiferencia)
+      .input('montoHonorariosDiferencia', sql.Decimal(15, 2), nuevosDatos.montoHonorariosDiferencia)
+      .input('honorarioDiferenciaCobrado', sql.Bit, nuevosDatos.honorarioDiferenciaCobrado ?? false)
+      .input('fechaCobroDiferencia', sql.DateTime, nuevosDatos.fechaCobroDiferencia ?? null)
+      .input('capitalPagoParcial', sql.Int, nuevosDatos.capitalPagoParcial ?? null)
+
+      .query(`
+        UPDATE expedientes
+        SET 
+          titulo = @titulo,
+          descripcion = @descripcion,
+          numero = @numero,
+          anio = @anio,
+          juzgado_id = @juzgado_id,
+          estado = @estado,
+          juez_id = @juez_id,
+          honorario = @honorario,
+          fecha_inicio = @fecha_inicio,
+          juicio = @juicio,
+          fecha_sentencia = @fecha_sentencia,
+          monto = @monto,
+          apela = @apela,
+          ultimo_movimiento = @ultimo_movimiento,
+          porcentaje = @porcentaje,
+          usuario_id = @usuario_id,
+          fecha_cobro = @fecha_cobro,
+          fecha_cobro_capital = @fecha_cobro_capital,
+          procurador_id = @procurador_id,
+          valorUMA = @valorUMA,
+          sala = @sala,
+          requiere_atencion = @requiere_atencion,
+          fecha_atencion = @fecha_atencion,
+
+          -- Capital
+          estadoCapitalSeleccionado = @estadoCapitalSeleccionado,
+          subEstadoCapitalSeleccionado = @subEstadoCapitalSeleccionado,
+          fechaCapitalSubestado = @fechaCapitalSubestado,
+          estadoLiquidacionCapitalSeleccionado = @estadoLiquidacionCapitalSeleccionado,
+          fechaLiquidacionCapital = @fechaLiquidacionCapital,
+          montoLiquidacionCapital = @montoLiquidacionCapital,
+          capitalCobrado = @capitalCobrado,
+
+          -- Honorarios
+          estadoHonorariosSeleccionado = @estadoHonorariosSeleccionado,
+          subEstadoHonorariosSeleccionado = @subEstadoHonorariosSeleccionado,
+          fechaHonorariosSubestado = @fechaHonorariosSubestado,
+          estadoLiquidacionHonorariosSeleccionado = @estadoLiquidacionHonorariosSeleccionado,
+          fechaLiquidacionHonorarios = @fechaLiquidacionHonorarios,
+          montoLiquidacionHonorarios = @montoLiquidacionHonorarios,
+          honorarioCobrado = @honorarioCobrado,
+          cantidadUMA = @cantidadUMA,
+
+          -- Alzada
+          estadoHonorariosAlzadaSeleccionado = @estadoHonorariosAlzadaSeleccionado,
+          subEstadoHonorariosAlzadaSeleccionado = @subEstadoHonorariosAlzadaSeleccionado,
+          fechaHonorariosAlzada = @fechaHonorariosAlzada,
+          umaSeleccionado_alzada = @umaSeleccionado_alzada,
+          cantidadUMA_alzada = @cantidadUMA_alzada,
+          montoAcuerdo_alzada = @montoAcuerdo_alzada,
+          honorarioAlzadaCobrado = @honorarioAlzadaCobrado,
+          fechaCobroAlzada = @fechaCobroAlzada,
+
+          -- Ejecución
+          estadoHonorariosEjecucionSeleccionado = @estadoHonorariosEjecucionSeleccionado,
+          subEstadoHonorariosEjecucionSeleccionado = @subEstadoHonorariosEjecucionSeleccionado,
+          fechaHonorariosEjecucion = @fechaHonorariosEjecucion,
+          montoHonorariosEjecucion = @montoHonorariosEjecucion,
+          honorarioEjecucionCobrado = @honorarioEjecucionCobrado,
+          fechaCobroEjecucion = @fechaCobroEjecucion,
+          cantidadUMA_ejecucion = @cantidadUMA_ejecucion,
+          umaSeleccionado_ejecucion = @umaSeleccionado_ejecucion,
+
+          -- Diferencia
+          estadoHonorariosDiferenciaSeleccionado = @estadoHonorariosDiferenciaSeleccionado,
+          subEstadoHonorariosDiferenciaSeleccionado = @subEstadoHonorariosDiferenciaSeleccionado,
+          fechaHonorariosDiferencia = @fechaHonorariosDiferencia,
+          montoHonorariosDiferencia = @montoHonorariosDiferencia,
+          honorarioDiferenciaCobrado = @honorarioDiferenciaCobrado,
+          fechaCobroDiferencia = @fechaCobroDiferencia,
+
+          capitalPagoParcial = @capitalPagoParcial
+        WHERE id = @id
+      `);
+
+    // =========================
+    // Reemplazo de relaciones (MIXTO)
+    // =========================
+
+    // DEMANDADOS MIXTOS: expedientes_demandados (empresa/cliente) – 1 o más, vos decidís
+    if (Array.isArray(nuevosDatos.demandados)) {
+      await pool.request()
+        .input('id_expediente', sql.Int, id)
+        .query(`DELETE FROM expedientes_demandados WHERE id_expediente = @id_expediente`);
+
+      for (const d of nuevosDatos.demandados) {
+        const tipoD = (d?.tipo || '').toLowerCase();
+        const idD = Number(d?.id) || null;
+        if (!idD || (tipoD !== 'cliente' && tipoD !== 'empresa')) continue;
+
+        await pool.request()
+          .input('id_expediente', sql.Int, id)
+          .input('tipo', sql.NVarChar, tipoD)
+          .input('id', sql.Int, idD)
+          .query(`
+            INSERT INTO expedientes_demandados (id_expediente, id_cliente, id_demandado, tipo)
+            VALUES (
+              @id_expediente,
+              CASE WHEN @tipo='cliente' THEN @id ELSE NULL END,
+              CASE WHEN @tipo='empresa' THEN @id ELSE NULL END,
+              @tipo
+            )
+          `);
+      }
+    }
+
+    // ACTORAS MIXTAS: clientes_expedientes (empresa/cliente)
+    if (Array.isArray(nuevosDatos.actoras)) {
+      await pool.request()
+        .input('id_expediente', sql.Int, id)
+        .query(`DELETE FROM clientes_expedientes WHERE id_expediente = @id_expediente`);
+
+      for (const a of nuevosDatos.actoras) {
+        const tipoA = (a?.tipo || '').toLowerCase();
+        const idA = Number(a?.id) || null;
+        if (!idA || (tipoA !== 'cliente' && tipoA !== 'empresa')) continue;
+
+        await pool.request()
+          .input('id_expediente', sql.Int, id)
+          .input('tipo', sql.NVarChar, tipoA)
+          .input('id', sql.Int, idA)
+          .query(`
+            INSERT INTO clientes_expedientes (id_expediente, id_cliente, id_empresa, tipo)
+            VALUES (
+              @id_expediente,
+              CASE WHEN @tipo='cliente' THEN @id ELSE NULL END,
+              CASE WHEN @tipo='empresa' THEN @id ELSE NULL END,
+              @tipo
+            )
+          `);
+      }
+    }
+
+    // =========================
+    // Recalcular y guardar carátula
+    // =========================
+    await recalcularCaratula(pool, Number(id));
+
+    if (resultado.rowsAffected[0] > 0) {
+      res.status(200).json({ mensaje: 'Expediente actualizado correctamente' });
+    } else {
+      res.status(404).json({ mensaje: 'Expediente no encontrado' });
+    }
+  } catch (error) {
+    console.error('Error al actualizar expediente:', error);
+    res.status(500).json({ mensaje: 'Error al actualizar expediente' });
+  }
 });
 
 
@@ -784,38 +1096,78 @@ app.put('/expedientes/eliminar/:id_expediente', async (req, res) => {
   }
 });
 
-
 app.get('/expedientes/buscar', async (req, res) => {
   try {
     const { texto, usuario_id, rol } = req.query;
-
-    if (!texto) {
+    if (!texto || `${texto}`.trim() === '') {
       return res.status(400).json({ error: "Se requiere texto para buscar." });
     }
 
-    const request = pool.request().input('texto', sql.NVarChar, `%${texto}%`);
+    const reqSql = pool.request()
+      .input('texto', sql.NVarChar(200), `%${texto}%`);
 
-    let query = `
-      SELECT DISTINCT e.*
-      FROM expedientes e
-      LEFT JOIN clientes_expedientes ce ON e.id = ce.id_expediente
-      LEFT JOIN clientes c ON ce.id_cliente = c.id
-      WHERE (
-        LOWER(CONCAT(c.nombre, ' ', c.apellido)) LIKE LOWER(@texto)
-        OR LOWER(c.nombre) LIKE LOWER(@texto)
-        OR LOWER(c.apellido) LIKE LOWER(@texto)
-        OR CAST(e.numero AS NVARCHAR) LIKE @texto
-        OR CAST(e.anio AS NVARCHAR) LIKE @texto
-      )
-      AND e.estado != 'eliminado'
-    `;
+    // filtro por usuario si no es admin
+    const filtroUsuario = (rol !== 'admin')
+      ? 'AND e.usuario_id = @usuario_id'
+      : '';
 
     if (rol !== 'admin') {
-      query += ' AND e.usuario_id = @usuario_id';
-      request.input('usuario_id', sql.Int, parseInt(usuario_id));  // <- aca faltaban paréntesis si lo ves como bloque lógico
+      reqSql.input('usuario_id', sql.Int, parseInt(usuario_id, 10));
     }
 
-    const result = await request.query(query);
+    const sqlText = `
+      SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+      SELECT TOP (200) e.*
+      FROM expedientes e WITH (NOLOCK)
+      WHERE e.estado <> 'eliminado'
+        ${filtroUsuario}
+        AND (
+             -- carátula / número / año (rápidos)
+             e.caratula LIKE @texto
+          OR CAST(e.numero AS NVARCHAR(50)) LIKE @texto
+          OR CAST(e.anio   AS NVARCHAR(50)) LIKE @texto
+
+          -- actora (cliente)
+          OR EXISTS (
+               SELECT 1
+               FROM clientes_expedientes ce WITH (NOLOCK)
+               JOIN clientes c WITH (NOLOCK) ON c.id = ce.id_cliente
+               WHERE ce.id_expediente = e.id
+                 AND (
+                      c.nombre LIKE @texto
+                   OR c.apellido LIKE @texto
+                   OR CONCAT(c.nombre,' ',c.apellido) LIKE @texto
+                 )
+          )
+
+          -- demandada (empresa)
+          OR EXISTS (
+               SELECT 1
+               FROM expedientes_demandados ed WITH (NOLOCK)
+               JOIN demandados d WITH (NOLOCK) ON d.id = ed.id_demandado
+               WHERE ed.id_expediente = e.id
+                 AND d.nombre LIKE @texto
+          )
+
+          -- demandada (cliente)
+          OR EXISTS (
+               SELECT 1
+               FROM expedientes_demandados ed WITH (NOLOCK)
+               JOIN clientes c2 WITH (NOLOCK) ON c2.id = ed.id_cliente
+               WHERE ed.id_expediente = e.id
+                 AND (
+                      c2.nombre LIKE @texto
+                   OR c2.apellido LIKE @texto
+                   OR CONCAT(c2.nombre,' ',c2.apellido) LIKE @texto
+                 )
+          )
+        )
+      ORDER BY e.id DESC
+      OPTION (RECOMPILE);
+    `;
+
+    const result = await reqSql.query(sqlText);
     res.json(result.recordset);
 
   } catch (err) {
@@ -823,6 +1175,9 @@ app.get('/expedientes/buscar', async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
+
+
+
 
 
 
@@ -1458,6 +1813,7 @@ app.get("/expedientes/buscarPorNumeroAnioTipo", async (req, res) => {
 
 
 //TRAE EXPEDIENTES FILTRADOS POR UN ESTADO
+/*
 app.get("/expedientes/estado", async (req, res) => {
   try {
       const { estado } = req.query; 
@@ -1476,6 +1832,29 @@ app.get("/expedientes/estado", async (req, res) => {
   } catch (err) {
       console.error("Error al obtener expedientes:", err);
       res.status(500).send(err);
+  }
+});*/
+
+app.get("/expedientes/estado", async (req, res) => {
+  try {
+    const estado = (req.query.estado ?? '').toString().trim();
+    if (!estado) {
+      return res.status(400).json({ error: "Se requiere estado." });
+    }
+
+    const result = await pool
+      .request()
+      .input("estado", sql.NVarChar(100), estado)
+      .query(`
+        SELECT *
+        FROM expedientes
+        WHERE estado = @estado
+      `);
+
+    return res.json(result.recordset);
+  } catch (err) {
+    console.error("Error al obtener expedientes por estado:", err);
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
@@ -1766,7 +2145,7 @@ app.get("/expedientes/cobrados", async (req, res) => {
     res.status(500).send("Error al obtener expedientes cobrados");
   }
 });*/
-
+/*
 app.get("/expedientes/cobrados", async (req, res) => {
   try {
     const result = await pool.request()
@@ -1788,6 +2167,29 @@ app.get("/expedientes/cobrados", async (req, res) => {
   } catch (err) {
     console.error("Error al obtener expedientes cobrados:", err);
     res.status(500).send("Error al obtener expedientes cobrados");
+  }
+});*/
+
+app.get("/expedientes/cobrados", async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+      SELECT *
+      FROM expedientes
+      WHERE estado != 'eliminado'
+        AND (
+          estado = 'Archivo'
+          OR capitalCobrado = 1
+          OR honorarioCobrado = 1
+          OR honorarioAlzadaCobrado = 1
+          OR honorarioEjecucionCobrado = 1
+          OR honorarioDiferenciaCobrado = 1
+        )
+    `);
+
+    return res.json(result.recordset);
+  } catch (err) {
+    console.error("Error al obtener expedientes cobrados:", err);
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
@@ -2569,94 +2971,7 @@ app.delete('/pagos/:id', async (req, res) => {
   }
 });
 
-// ===== NUEVO: helper para armar y persistir carátula =====
-async function recalcularCaratula(pool, expedienteId) {
-  // Traer demandado
-  const resDem = await pool.request()
-    .input('id', sql.Int, expedienteId)
-    .query(`
-      SELECT e.numero, e.anio, d.nombre AS demandadoNombre
-      FROM dbo.expedientes e
-      LEFT JOIN dbo.demandados d ON d.id = e.demandado_id
-      WHERE e.id = @id
-    `);
 
-  if (resDem.recordset.length === 0) return; // expediente inexistente
-
-  const { numero, anio, demandadoNombre } = resDem.recordset[0];
-  const dem = demandadoNombre || '(sin demandado)';
-
-  // Traer primer cliente y cantidad total
-  const resCli = await pool.request()
-    .input('id', sql.Int, expedienteId)
-    .query(`
-      SELECT TOP (1)
-        c.nombre, c.apellido,
-        COUNT(*) OVER() AS total
-      FROM dbo.clientes c
-      INNER JOIN dbo.clientes_expedientes ce ON ce.id_cliente = c.id
-      WHERE ce.id_expediente = @id
-      ORDER BY c.id
-    `);
-
-  let caratula;
-  if (resCli.recordset.length === 0) {
-    caratula = `(sin actora) contra ${dem}`;
-  } else {
-    const { nombre, apellido, total } = resCli.recordset[0];
-    const primer = `${nombre ?? ''} ${apellido ?? ''}`.trim() || '(sin actora)';
-    caratula = total > 1
-      ? `${primer} y otros contra ${dem}`
-      : `${primer} contra ${dem}`;
-  }
-
-  // Guardar en la tabla
-  await pool.request()
-    .input('id', sql.Int, expedienteId)
-    .input('car', sql.NVarChar(400), caratula)
-    .query(`UPDATE dbo.expedientes SET caratula = @car WHERE id = @id;`);
-}
-
-
-async function getDemandadoPorExpediente(expedienteId, pool, sql) {
-  const q = `
-    SELECT ed.tipo, ed.id_demandado, ed.id_cliente,
-           d.id  AS emp_id, d.nombre AS emp_nombre,
-           c.id  AS cli_id, c.nombre AS cli_nombre, c.apellido AS cli_apellido
-    FROM expedientes_demandados ed
-    LEFT JOIN demandados d ON d.id = ed.id_demandado
-    LEFT JOIN clientes   c ON c.id = ed.id_cliente
-    WHERE ed.id_expediente = @expediente_id
-  `;
-  const rs = await pool.request()
-    .input('expediente_id', sql.Int, expedienteId)
-    .query(q);
-
-  if (!rs.recordset.length) return null;
-  const r = rs.recordset[0];
-
-  if (r.tipo === 'cliente' && r.cli_id) {
-    return { tipo: 'cliente', id: r.cli_id, nombre: r.cli_nombre, apellido: r.cli_apellido };
-  }
-  if (r.tipo === 'empresa' && r.emp_id) {
-    return { tipo: 'empresa', id: r.emp_id, nombre: r.emp_nombre };
-  }
-  return null;
-}
-
-
-app.get('/expedientes/:id/demandado', async (req, res) => {
-  try {
-    const expedienteId = parseInt(req.params.id, 10);
-    if (isNaN(expedienteId)) return res.status(400).json({ error: 'ID inválido' });
-
-    const dem = await getDemandadoPorExpediente(expedienteId, pool, sql);
-    res.json(dem);
-  } catch (err) {
-    console.error('Error al obtener demandado:', err);
-    res.status(500).json({ error: 'Error al obtener demandado' });
-  }
-});
 
 
              // Iniciar el servidor

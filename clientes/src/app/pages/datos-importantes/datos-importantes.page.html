@@ -78,11 +78,6 @@
           <th>
             Caratula
           </th>
-
-          <th (click)="ordenarPor('estado')" [class.activo]="ordenCampo === 'estado'">
-            Estado
-            <span class="flecha" *ngIf="ordenCampo === 'estado'">{{ ordenAscendente ? '↑' : '↓' }}</span>
-          </th>
             <th (click)="ordenarPor('abogado')" [class.activo]="ordenCampo === 'abogado'">
             Abogado
             <span class="flecha" *ngIf="ordenCampo === 'abogado'">{{ ordenAscendente ? '↑' : '↓' }}</span>
@@ -91,12 +86,7 @@
             Procurador
             <span class="flecha" *ngIf="ordenCampo === 'procurador'">{{ ordenAscendente ? '↑' : '↓' }}</span>
           </th>
-          <th (click)="ordenarPor('fecha_atencion')" [class.activo]="ordenCampo === 'fecha_atencion'">
-            fecha requerimento
-          </th>
-          <th>
-            Tipo de juicio
-          </th>
+
 
 
         </tr>
@@ -111,24 +101,36 @@
       <tr [class.hover]="item.hover">
         <td style="background-color: #07295c;">{{ item.numero }}/{{ item.anio }}</td>
         <td style="background-color: #07295c;">          
-        <ion-label>
-        {{item.caratula}}
-        </ion-label>
+<ion-label>
+<div *ngIf="item.clientes && item.clientes.length === 1 && item.demandados && item.demandados?.length === 1">
+  {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} contra {{ item.demandados[0].nombre }}
+</div>
+
+<div *ngIf="item.clientes && item.clientes.length === 1 && item.demandados && item.demandados?.length > 1">
+  {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} contra {{ item.demandados[0].nombre }} y otros
+</div>
+
+<div *ngIf="item.clientes && item.clientes.length > 1 && item.demandados && item.demandados?.length === 1">
+  {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} y otros contra {{ item.demandados[0].nombre }}
+</div>
+
+<div *ngIf="item.clientes && item.clientes.length > 1 && item.demandados && item.demandados?.length > 1">
+  {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} y otros contra {{ item.demandados[0].nombre }} y otros
+</div>
+
+<div *ngIf="item.clientes && item.clientes.length === 0 && item.demandados && item.demandados?.length === 1">
+  (sin actora) contra {{ item.demandados[0].nombre }}
+</div>
+
+<div *ngIf="item.clientes && item.clientes.length === 0 && item.demandados && item.demandados?.length > 1">
+  (sin actora) contra {{ item.demandados[0].nombre }} y otros
+</div>
+</ion-label>
 
         </td>
-        <td style="background-color: #07295c;">{{ item.estado }}</td>
         <td style="background-color: #07295c;">{{ getNombreAbogado(item.usuario_id) }}</td>
 
         <td style="background-color: #07295c;">{{ getNombreAbogado(item.procurador_id) }}</td>
-        <td style="background-color: #07295c;">
-          {{ item.fecha_atencion | date: 'dd-MM-yyyy' }}
-        </td>
-        <td style="background-color: #07295c;">
-          {{item.juicio}}
-        </td>
-
-
-
       </tr>
 
     </ng-container>

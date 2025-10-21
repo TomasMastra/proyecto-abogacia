@@ -7,8 +7,22 @@ export interface OficioModel {
   expediente_id: number;
   demandado_id: number;
   parte: 'actora' | 'demanda' | 'tercero';
+
   estado: 'diligenciado' | 'pendiente' | 'pedir reiteratorio' | 'diligenciar' | 'solicita reiteratorio' | 'eliminado';
+
   fecha_diligenciado?: string | null;
+
   expedienteModel?: ExpedienteModel;
-  demandadoModel?: DemandadoModel;
+  demandadoModel?: DemandadoModel | null;
+
+  tipo?: 'oficio' | 'testimonial' | 'pericia';
+
+  tipo_pericia?: string;
+
+  supletoria?: string | null;
+
+  testigo?: string; 
+  fecha_testimonial?: string | null;
+
+  observaciones?: string;
 }

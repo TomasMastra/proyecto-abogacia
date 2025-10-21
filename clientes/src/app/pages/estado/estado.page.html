@@ -57,6 +57,7 @@
             class="flex"
             style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 16px;">
             <h5>{{expediente?.numero}}/{{expediente.anio}} ({{expediente.juzgadoModel.nombre}})</h5>
+            <h2>{{expediente?.numero}}/{{expediente.anio}} ({{expediente!.caratula}})</h2>
 
           <h2>{{ obtenerResumenExpediente(expediente) }}</h2>
 
@@ -278,6 +279,7 @@
       <mat-select style="color: white" [(ngModel)]="subEstadoCapitalSeleccionado" name="subEstadoCapitalSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
         <mat-option value="concede en relacion">Concede en relación</mat-option>
         <mat-option value="pendiente de elevacion">Pendiente de elevación</mat-option>
+        <mat-option value="solicita se eleve">Solicita se eleve</mat-option>
         <mat-option value="en sala">En sala</mat-option>
         <mat-option value="resolucion sala">A resolver</mat-option>
       </mat-select>
@@ -425,6 +427,7 @@
           <mat-option value="prorrateo - a resolver">Prorrateo - A resolver</mat-option>
 
         <mat-option value="pendiente de elevacion" [disabled]="deshabilitarApeladoOFirme">Pendiente de elevación</mat-option>
+        <mat-option value="solicita se eleve">Solicita se eleve</mat-option>
         <mat-option value="en sala" [disabled]="deshabilitarApeladoOFirme">En sala</mat-option>
         <mat-option value="resolucion sala - confirma" [disabled]="deshabilitarApeladoOFirme">Resolución sala - Confirma</mat-option>
         <mat-option value="resolucion sala - se elevan" [disabled]="deshabilitarApeladoOFirme">Resolución sala - Se elevan</mat-option>
@@ -436,6 +439,8 @@
       <mat-label style="color: white">Subestado de Honorarios</mat-label>
       <mat-select style="color: white" [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
         <mat-option value="sentencia" [disabled]="deshabilitarApeladoOFirme">Sentencia</mat-option>
+        <mat-option value="solicita se regulan" [disabled]="deshabilitarApeladoOFirme">Solicita se regulan</mat-option>
+
       </mat-select>
     </mat-form-field>
 

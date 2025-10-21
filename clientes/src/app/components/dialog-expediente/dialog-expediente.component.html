@@ -3,63 +3,62 @@
     <h2>Agregar Expediente</h2>
 
     <form [formGroup]="form" class="formulario-expediente">
-    <mat-form-field appearance="outline">
-      <mat-label>Número</mat-label>
-      <input matInput formControlName="numero" type="number" />
-      <mat-error *ngIf="form.get('numero')?.hasError('required')">El número es requerido</mat-error>
-    </mat-form-field>
+      <!-- ===== Campos originales ===== -->
+      <mat-form-field appearance="outline">
+        <mat-label>Número</mat-label>
+        <input matInput formControlName="numero" type="number" />
+        <mat-error *ngIf="form.get('numero')?.hasError('required')">El número es requerido</mat-error>
+      </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Año</mat-label>
-      <input matInput formControlName="anio" type="number" />
-    </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Año</mat-label>
+        <input matInput formControlName="anio" type="number" />
+      </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Estado</mat-label>
-      <mat-select formControlName="estado">
-        <mat-option *ngFor="let estado of estados" [value]="estado">
-          {{ estado }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Estado</mat-label>
+        <mat-select formControlName="estado">
+          <mat-option *ngFor="let estado of estados" [value]="estado">
+            {{ estado }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Porcentaje</mat-label>
-      <input matInput formControlName="porcentaje" type="number" />
-      <mat-error *ngIf="form.get('porcentaje')?.hasError('required')">El porcentaje es requerido</mat-error>
-    </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Porcentaje</mat-label>
+        <input matInput formControlName="porcentaje" type="number" />
+        <mat-error *ngIf="form.get('porcentaje')?.hasError('required')">El porcentaje es requerido</mat-error>
+      </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label >Tipo de juicio</mat-label>
-      <mat-select formControlName="juicio">
-        <mat-option *ngFor="let juicio of juicios" [value]="juicio">
-          {{ juicio }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Tipo de juicio</mat-label>
+        <mat-select formControlName="juicio">
+          <mat-option *ngFor="let juicio of juicios" [value]="juicio">
+            {{ juicio }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
 
-    <mat-form-field appearance="outline">
-      <mat-label>Fecha de inicio</mat-label>
-      <input matInput formControlName="fechaInicio" type="date" />
-    </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Fecha de inicio</mat-label>
+        <input matInput formControlName="fechaInicio" type="date" />
+      </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
-          <mat-label style="color:black">{{mensajeSelectJuzgado}}</mat-label>
-          <mat-select style="color:black" formControlName="tipo" (selectionChange)="cambiarTipoJuzgado()">
-            <mat-option  *ngFor="let tipo of tipos" [value]="tipo">
-              {{ tipo }}
-            </mat-option>
-          </mat-select>
-          <mat-error *ngIf="form.get('tipo')?.invalid && form.get('tipo')?.touched">
-            El tipo es requerido
-          </mat-error>
-        </mat-form-field>
-        
-        
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color:black">{{mensajeSelectJuzgado}}</mat-label>
+        <mat-select style="color:black" formControlName="tipo" (selectionChange)="cambiarTipoJuzgado()">
+          <mat-option *ngFor="let tipo of tipos" [value]="tipo">
+            {{ tipo }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.get('tipo')?.invalid && form.get('tipo')?.touched">
+          El tipo es requerido
+        </mat-error>
+      </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label style="color:black">Juzgados</mat-label>
-        <mat-select style="color:black"  formControlName="juzgado" [(ngModel)]="juzgadoElegido">
+        <mat-select style="color:black" formControlName="juzgado" [(ngModel)]="juzgadoElegido">
           <mat-option style="color:black" *ngFor="let juzgado of juzgados" [value]="juzgado">
             {{ juzgado.nombre }}
           </mat-option>
@@ -69,9 +68,9 @@
         </mat-error>
       </mat-form-field>
 
-        <mat-form-field appearance="outline" class="full-width">
+      <mat-form-field appearance="outline" class="full-width">
         <mat-label style="color:black">Abogado</mat-label>
-        <mat-select style="color:black"  formControlName="abogado" [(ngModel)]="abogadoSeleccionado">
+        <mat-select style="color:black" formControlName="abogado" [(ngModel)]="abogadoSeleccionado">
           <mat-option style="color:black" *ngFor="let usuario of listaUsuarios" [value]="usuario">
             {{ usuario.nombre }}
           </mat-option>
@@ -82,73 +81,118 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full-width">
-      <mat-label>Procurador</mat-label>
-      <mat-select formControlName="procurador" [(ngModel)]="procuradorSeleccionado">
-        <mat-option *ngFor="let usuario of listaUsuarios" [value]="usuario">
-          {{ usuario.nombre }}
-        </mat-option>
-      </mat-select>
-      <mat-error *ngIf="form.get('procurador')?.hasError('required') && form.get('procurador')?.touched">
-        El procurador es requerido
-      </mat-error>
-    </mat-form-field>
+        <mat-label>Procurador</mat-label>
+        <mat-select formControlName="procurador" [(ngModel)]="procuradorSeleccionado">
+          <mat-option *ngFor="let usuario of listaUsuarios" [value]="usuario">
+            {{ usuario.nombre }}
+          </mat-option>
+        </mat-select>
+        <mat-error *ngIf="form.get('procurador')?.hasError('required') && form.get('procurador')?.touched">
+          El procurador es requerido
+        </mat-error>
+      </mat-form-field>
 
+      <!-- ======== ACTORA (mixto) ======== -->
+      <h3>Parte Actora</h3>
+
+      <!-- Tipo de actora -->
       <mat-form-field appearance="outline">
-      <mat-label>Demandados</mat-label>
-      <mat-select formControlName="demandado" (selectionChange)="seleccionarDemandado($event.value)">
-        <mat-option *ngFor="let demandado of demandados" [value]="demandado">
-          {{ demandado.nombre }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
+        <mat-label>Tipo de actora</mat-label>
+        <mat-select formControlName="actoraTipo" (selectionChange)="onCambioTipo('actora')">
+          <mat-option value="cliente">Cliente</mat-option>
+          <mat-option value="empresa">Empresa</mat-option>
+        </mat-select>
+      </mat-form-field>
 
+      <!-- Actora = Cliente (AUTOCOMPLETE) -->
+      <mat-form-field appearance="outline" class="full-width" *ngIf="form.value.actoraTipo === 'cliente'">
+        <mat-label>Clientes (actora)</mat-label>
+        <input
+          matInput
+          [formControl]="actoraClienteCtrl"
+          [matAutocomplete]="autoActora"
+          placeholder="Busca por nombre o apellido" />
+        <mat-autocomplete
+          #autoActora="matAutocomplete"
+          [displayWith]="displayCliente"
+          (optionSelected)="seleccionarActoraCliente($event.option.value)">
+          <mat-option *ngFor="let cliente of filteredActoraClientes | async" [value]="cliente">
+            {{ cliente.nombre }} {{ cliente.apellido }}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
 
-    <div class="clientes-agregados">
-      <h3 style="color:aliceblue">Demandados Agregados</h3>
-      <div *ngFor="let demandado of demandadosAgregados" class="cliente-item">
-        {{ demandado.nombre }}
-        <button mat-icon-button color="warn" (click)="eliminarDemandado(demandado)">
-          <mat-icon>delete</mat-icon>
-        </button>
+      <!-- Actora = Empresa (SELECT) -->
+      <mat-form-field appearance="outline" class="full-width" *ngIf="form.value.actoraTipo === 'empresa'">
+        <mat-label>Empresas (actora)</mat-label>
+        <mat-select formControlName="actoraEmpresa" (selectionChange)="seleccionarActoraEmpresa($event.value)">
+          <mat-option *ngFor="let empresa of demandados" [value]="empresa">
+            {{ empresa.nombre }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Lista de actoras agregadas -->
+      <div class="clientes-agregados">
+        <h3 style="color:aliceblue">Actora(s) agregada(s)</h3>
+        <div *ngFor="let a of actorasAgregadas" class="cliente-item">
+          {{ a.tipo === 'cliente' ? (a.nombre + ' ' + (a.apellido || '')) : a.nombre }}
+          <button mat-icon-button color="warn" (click)="eliminarActora(a)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
       </div>
-    </div>
 
-<mat-form-field appearance="outline" class="full-width">
-  <mat-label>Clientes</mat-label>
+      <!-- ======== DEMANDADA (mixto) ======== -->
+      <h3>Parte Demandada</h3>
 
-  <!-- Input que abre el autocomplete -->
-  <input
-    matInput
-    [formControl]="clienteCtrl"
-    [matAutocomplete]="auto"
-    placeholder="Busca por nombre o apellido" />
+      <!-- Tipo de demandado -->
+      <mat-form-field appearance="outline">
+        <mat-label>Tipo de demandado</mat-label>
+        <mat-select formControlName="demandadoTipo" (selectionChange)="onCambioTipo('demandado')">
+          <mat-option value="empresa">Empresa</mat-option>
+          <mat-option value="cliente">Cliente</mat-option>
+        </mat-select>
+      </mat-form-field>
 
-  <!-- Autocomplete -->
-  <mat-autocomplete
-    #auto="matAutocomplete"
-    [displayWith]="displayCliente"
-    (optionSelected)="seleccionarCliente($event.option.value)">
-    <mat-option
-      *ngFor="let cliente of filteredClientes | async"
-      [value]="cliente">
-      {{ cliente.nombre }} {{ cliente.apellido }}
-    </mat-option>
-  </mat-autocomplete>
-</mat-form-field>
+      <!-- Demandado = Empresa (SELECT) -->
+      <mat-form-field appearance="outline" *ngIf="form.value.demandadoTipo === 'empresa'">
+        <mat-label>Demandados (empresa)</mat-label>
+        <mat-select formControlName="demandadoEmpresa" (selectionChange)="seleccionarDemandadoEmpresa($event.value)">
+          <mat-option *ngFor="let demandado of demandados" [value]="demandado">
+            {{ demandado.nombre }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
 
+      <!-- Demandado = Cliente (AUTOCOMPLETE) -->
+      <mat-form-field appearance="outline" class="full-width" *ngIf="form.value.demandadoTipo === 'cliente'">
+        <mat-label>Demandado (cliente)</mat-label>
+        <input
+          matInput
+          [formControl]="demandadoClienteCtrl"
+          [matAutocomplete]="autoDem"
+          placeholder="Busca por nombre o apellido" />
+        <mat-autocomplete
+          #autoDem="matAutocomplete"
+          [displayWith]="displayCliente"
+          (optionSelected)="seleccionarDemandadoCliente($event.option.value)">
+          <mat-option *ngFor="let cliente of filteredDemandadoClientes | async" [value]="cliente">
+            {{ cliente.nombre }} {{ cliente.apellido }}
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
 
-
-
-    <!-- Contenedor con scroll para clientes agregados -->
-    <div class="clientes-agregados">
-      <h3 style="color:aliceblue">Clientes Agregados</h3>
-      <div *ngFor="let cliente of clientesAgregados" class="cliente-item">
-        {{ cliente.nombre }} {{ cliente.apellido }}
-        <button mat-icon-button color="warn" (click)="eliminarCliente(cliente)">
-          <mat-icon>delete</mat-icon>
-        </button>
+      <!-- Lista de demandados agregados -->
+      <div class="clientes-agregados">
+        <h3 style="color:aliceblue">Demandado seleccionado</h3>
+        <div *ngFor="let demandado of demandadosAgregados" class="cliente-item">
+          {{ demandado.tipo === 'cliente' ? (demandado.nombre + ' ' + (demandado.apellido || '')) : demandado.nombre }}
+          <button mat-icon-button color="warn" (click)="eliminarDemandado(demandado)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
       </div>
-    </div>
 
     </form>
   </div>

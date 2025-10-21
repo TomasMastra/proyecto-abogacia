@@ -40,26 +40,11 @@
   <div *cdkVirtualFor="let expediente of expedientes; trackBy: trackByExpedientes" class="expediente-container">
     
     <div class="expediente-header">
-  <h2 *ngIf=" expediente.clientes && expediente.clientes?.length == 1 && expediente.demandados && expediente.demandados?.length == 1">
-    {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0]!.nombre }} {{ expediente.clientes[0]!.apellido }} contra {{ expediente.demandados[0].nombre }}
-  </h2>
-  <h2 *ngIf="expediente.clientes && expediente.clientes?.length == 1 && expediente.demandados && expediente.demandados.length > 1">
-    {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0]!.nombre }} {{ expediente.clientes[0]!.apellido }} contra {{ expediente.demandados[0].nombre }} y otros
+  <h2 *ngIf=" expediente.caratula">
+    {{expediente.numero}}/{{expediente.anio}} {{ expediente.caratula }}
   </h2>
 
-<h2 *ngIf="expediente.clientes && expediente.clientes.length > 1 && expediente.demandados && expediente.demandados.length === 1">
-    {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0]!.nombre }} {{ expediente.clientes[0]!.apellido }} y otros contra {{ expediente.demandados[0].nombre }}
-  </h2>
-  <h2 *ngIf="expediente.clientes && expediente.clientes.length > 1 && expediente.demandados && expediente.demandados.length > 1">
-    {{ expediente.numero }}/{{ expediente.anio }} {{ expediente.clientes[0]!.nombre }} {{ expediente.clientes[0]!.apellido }} y otros contra {{ expediente.demandados[0].nombre }} y otros
-  </h2>
-
-  <h2 *ngIf=" expediente.clientes && expediente.clientes?.length == 0 && expediente.demandados && expediente.demandados?.length == 1">
-    {{ expediente.numero }}/{{ expediente.anio }} (sin actora) contra {{ expediente.demandados[0].nombre }}
-  </h2>
-  <h2 *ngIf=" expediente.clientes && expediente.clientes?.length == 0 && expediente.demandados && expediente.demandados.length > 1">
-    {{ expediente.numero }}/{{ expediente.anio }} (sin actora) contra {{ expediente.demandados[0].nombre }} y otros
-  </h2>
+  
 
       <div class="acciones">
         <button mat-icon-button class="list-button" (click)="eliminarExpediente(expediente); $event.stopPropagation()">

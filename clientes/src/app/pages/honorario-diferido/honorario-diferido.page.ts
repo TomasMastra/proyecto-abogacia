@@ -112,8 +112,6 @@ estadosHonorarios: string[] = [
     this.cargarPorEstado('sentencia');
   }
 
-
-
   cargarHonorariosDiferidos() {
     this.cargando = true;
     this.expedienteService.getHonorarios()
@@ -123,8 +121,6 @@ estadosHonorarios: string[] = [
           this.honorariosDiferidos = honorarios!;
           this.hayHonorarios = this.honorariosDiferidos.length > 0;
 
-      
-  
           // ✅ Solo agregar el juzgado a cada expediente
           this.honorariosDiferidos.forEach(expediente => {
             this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
@@ -236,10 +232,9 @@ obtenerValorOrden(item: any, campo: string): any {
     case 'numero':
       return `${item.numero}/${item.anio}`;
 
-    case 'caratula':
-      return item.clientes.length > 0
-        ? `${item.clientes[0].nombre} ${item.clientes[0].apellido}`
-        : '(sin actora)';
+case 'caratula':
+  return (item.caratula || '').toLowerCase();
+
 
     case 'estadoCapital':
       return item.subEstadoCapitalSeleccionado || '';
@@ -444,7 +439,8 @@ esVisible(item: any): boolean {
       item.honorarioCobrado ||
       item.honorarioAlzadaCobrado ||
       item.honorarioEjecucionCobrado ||
-      item.honorarioDiferenciaCobrado
+      item.honorarioDiferenciaCobrado ||
+      item.estado == 'Archivo'
     );
   }
 
@@ -542,6 +538,7 @@ getCantidadColumnas(item: any): number {
 existeCapital(item: any): boolean {
   return item.capitalCobrado || this.mostrarCapital(item);
 }
+/*
 filtrar() {
   const texto = this.busqueda.toLowerCase();
 
@@ -574,7 +571,74 @@ filtrar() {
 
     return estadoCoincide && busquedaOk;
   });
+}*/
+filtrar() {
+  const texto = (this.busqueda || '').toLowerCase().trim();
+
+  this.honorariosDiferidos = this.honorariosOriginales.filter((expediente: any) => {
+    const estadoBuscado = this.estadoHonorarioSeleccionado?.toLowerCase();
+
+    const coincideEstado = (estado: string | null | undefined, fechaCobro: string | null | undefined) => {
+      return estado?.toLowerCase() === estadoBuscado && (!fechaCobro || `${fechaCobro}`.trim() === '');
+    };
+
+    const estadoCoincide = this.estadoHonorarioSeleccionado
+      ? (
+          coincideEstado(expediente.subEstadoHonorariosSeleccionado, expediente.fecha_cobro) ||
+          coincideEstado(expediente.subEstadoCapitalSeleccionado, expediente.fecha_cobro_capital) ||
+          coincideEstado((expediente as any).subEstadoAlzadaSeleccionado, (expediente as any).fechaCobroAlzada) ||
+          coincideEstado((expediente as any).subEstadoEjecucionSeleccionado, (expediente as any).fechaCobroEjecucion) ||
+          coincideEstado((expediente as any).subEstadoDiferenciaSeleccionado, (expediente as any).fechaCobroDiferencia)
+        )
+      : true;
+
+    const numeroOk = expediente.numero?.toString().includes(texto);
+    const anioOk   = expediente.anio?.toString().includes(texto);
+
+    const matchParte = (p: any) => {
+      if (!p) return false;
+      const n   = p?.nombre?.toLowerCase() || '';
+      const a   = p?.apellido?.toLowerCase() || '';
+      const rs  = (p?.razonSocial ?? p?.razon_social ?? '').toLowerCase();
+      const nf  = (p?.nombreFantasia ?? p?.nombre_fantasia ?? '').toLowerCase();
+      const den = (p?.denominacion ?? '').toLowerCase();
+      return (
+        n.includes(texto) ||
+        a.includes(texto) ||
+        rs.includes(texto) ||
+        nf.includes(texto) ||
+        den.includes(texto) ||
+        `${n} ${a}`.trim().includes(texto)
+      );
+    };
+
+    const actoraOk =
+      (expediente.clientes?.some(matchParte) ?? false) ||
+      ((expediente as any).actoras?.some(matchParte) ?? false) ||
+      ((expediente as any).actorasEmpresas?.some(matchParte) ?? false) ||
+      matchParte((expediente as any).actora) ||
+      matchParte((expediente as any).actoraEmpresa) ||
+      ['actoraNombre','actora_razon_social','actoraRazonSocial','actora_empresa','caratula','carátula']
+        .some(k => (expediente as any)[k]?.toLowerCase?.().includes(texto));
+
+    const demandadoOk =
+      (expediente.demandados?.some(matchParte) ?? false) ||
+      ((expediente as any).demandadosClientes?.some(matchParte) ?? false) ||
+      matchParte((expediente as any).demandado) ||
+      ['demandadoNombre','demandado_razon_social','demandadoRazonSocial']
+        .some(k => (expediente as any)[k]?.toLowerCase?.().includes(texto));
+
+    const caratulaOk = expediente.caratula?.toLowerCase?.().includes(texto);
+
+    const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
+
+    return estadoCoincide && busquedaOk;
+  });
 }
+
+
+
+
 
 tieneEstadoGiroPorTipo(item: any, tipo: string): boolean {
   const revisar = (estado: string | undefined) =>

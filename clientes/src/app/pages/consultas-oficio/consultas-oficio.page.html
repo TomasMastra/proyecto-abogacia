@@ -64,9 +64,25 @@
           <td>{{ oficio.estado }}</td>
           <td>{{ oficio.fecha_diligenciado ? (oficio.fecha_diligenciado | date:'dd/MM/yyyy') : '-' }}</td>
           <td>
-            <button mat-button class="list-button" (click)="modificarOficio(oficio)">
-              <mat-icon style="color:#ffffff">edit</mat-icon>
-            </button>
+            <button *ngIf="oficio.tipo === 'oficio'" 
+                      mat-button class="list-button" 
+                      (click)="modificarOficio(oficio)">
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
+
+              <!-- Botón para testimoniales -->
+              <button *ngIf="oficio.tipo === 'testimonial'" 
+                      mat-button class="list-button" 
+                      (click)="modificarTestimonial(oficio)">
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
+
+              <!-- Botón para pericias -->
+              <button *ngIf="oficio.tipo === 'pericia'" 
+                      mat-button class="list-button" 
+                      (click)="modificarPericia(oficio)">
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
             <button mat-icon-button color="warn" (click)="eliminarOficio(oficio)">
               <mat-icon>delete</mat-icon>
             </button>

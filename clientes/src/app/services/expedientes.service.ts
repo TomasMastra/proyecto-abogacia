@@ -27,7 +27,7 @@ export class ExpedientesService {
   constructor(private http: HttpClient, private usuarioService: UsuarioService,
     private juzgadosService: JuzgadosService
   ) {}
-
+/*
 getExpedientes() {
   const usuario = this.usuarioService.usuarioLogeado;
     const params = {
@@ -64,10 +64,61 @@ getExpedientes() {
   );
 
   return this.clientes$;
+}*/
+getExpedientes() {
+const usuario = this.usuarioService.usuarioLogeado;
+  const params = { usuario_id: usuario!.id, rol: usuario!.rol };
+
+  this.http.get<any[]>(this.apiUrl, { params }).subscribe({
+    next: (expedientes) => {
+      // 1) Inicializo campos y EMITO YA MISMO (spinner se apaga en el componente)
+      (expedientes ?? []).forEach(e => {
+        e.clientes = [];
+        e.demandados = [];
+      });
+      this.expedientesSubject.next(expedientes ?? []);
+
+      // 2) Llamadas secundarias en paralelo (no bloquean, no re-ordenan)
+      (expedientes ?? []).forEach(e => {
+        this.getClientesPorExpediente(e.id).subscribe({
+          next: (clientes) => { e.clientes = clientes ?? []; e.caratula = this.armarCaratula(e); },
+          error: () => { /* ignore */ }
+        });
+        this.getDemandadosPorExpediente(e.id).subscribe({
+          next: (demandados) => { e.demandados = demandados ?? []; e.caratula = this.armarCaratula(e); },
+          error: () => { /* ignore */ }
+        });
+      });
+    },
+    error: () => {
+      this.expedientesSubject.next([]); // no bloquees la UI
+    }
+  });
+
+  return this.clientes$; // lo que ya devolvías
+}
+
+
+/** Método que genera la carátula según clientes y demandados */
+private armarCaratula(expediente: any): string {
+  const c = expediente?.clientes ?? [];
+  const d = expediente?.demandados ?? [];
+  if (!c.length && !d.length) return '—';
+
+  const getNom = (p: any) =>
+    `${p?.nombres ?? p?.nombre ?? ''} ${p?.apellidos ?? p?.apellido ?? ''}`.trim() || '(sin actora)';
+
+  const c0 = c[0] ? getNom(c[0]) : '(sin actora)';
+  const d0 = d[0]?.nombre ?? d[0]?.razon_social ?? '(sin demandado)';
+
+  const izquierda = c.length === 0 ? c0 : c0 + (c.length > 1 ? ' y otros' : '');
+  const derecha   = d0 + (d.length > 1 ? ' y otros' : '');
+  return `${izquierda} contra ${derecha}`;
 }
 
 
 
+/*
 
       getHonorarios() {
         this.http.get<ExpedienteModel[]>(`${this.apiUrl}/honorarios`).subscribe(
@@ -93,6 +144,58 @@ getExpedientes() {
       
         return this.clientes$;
       }
+        */
+getHonorarios() {
+  this.http.get<any[]>(`${this.apiUrl}/honorarios`).subscribe(
+    (expedientes) => {
+      if (!expedientes?.length) { this.expedientesSubject.next([]); return; }
+
+      let restantes = expedientes.length;
+
+      expedientes.forEach(expediente => {
+        expediente.clientes = [];
+        expediente.demandados = [];
+        expediente.caratula = '';
+
+        let hits = 0;
+        const esperadas = expediente.demandado_id ? 2 : 1;
+
+        const listo = () => {
+          hits++;
+          if (hits === esperadas) {
+            restantes--;
+            if (restantes === 0) this.expedientesSubject.next(expedientes);
+          }
+        };
+
+        this.getClientesPorExpediente(expediente.id).subscribe({
+          next: (clientes) => {
+            expediente.clientes = clientes ?? [];
+            //expediente.caratula = this.armarCaratula(expediente);
+            listo();
+          },
+          error: () => { listo(); } // no bloquea
+        });
+
+        if (expediente.demandado_id) {
+          this.getDemandadoPorId(expediente.demandado_id).subscribe({
+            next: (dem) => {
+              expediente.demandadoModel = dem ?? null;
+              expediente.demandados = dem ? [dem] : [];
+              //expediente.caratula = this.armarCaratula(expediente);
+              listo();
+            },
+            error: () => { listo(); }
+          });
+        }
+      });
+    },
+    () => this.expedientesSubject.next([])
+  );
+
+  return this.clientes$; // (deja tu return como lo tenías)
+}
+
       
 
   getClientesPorExpediente(id_expediente: string) {
@@ -292,77 +395,78 @@ getClientePorNumeroYAnio(numero: string, anio: string, tipo: string) {
 
 
 
-        
-
-    getExpedientesPorEstado(estado: string) {
-      const params = { estado }; 
-              
-      this.http.get<ExpedienteModel[]>(`${this.apiUrl}/estado`, { params }).subscribe(
-        (expedientes) => {
-          expedientes.forEach((expediente) => {
-            this.getClientesPorExpediente(expediente.id).subscribe((clientes) => {
-              expediente.clientes = clientes;
-            });
-    
-            this.getDemandadoPorId(expediente.demandado_id!).subscribe((demandado) => {
-              expediente.demandadoModel = demandado;
-            });
-
-            this.getDemandadosPorExpediente(expediente.id).subscribe((demandados) => {
-            expediente.demandados = demandados;
-          });
-
-          });
-    
-          this.expedientesSubject.next(expedientes);
-        },
-        (error) => {
-          console.error('Error al obtener expedientes:', error);
-        }
-      );
-    
-      return this.clientes$;
-    }
-    
-
-
-
-  
-getExpedientesCobrados() {
+  getExpedientesCobrados() {
   const usuario = this.usuarioService.usuarioLogeado;
+  const params = { usuario_id: usuario!.id, rol: usuario!.rol };
 
-  const params = {
-    usuario_id: usuario!.id,
-    rol: usuario!.rol
-  };
-
-  this.http.get<ExpedienteModel[]>(`${this.apiUrl}/cobrados`, { params }).subscribe(
+  this.http.get<any[]>(`${this.apiUrl}/cobrados`, { params }).subscribe(
     (expedientes) => {
-      expedientes.forEach((expediente) => {
-        this.getClientesPorExpediente(expediente.id).subscribe((clientes) => {
-          expediente.clientes = clientes;
+      if (!expedientes?.length) { this.expedientesSubject.next([]); return; }
+
+      let restantes = expedientes.length; // cuántos ítems faltan cerrar
+
+      expedientes.forEach(expediente => {
+        // inicializo
+        expediente.clientes   = [];
+        expediente.demandados = [];
+        //expediente.caratula   = '';
+
+        // vamos a esperar: clientes + demandados (+ demandadoModel si hay id)
+        let hits = 0;
+        const esperadas = (expediente.demandado_id ? 3 : 2);
+
+        const listo = () => {
+          hits++;
+          if (hits === esperadas) {
+            restantes--;
+            if (restantes === 0) {
+              // emito UNA vez con todo listo
+              this.expedientesSubject.next(expedientes);
+            }
+          }
+        };
+
+        // Clientes
+        this.getClientesPorExpediente(expediente.id).subscribe({
+          next: (clientes) => {
+            expediente.clientes = clientes ?? [];
+            //expediente.caratula = this.armarCaratula(expediente);
+            listo();
+          },
+          error: () => { listo(); }
         });
 
-        this.getDemandadoPorId(expediente.demandado_id!).subscribe((demandado) => {
-          expediente.demandadoModel = demandado;
+        // Demandados (lista)
+        this.getDemandadosPorExpediente(expediente.id).subscribe({
+          next: (demandados) => {
+            expediente.demandados = demandados ?? [];
+            //expediente.caratula = this.armarCaratula(expediente);
+            listo();
+          },
+          error: () => { listo(); }
         });
 
-        this.getDemandadosPorExpediente(expediente.id).subscribe((demandados) => {
-          expediente.demandados = demandados;
-        });
-
+        // Demandado único (si lo usás)
+        if (expediente.demandado_id) {
+          this.getDemandadoPorId(expediente.demandado_id).subscribe({
+            next: (demandado) => {
+              expediente.demandadoModel = demandado ?? null;
+              // (opcional) no afecta carátula porque ya usás la lista de demandados
+              listo();
+            },
+            error: () => { listo(); }
+          });
+        }
       });
-
-      this.expedientesSubject.next(expedientes);
     },
     (error) => {
       console.error('Error al obtener expedientes:', error);
+      this.expedientesSubject.next([]);
     }
   );
 
-  return this.clientes$;
+  return this.clientes$; // dejé tu return igual
 }
-
 getExpedientesVencimiento(juicio: string): Observable<ExpedienteModel[]> {
   const url = `${this.apiUrl}/vencimiento?juicio=${juicio}`;
 
@@ -405,10 +509,8 @@ obtenerTotalCobranzasPorMes(anio: number, mes: number) {
   });
 }
 
-
-
-  obtenerCantidadExpedientesActivos() {
-    console.log(`${this.apiUrl}/expedientes-activos`)
+obtenerCantidadExpedientesActivos() {
+  console.log(`${this.apiUrl}/expedientes-activos`)
   return this.http.get<number>(`${this.apiUrl}/expedientes-activos`);
 }
 
@@ -429,7 +531,71 @@ obtenerDemandadosPorMes(): Observable<{ [mes: string]: number }> {
   return this.http.get<{ [mes: string]: number }>(`${this.apiUrl}/expedientes/demandados-por-mes`);
 }
 
+// SOLO REEMPLAZÁ ESTE MÉTODO
+getExpedientesPorEstado(estado: string, texto?: string) {
+  const paramsEstado: any = { estado };
 
+  const http$ = (texto && texto.trim() !== '')
+    ? this.http.get<any[]>(`${this.apiUrl}/buscar`, { params: { texto } })
+    : this.http.get<any[]>(`${this.apiUrl}/estado`, { params: paramsEstado });
+
+  http$.subscribe(
+    (expedientes) => {
+      // si vino de /buscar, acotamos al estado pedido acá
+      const lista = (texto && texto.trim() !== '')
+        ? (expedientes || []).filter(e => (e.estado || '').toLowerCase() === estado.toLowerCase())
+        : (expedientes || []);
+
+      if (!lista.length) { this.expedientesSubject.next([]); return; }
+
+      let restantes = lista.length;
+
+      lista.forEach(expediente => {
+        expediente.clientes   = [];
+        expediente.demandados = [];
+        //expediente.caratula   = '';
+
+        let hits = 0;
+        const esperadas = (expediente.demandado_id ? 3 : 2);
+        const listo = () => {
+          hits++;
+          if (hits === esperadas) {
+            restantes--;
+            if (restantes === 0) this.expedientesSubject.next(lista);
+          }
+        };
+
+        this.getClientesPorExpediente(expediente.id).subscribe({
+          next: (clientes) => { expediente.clientes = clientes ?? [];  listo(); },
+          error: () => { listo(); }
+        });
+
+        this.getDemandadosPorExpediente(expediente.id).subscribe({
+          next: (demandados) => { expediente.demandados = demandados ?? []; listo(); },
+          error: () => { listo(); }
+        });
+
+        if (expediente.demandado_id) {
+          this.getDemandadoPorId(expediente.demandado_id).subscribe({
+            next: (demandado) => { expediente.demandadoModel = demandado ?? null; listo(); },
+            error: () => { listo(); }
+          });
+        }
+      });
+    },
+    (error) => {
+      console.error('Error al obtener expedientes por estado:', error);
+      this.expedientesSubject.next([]);
+    }
+  );
+
+  return this.clientes$;
+}
+
+
+getCaratulaPorId(id: number) {
+  return this.http.get<{numero?: any, anio?: any, juicio?: string, actor?: string, demandado?: string}>(`/expedientes/caratula/${id}`);
+}
 
 
 }

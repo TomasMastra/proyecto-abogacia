@@ -148,10 +148,11 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
                     timer: 1500
                   });
                   
-                  // ✅ Actualiza solo el expediente en la lista sin recargar todo
                   this.expedientes = this.expedientes.map(exp => 
                     exp.id === expedienteModificado.id ? expedienteModificado : exp
                   );
+
+                  this.cargarExpedientes();
                   
                 }, error => {
                   console.error('Error al actualizar expediente:', error);

@@ -60,6 +60,7 @@ export class OficiosPage implements OnInit {
   estadosOficio: string[] = ['Ordenado', 'Diligenciado', 'Pedir reiteratorio / ampliatorio', 'Reiteratorio solicitado'];
   estadosTestimonial: string[] = ['Pendiente'];
   estadosPericia: string[] = ['Pendiente'];
+  tiposPericia: string[] = ['Pericial informática'];
 
   busqueda: string = '';
   expedienteCtrl = new FormControl('');
@@ -111,15 +112,8 @@ seleccionarExpediente(expediente: ExpedienteModel) {
 
 cambiarMenu(nuevoMenu: number) {
   this.menu = nuevoMenu;
-}
-
-ngOnInit() {
-
-    this.cargarExpedientes();
-    this.cargarDemandados();
 
   if (this.menu === 1) { // Oficios
-
     this.form = this.fb.group({
       expediente: ['', Validators.required],
       oficiada: ['', Validators.required],
@@ -127,26 +121,63 @@ ngOnInit() {
       estado: ['', Validators.required],
       fecha_diligenciado: ['']
     });
-  } 
-  else if (this.menu === 2) { // Testimoniales
-    this.cargarExpedientes();
-    this.cargarDemandados();
+  } else if (this.menu === 2) { // Testimoniales
+    this.form = this.fb.group({
+      expediente: ['', Validators.required],
+      testigo: ['', Validators.required],
+      supletoria: [null],
+      parte: ['', Validators.required],
+      estado: ['', Validators.required],
+      fecha_diligenciado: ['']
+    });
+  } else if (this.menu === 3) { // Pericias
+    this.form = this.fb.group({
+      expediente: ['', Validators.required],
+      parte: ['', Validators.required],
+      perito: ['', Validators.required],
+      tipo_pericia: ['Pericial informática', Validators.required],
+      estado: ['', Validators.required],
+      // USAMOS EL MISMO NOMBRE DE SIEMPRE:
+      fecha_diligenciado: ['']    // ← no más fecha_entrega
+    });
+  }
+
+  this.aplicarValidadoresPorTipo(); // opcional, para dejar todo alineado
+}
+
+
+ngOnInit() {
+  this.cargarExpedientes();
+  this.cargarDemandados();
+
+  this.filteredExpedientes = this.expedienteCtrl.valueChanges.pipe(
+    startWith(''),
+    map(texto => this.filtrarExpedientes(texto!))
+  );
+
+  if (this.menu === 1) { // Oficios
+    this.form = this.fb.group({
+      expediente: ['', Validators.required],
+      oficiada: ['', Validators.required],
+      parte: ['', Validators.required],
+      estado: ['', Validators.required],
+      fecha_diligenciado: ['']
+    });
+  } else if (this.menu === 2) { // Testimoniales
     this.form = this.fb.group({
       expediente: ['', Validators.required],
       testigo: ['', Validators.required],
       fecha_audiencia: ['', Validators.required],
-      estado: ['', Validators.required]
+      estado: ['', Validators.required],
+      supletoria: [null], // si ya lo agregaste
     });
-  } 
-  else if (this.menu === 3) { // Pericias
-    this.cargarExpedientes();
-    this.cargarDemandados();
+  } else if (this.menu === 3) { // Pericias
     this.form = this.fb.group({
       expediente: ['', Validators.required],
       perito: ['', Validators.required],
-      especialidad: ['', Validators.required],
+      tipo_pericia: ['Pericial informática', Validators.required], // ✅ nuevo
       estado: ['', Validators.required],
-      fecha_entrega: ['']
+      fecha_entrega: [''] // la mapeamos al guardar
     });
   }
 }
@@ -225,43 +256,31 @@ private aplicarValidadoresPorTipo() {
   const tipo = this.getTipoActual();
   const estado = (this.form.value.estado || '').toString().toLowerCase();
 
-  // limpiar primero
-  ['expediente','oficiada','parte','estado','fecha_diligenciado']
+  ['expediente','oficiada','parte','estado','fecha_diligenciado','perito','tipo_pericia']
     .forEach(c => this.form.get(c)?.clearValidators());
 
-  // base requeridos
   this.form.get('expediente')?.setValidators([Validators.required]);
   this.form.get('estado')?.setValidators([Validators.required]);
-  this.form.get('parte')?.setValidators([Validators.required]);
 
   if (tipo === 'oficio') {
-    // en oficios “oficiada” es obligatoria
+    this.form.get('parte')?.setValidators([Validators.required]);
     this.form.get('oficiada')?.setValidators([Validators.required]);
-    // fecha obligatoria si Diligenciado o Reiteratorio solicitado
     if (['diligenciado','reiteratorio solicitado'].includes(estado)) {
       this.form.get('fecha_diligenciado')?.setValidators([Validators.required]);
     }
-  }
-
-  if (tipo === 'testimonial') {
-    // “oficiada” = testigo (texto) obligatorio
-    this.form.get('oficiada')?.setValidators([Validators.required]);
-    // fecha obligatoria si Fijada o Tomada (si usás esa lógica)
-    if (['fijada','tomada'].includes(estado)) {
-      this.form.get('fecha_diligenciado')?.setValidators([Validators.required]);
-    }
-  }
-
-  if (tipo === 'pericia') {
-    // “oficiada” = perito (texto) obligatorio
-    this.form.get('oficiada')?.setValidators([Validators.required]);
-    // fecha obligatoria si Notificado o Informe presentado
+  } else if (tipo === 'testimonial') {
+    this.form.get('parte')?.setValidators([Validators.required]);
+    (this.form.get('testigo') ?? this.form.get('oficiada'))?.setValidators([Validators.required]);
+    // fecha opcional según tu lógica
+  } else if (tipo === 'pericia') {
+    this.form.get('parte')?.setValidators([Validators.required]);            // ← agregado
+    this.form.get('perito')?.setValidators([Validators.required]);
+    this.form.get('tipo_pericia')?.setValidators([Validators.required]);
     if (['notificado','informe presentado'].includes(estado)) {
-      this.form.get('fecha_diligenciado')?.setValidators([Validators.required]);
+      this.form.get('fecha_diligenciado')?.setValidators([Validators.required]); // ← mismo nombre
     }
   }
 
-  // actualizar
   Object.keys(this.form.controls).forEach(c => this.form.get(c)?.updateValueAndValidity());
 }
 
@@ -282,54 +301,45 @@ private normalizarOficiada() {
 // ✅ NUEVO: guardar unificado
 guardarPrueba() {
   const tipo = this.getTipoActual();
-
-  // asegurar validadores correctos antes de validar
   this.aplicarValidadoresPorTipo();
 
   if (this.form.invalid) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Faltan campos obligatorios',
-      toast: true,
-      position: 'top-end',
-      timer: 2000,
-      showConfirmButton: false
-    });
+    Swal.fire({ icon: 'error', title: 'Faltan campos obligatorios', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false });
     return;
   }
 
-  const { demandado_id, texto } = this.normalizarOficiada();
-
-  // “oficiada” según tipo → en oficio se manda demandado_id;
-  // en testimonial/pericia proponemos mandar texto como “nombre_oficiada”
-  // (tu API puede ignorarlo si no existe la columna).
   const payload: any = {
     expediente_id: this.form.value.expediente.id,
-    parte: this.form.value.parte,
     estado: this.form.value.estado,
-    fecha_diligenciado: this.form.value.fecha_diligenciado || null,
     tipo, // 'oficio' | 'testimonial' | 'pericia'
   };
 
   if (tipo === 'oficio') {
-    payload.demandado_id = demandado_id; // requerido
-  } else {
-    payload.demandado_id = null;         // no aplica
-    payload.nombre_oficiada = texto;     // testigo/perito (texto)
+    payload.parte = this.form.value.parte;
+    payload.demandado_id = this.form.value.oficiada?.id ?? null;
+    payload.fecha_diligenciado = this.form.value.fecha_diligenciado || null;
   }
+
+if (tipo === 'testimonial') {
+  payload.parte = this.form.value.parte;
+  payload.nombre_oficiada = this.form.value.testigo ?? null;
+  payload.fecha_diligenciado = this.form.value.fecha_diligenciado ?? null;
+  payload.supletoria = this.form.value.supletoria ?? null;
+}
+
+
+if (tipo === 'pericia') {
+  payload.parte = this.form.value.parte ?? null; 
+  payload.nombre_oficiada = this.form.value.perito ?? null;
+  payload.tipo_pericia = this.form.value.tipo_pericia ?? null;
+  payload.fecha_diligenciado = this.form.value.fecha_diligenciado || null;
+}
+
 
   this.cargando = true;
   this.oficiosService.agregarOficio(payload).subscribe({
     next: () => {
-      Swal.fire({
-        toast: true,
-        icon: 'success',
-        title: 'Prueba guardada correctamente',
-        timer: 2000,
-        position: 'top-end',
-        showConfirmButton: false
-      });
-      // reset prolijo
+      Swal.fire({ toast: true, icon: 'success', title: 'Prueba guardada correctamente', timer: 2000, position: 'top-end', showConfirmButton: false });
       this.form.reset();
       this.expedienteCtrl.setValue('');
       this.expedienteSeleccionado = null;
@@ -337,11 +347,7 @@ guardarPrueba() {
     },
     error: err => {
       console.error('Error al guardar prueba:', err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error al guardar prueba',
-        text: err.message,
-      });
+      Swal.fire({ icon: 'error', title: 'Error al guardar prueba', text: err.message });
       this.cargando = false;
     }
   });
@@ -353,13 +359,28 @@ onEstadoChange(estado: string) {
   this.aplicarValidadoresPorTipo();
 }
 
-displayExpediente(expediente: ExpedienteModel | null): string {
-  if (!expediente) return '';
-  const cliente0 = expediente?.clientes?.[0];
-  const cliText = cliente0 ? `${cliente0.nombre} ${cliente0.apellido}` : '(sin actora)';
-  const demText = expediente?.demandadoModel?.nombre || '(sin demandado)';
-  return `${expediente.numero}/${expediente.anio} ${cliText} contra ${demText}`;
-}
+
+/*
+onEstadoChange(estado: string) {
+  const fechaControl = this.form.get('fecha_diligenciado');
+
+  const requiereFecha = ['diligenciado', 'reiteratorio solicitado'].includes(estado.toLowerCase());
+
+  console.log(requiereFecha);
+    fechaControl?.clearValidators();
+    fechaControl?.setValue(null);
+  if (requiereFecha) {
+    fechaControl?.setValidators([Validators.required]);
+  } else {
+    fechaControl?.clearValidators();
+    fechaControl?.setValue(null);
+  }
+
+  fechaControl?.updateValueAndValidity();
+}*/
+
+
+
 
 /*
 displayExpediente(expediente: ExpedienteModel): string {
@@ -368,6 +389,13 @@ displayExpediente(expediente: ExpedienteModel): string {
   const demandado = expediente.demandados?.[0];
   return `${expediente.numero}/${expediente.anio} ${cliente ? cliente.nombre + ' ' + cliente.apellido : '(sin actora)'} contra ${demandado?.nombre || '(sin demandado)'}`;
 }*/
+
+displayExpediente(expediente: ExpedienteModel): string {
+  if (!expediente) return '';
+  const cliente = expediente.clientes?.[0];
+  const demandado = expediente.demandados?.[0];
+  return `${expediente.numero}/${expediente.anio} ${cliente ? cliente.nombre + ' ' + cliente.apellido : '(sin actora)'} contra ${demandado?.nombre || '(sin demandado)'}`;
+}
 
 limpiarBusqueda() {
   this.expedienteCtrl.setValue('');

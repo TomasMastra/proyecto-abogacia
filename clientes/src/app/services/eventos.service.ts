@@ -89,5 +89,10 @@ eliminarEvento(id: number): Observable<any> {
   return this.http.put(url, { estado: 'eliminado' });
 }
 
+getCaratulaPorId(id: number) {
+  return this.http.get<{numero?: any, anio?: any, juicio?: string, actor?: string, demandado?: string}>(`/expedientes/caratula/${id}`);
+}
+
+
 
 }

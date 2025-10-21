@@ -137,7 +137,8 @@ estados: any[] = [
   'Sentencia - Previo',
   'Sentencia - Solicita',
   'Sentencia - Pasen autos a Sentencia',
-  'Sentencia'
+  'Sentencia',
+  'Caducidad'
 ];
 
 estadoSeleccionado: string = '';
@@ -153,7 +154,7 @@ estadoSeleccionado: string = '';
     this.cargarUsuarios();
     this.cargarExpedientes();
 
-        this.ordenCampo = 'dias_ultimo_movimiento';
+    this.ordenCampo = 'dias_ultimo_movimiento';
     this.ordenAscendente = false;
 
     this.juzgadoService.getJuzgados().subscribe(juzgados => {
@@ -173,11 +174,13 @@ cargarExpedientes() {
         // Filtrar acá: que NO sean 'Sentencia' ni 'Cobrado'
         const filtrados = expedientes!.filter(expediente => 
           expediente.estado !== 'Sentencia' && expediente.estado !== 'Cobrado' && expediente.estado !== 'eliminado'
+          && expediente.estado !== 'Archivo'
         );
 
         this.expedientes = filtrados;
         this.expedientesOriginales = [...filtrados]; // Guarda copia original
         this.hayExpedientes = this.expedientes.length > 0;
+                this.cargando = false;
 
         this.expedientes.forEach(expediente => {
           this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
@@ -185,7 +188,6 @@ cargarExpedientes() {
           });
         });
 
-        this.cargando = false;
 
 
       },
@@ -299,10 +301,9 @@ obtenerValorOrden(item: any, campo: string): any {
     case 'numero':
       return `${item.numero}/${item.anio}`;
     
-    case 'caratula':
-      return item.clientes.length > 0
-        ? `${item.clientes[0].nombre} ${item.clientes[0].apellido}`
-        : '(sin actora)';
+case 'caratula':
+  return (item.caratula || '').toLowerCase();
+
     
     case 'ultimo_movimiento':
       return item.ultimo_movimiento;
@@ -344,17 +345,6 @@ filtrarPorEstado(estado: string) {
 }
 /*
 filtrar() {
-  this.expedientes = this.expedientesOriginales.filter(expediente => {
-    const tipoOk = this.tipoSeleccionado ? expediente.juzgadoModel?.tipo === this.tipoSeleccionado : true;
-    const juzgadoOk = this.juzgadoSeleccionado ? expediente.juzgado_id === +this.juzgadoSeleccionado : true;
-    const abogadoOk = this.abogadoSeleccionado ? expediente.usuario_id === +this.abogadoSeleccionado : true;
-    const procuradorOk = this.procuradorSeleccionado ? expediente.procurador_id === +this.procuradorSeleccionado : true;
-    const juicioOk = this.juicioSeleccionado ? expediente.juicio?.toLowerCase() === this.juicioSeleccionado.toLowerCase() : true;
-
-    return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk;
-  });
-}*/
-filtrar() {
   const texto = this.busqueda.toLowerCase();
 
   this.expedientes = this.expedientesOriginales.filter(expediente => {
@@ -378,7 +368,53 @@ filtrar() {
 
     return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && estadoOk && busquedaOk;
   });
+}*/
+filtrar() {
+  const texto = (this.busqueda || '').toLowerCase().trim();
+  const textoNorm = (this.busqueda || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+  this.expedientes = this.expedientesOriginales.filter(expediente => {
+    const tipoOk        = this.tipoSeleccionado ? expediente.juzgadoModel?.tipo === this.tipoSeleccionado : true;
+    const juzgadoOk     = this.juzgadoSeleccionado ? expediente.juzgado_id === +this.juzgadoSeleccionado : true;
+    const abogadoOk     = this.abogadoSeleccionado ? +expediente.usuario_id === +this.abogadoSeleccionado : true;
+    const procuradorOk  = this.procuradorSeleccionado ? expediente.procurador_id === +this.procuradorSeleccionado : true;
+    const juicioOk      = this.juicioSeleccionado ? expediente.juicio?.toLowerCase() === this.juicioSeleccionado.toLowerCase() : true;
+    const estadoOk      = this.estadoSeleccionado ? expediente.estado?.toLowerCase() === this.estadoSeleccionado.toLowerCase() : true;
+
+    const numeroOk = expediente.numero?.toString().includes(texto);
+    const anioOk   = expediente.anio?.toString().includes(texto);
+
+    const matchParte = (p: any) => {
+      if (!p) return false;
+      const n  = p?.nombre?.toLowerCase() || '';
+      const a  = p?.apellido?.toLowerCase() || '';
+      const rs = (p?.razonSocial ?? p?.razon_social ?? '').toLowerCase();
+      const nf = (p?.nombreFantasia ?? p?.nombre_fantasia ?? '').toLowerCase();
+      return (
+        n.includes(texto) ||
+        a.includes(texto) ||
+        rs.includes(texto) ||
+        nf.includes(texto) ||
+        `${n} ${a}`.trim().includes(texto)
+      );
+    };
+
+    const actoraOk   = (expediente.clientes?.some(matchParte) ?? false) || ((expediente as any).actoras?.some(matchParte) ?? false);
+    const demandadoOk= (expediente.demandados?.some(matchParte) ?? false);
+
+    // ✅ carátula (acento-insensible)
+    const caratulaStr = (expediente.caratula || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const caratulaOk  = textoNorm === '' || caratulaStr.includes(textoNorm);
+
+    const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
+
+    return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && estadoOk && busquedaOk;
+  });
 }
+
 
 
 

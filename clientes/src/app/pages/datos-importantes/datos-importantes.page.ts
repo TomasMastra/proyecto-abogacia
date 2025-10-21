@@ -36,9 +36,9 @@ import Swal from 'sweetalert2'
 
 
 @Component({
-  selector: 'app-consultas',
-  templateUrl: './requeridos.component.html',
-  styleUrls: ['./requeridos.component.scss'],
+  selector: 'app-importantes',
+  templateUrl: './datos-importantes.page.html',
+  styleUrls: ['./datos-importantes.page.scss'],
   standalone: true,
     imports: [IonInput, IonItem, IonLabel, IonItemSliding, IonList, CommonModule, FormsModule,
       MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
@@ -47,7 +47,7 @@ import Swal from 'sweetalert2'
       MatOptionModule,
     ]
 })
-export class RequeridosPage implements OnInit {
+export class DatosImportantesPage implements OnInit {
 
   cargando: boolean = false;
   expedientes: any[] = [];
@@ -103,8 +103,8 @@ cargarExpedientes() {
         //expediente.estado !== 'Sentencia' &&
         //expediente.estado !== 'Cobrado' &&
         expediente.estado !== 'eliminado' &&
-        expediente.estado !== 'Archivo' &&
-        expediente.fecha_atencion
+        expediente.capitalCobrado == true &&
+        expediente.estadoHonorariosSeleccionado == 'diferido'
 );
 
 filtrados.sort((a, b) => {
@@ -255,13 +255,12 @@ case 'abogado':
   }
 }
 
+// Muestra el renglón si el expediente corresponde al estado seleccionado
 esVisible(item: any): boolean {
   if (this.estado === 'sentencia') {
-    return !item.capitalCobrado || !item.honorarioCobrado || !item.honorarioDiferenciaCobrado || 
-    !item.honorarioAlzadaCobrado || !item.honorarioEjecucionCobrado;
+    return !item.capitalCobrado || !item.honorarioCobrado;
   } else if (this.estado === 'cobrado') {
-    return item.capitalCobrado || item.honorarioCobrado || item.honorarioEjecucionCobrado || item.honorarioDiferenciaCobrado ||
-    item.honorarioAlzadaCobrado;
+    return item.capitalCobrado || item.honorarioCobrado; // ✅ antes usabas &&
   }
   return true;
 }
@@ -270,7 +269,7 @@ esVisible(item: any): boolean {
 filtrarPorEstado(estado: string) {
   this.expedientes = this.expedientesOriginales.filter(expediente => expediente.estado !== 'Sentencia');
 }
-/*
+
 filtrar() {
   const texto = this.busqueda.toLowerCase();
 
@@ -293,54 +292,7 @@ filtrar() {
 
     return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && busquedaOk;
   });
-}*/
-filtrar() {
-  const texto = (this.busqueda || '').toLowerCase().trim();
-  const textoNorm = (this.busqueda || '')
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .trim();
-
-  this.expedientes = this.expedientesOriginales.filter(expediente => {
-    const tipoOk        = this.tipoSeleccionado ? expediente.juzgadoModel?.tipo === this.tipoSeleccionado : true;
-    const juzgadoOk     = this.juzgadoSeleccionado ? expediente.juzgado_id === +this.juzgadoSeleccionado : true;
-    const abogadoOk     = this.abogadoSeleccionado ? +expediente.usuario_id === +this.abogadoSeleccionado : true;
-    const procuradorOk  = this.procuradorSeleccionado ? expediente.procurador_id === +this.procuradorSeleccionado : true;
-    const juicioOk      = this.juicioSeleccionado ? expediente.juicio?.toLowerCase() === this.juicioSeleccionado.toLowerCase() : true;
-
-    const numeroOk = expediente.numero?.toString().includes(texto);
-    const anioOk   = expediente.anio?.toString().includes(texto);
-
-    const matchParte = (p: any) => {
-      if (!p) return false;
-      const n  = p?.nombre?.toLowerCase() || '';
-      const a  = p?.apellido?.toLowerCase() || '';
-      const rs = (p?.razonSocial ?? p?.razon_social ?? '').toLowerCase();
-      const nf = (p?.nombreFantasia ?? p?.nombre_fantasia ?? '').toLowerCase();
-      return (
-        n.includes(texto) ||
-        a.includes(texto) ||
-        rs.includes(texto) ||
-        nf.includes(texto) ||
-        `${n} ${a}`.trim().includes(texto)
-      );
-    };
-
-    const actoraOk   = (expediente.clientes?.some(matchParte) ?? false) || ((expediente as any).actoras?.some(matchParte) ?? false);
-    const demandadoOk= (expediente.demandados?.some(matchParte) ?? false);
-
-    // ✅ carátula (acento-insensible)
-    const caratulaStr = (expediente.caratula || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const caratulaOk  = textoNorm === '' || caratulaStr.includes(textoNorm);
-
-    const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
-
-    return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && busquedaOk;
-  });
 }
-
-
-
 
 
 async calcularDiasHabilesConFeriados(fechaStr: string, cantidad: number): Promise<string> {

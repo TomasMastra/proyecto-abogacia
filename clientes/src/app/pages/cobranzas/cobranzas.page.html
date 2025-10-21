@@ -4,7 +4,38 @@
     <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
   </div>
 
-  <div class="table-container" *ngIf="!cargando">
+    <!-- Barra de botones -->
+<div *ngIf="vista === 'menu'" class="menu-pruebas">
+  <!-- Oficios -->
+  <button class="card-btn" (click)="cambiarMenu(1)" aria-label="Oficios">
+    <div class="card-img">
+      <img class="card-logo" src="../../../assets/botones/cobranza.png" alt="Oficios" />
+      <span class="card-title">Cobranzas</span>
+    </div>
+  </button>
+  <!-- Testimoniales -->
+  <button class="card-btn" (click)="cambiarMenu(2)" aria-label="Testimoniales">
+    <div class="card-img">
+      <img src="../../../assets/botones/pagos.png" alt="Testimoniales" />
+      <span class="card-title">Pagos mensuales</span>
+    </div>
+  </button>
+
+  <!-- Pericias -->
+  <button class="card-btn" (click)="cambiarMenu(3)" aria-label="Pericias">
+    <div class="card-img">
+      <img src="../../../assets/botones/historial.png" alt="Pericias" />
+      <span class="card-title">Historial de pagos</span>
+    </div>
+  </button>
+</div>
+
+  <div class="table-container" *ngIf="vista === 'cobranzas'">
+
+      <button mat-button class="menu-button" (click)="cambiarMenu(4)">
+            <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+            <span style="color: #ffffff">Regresar</span>
+        </button>
     <table>
       <thead>
         <tr>
@@ -22,5 +53,73 @@
       </tbody>
     </table>
   </div>
+
+   <!-- 2) PAGOS POR MES -->
+<div class="table-container" *ngIf="vista === 'pagosPorMes'">
+        <button mat-button class="menu-button" (click)="cambiarMenu(4)">
+            <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+            <span style="color: #ffffff">Regresar</span>
+        </button>
+  <div class="header-with-btn">
+    <h3>Pagos por Mes</h3>
+    <button mat-raised-button color="primary" (click)="cargarPagoDialog()">
+      + Cargar pago
+    </button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Mes / Año</th>
+        <th>Cantidad</th>
+        <th><strong>Total</strong></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let mes of mesesPagosOrdenados">
+        <td>{{ convertirMes(mes) }} / {{ mes.split('-')[0] }}</td>
+        <td>{{ pagosPorMes[mes]!.cantidad || 0 }}</td>
+        <td><strong>${{ pagosPorMes[mes]!.total || 0 | number:'1.2-2' }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 3) HISTORIAL DE PAGOS -->
+<div class="table-container" *ngIf="vista === 'historial'">
+        <button mat-button class="menu-button" (click)="cambiarMenu(4)">
+            <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+            <span style="color: #ffffff">Regresar</span>
+        </button>
+  <div class="header-with-btn">
+    <h3>Historial de Pagos</h3>
+    <button mat-raised-button color="accent" (click)="cargarPagoDialog()">
+      + Cargar pago
+    </button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th><strong>Monto</strong></th>
+        <th><strong>Tipo</strong></th>
+        <th><strong>Accion</strong></th>
+
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let p of pagos">
+        <td>{{ p.fecha | date:'yyyy-MM-dd' }}</td>
+        <td><strong>${{ p.monto | number:'1.2-2' }}</strong></td>
+        <td><strong>{{ p.tipo_pago }}</strong></td>
+        <td style="text-align:center;">
+          <button mat-icon-button color="warn" aria-label="Eliminar pago" (click)="eliminarPago(p)">
+            <mat-icon style="color:beige">delete</mat-icon>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 
 </div>

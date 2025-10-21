@@ -93,7 +93,14 @@
             <mat-option value="Audiencia 360 virtual">Audiencia 360 virtual</mat-option>
             <mat-option value="Audiencia 360 personal">Audiancia 360 personal</mat-option>
             <mat-option value="Mediación">Mediación</mat-option>
+            <mat-option value="Otro">Otro</mat-option>
+
           </mat-select>
+        </mat-form-field>
+
+        <mat-form-field *ngIf="nuevoEvento.tipo_evento == 'Otro'" appearance="outline" style="color: white;">
+          <mat-label style="color: white;">Descripcion</mat-label>
+          <input matInput type="text" [(ngModel)]="nuevoEvento.descripcion" name="descripcion" style="color: white;">
         </mat-form-field>
 
         <!-- Campos adicionales si el tipo es Mediación -->
