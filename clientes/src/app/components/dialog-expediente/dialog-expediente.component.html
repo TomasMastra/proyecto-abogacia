@@ -122,14 +122,22 @@
         </mat-autocomplete>
       </mat-form-field>
 
-      <!-- Actora = Empresa (SELECT) -->
+      <!-- Actora = Empresa (AUTOCOMPLETE) -->
       <mat-form-field appearance="outline" class="full-width" *ngIf="form.value.actoraTipo === 'empresa'">
         <mat-label>Empresas (actora)</mat-label>
-        <mat-select formControlName="actoraEmpresa" (selectionChange)="seleccionarActoraEmpresa($event.value)">
-          <mat-option *ngFor="let empresa of demandados" [value]="empresa">
-            {{ empresa.nombre }}
+        <input
+          matInput
+          [formControl]="actoraEmpresaCtrl"
+          [matAutocomplete]="autoActEmp"
+          placeholder="Busca por nombre o razón social" />
+        <mat-autocomplete
+          #autoActEmp="matAutocomplete"
+          [displayWith]="displayEmpresa"
+          (optionSelected)="seleccionarActoraEmpresa($event.option.value)">
+          <mat-option *ngFor="let emp of filteredActoraEmpresas | async" [value]="emp">
+            {{ emp.nombre }}
           </mat-option>
-        </mat-select>
+        </mat-autocomplete>
       </mat-form-field>
 
       <!-- Lista de actoras agregadas -->
@@ -156,13 +164,22 @@
       </mat-form-field>
 
       <!-- Demandado = Empresa (SELECT) -->
-      <mat-form-field appearance="outline" *ngIf="form.value.demandadoTipo === 'empresa'">
+      <!-- Demandado = Empresa (AUTOCOMPLETE) -->
+      <mat-form-field appearance="outline" class="full-width" *ngIf="form.value.demandadoTipo === 'empresa'">
         <mat-label>Demandados (empresa)</mat-label>
-        <mat-select formControlName="demandadoEmpresa" (selectionChange)="seleccionarDemandadoEmpresa($event.value)">
-          <mat-option *ngFor="let demandado of demandados" [value]="demandado">
-            {{ demandado.nombre }}
+        <input
+          matInput
+          [formControl]="demandadoEmpresaCtrl"
+          [matAutocomplete]="autoDemEmp"
+          placeholder="Busca por nombre o razón social" />
+        <mat-autocomplete
+          #autoDemEmp="matAutocomplete"
+          [displayWith]="displayEmpresa"
+          (optionSelected)="seleccionarDemandadoEmpresa($event.option.value)">
+          <mat-option *ngFor="let emp of filteredDemandadoEmpresas | async" [value]="emp">
+            {{ emp.nombre }}
           </mat-option>
-        </mat-select>
+        </mat-autocomplete>
       </mat-form-field>
 
       <!-- Demandado = Cliente (AUTOCOMPLETE) -->
@@ -185,7 +202,7 @@
 
       <!-- Lista de demandados agregados -->
       <div class="clientes-agregados">
-        <h3 style="color:aliceblue">Demandado seleccionado</h3>
+        <h3 style="color:aliceblue">Demandado(s) seleccionado(s)</h3>
         <div *ngFor="let demandado of demandadosAgregados" class="cliente-item">
           {{ demandado.tipo === 'cliente' ? (demandado.nombre + ' ' + (demandado.apellido || '')) : demandado.nombre }}
           <button mat-icon-button color="warn" (click)="eliminarDemandado(demandado)">
@@ -193,6 +210,7 @@
           </button>
         </div>
       </div>
+
 
     </form>
   </div>

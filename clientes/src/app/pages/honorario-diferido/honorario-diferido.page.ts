@@ -338,6 +338,7 @@ if (tipo === 'capital') {
 
 
   // Casos honorarios normales
+  expediente.recalcular_caratula = false;
   switch (tipo) {
     case 'honorario':
       expediente.honorarioCobrado = true;
@@ -682,7 +683,51 @@ tieneEstadoGiroPorTipo(item: any, tipo: string): boolean {
       return false;
   }
 }
+restaurarCobro(item: any) {
+  Swal.fire({
+    icon: 'warning',
+    title: '¿Restaurar cobro?',
+    html: 'Esto dejará todos los cobros en <b>no cobrado</b> y limpiará fechas/montos de cobro (no toca los estados).',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, restaurar',
+    cancelButtonText: 'Cancelar'
+  }).then(res => {
+    if (!res.isConfirmed) return;
 
+    this.expedienteService.restaurarCobro(item.id).subscribe({
+      next: () => {
+        // 🔄 reflejo en UI (sin tocar liquidaciones)
+        item.honorarioCobrado           = 0;
+        item.capitalCobrado             = 0;
+        item.honorarioAlzadaCobrado     = 0;
+        item.honorarioEjecucionCobrado  = 0;
+        item.honorarioDiferenciaCobrado = 0;
+
+        item.fecha_cobro            = null;
+        item.fecha_cobro_capital    = null;
+        item.fechaCobroAlzada       = null;
+        item.fechaCobroEjecucion    = null;
+        item.fechaCobroDiferencia   = null;
+
+        //item.montoAcuerdo_alzada       = null;
+        //item.montoHonorariosEjecucion  = null;
+        //item.montoHonorariosDiferencia = null;
+
+        item.capitalPagoParcial = null;
+        item.recalcular_caratula = false;
+
+        Swal.fire({
+          toast:true, position:'top-end', icon:'success',
+          title:'Cobro restaurado', timer:1500, showConfirmButton:false
+        });
+      },
+      error: (e) => {
+        console.error(e);
+        Swal.fire({icon:'error',title:'Error al restaurar', text:e?.error?.message || 'Intentalo de nuevo'});
+      }
+    });
+  });
+}
 
   
 }

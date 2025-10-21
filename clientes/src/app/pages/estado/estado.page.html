@@ -59,7 +59,7 @@
             <h5>{{expediente?.numero}}/{{expediente.anio}} ({{expediente.juzgadoModel.nombre}})</h5>
             <h2>{{expediente?.numero}}/{{expediente.anio}} ({{expediente!.caratula}})</h2>
 
-          <h2>{{ obtenerResumenExpediente(expediente) }}</h2>
+         <!-- <h2>{{ obtenerResumenExpediente(expediente) }}</h2> -->
 
 
               <span style="color: rgb(255, 0, 0); font-weight: bold;">{{ expediente?.juicio }}</span>
@@ -168,7 +168,7 @@
                 placeholder="Cantidad de UMA" 
                 formControlName="cantidadUMA"
                 class="input-busqueda"
-                type="text"
+                type="number"
                 [(ngModel)]="cantidadUMA"
                 (ngModelChange)="calcularMontoUMA()">
               </ion-input>
@@ -368,14 +368,15 @@
     </ion-input>
 
     <!-- Input monto -->
-    <ion-input
-      *ngIf="subEstadoCapitalSeleccionado == 'liquidacion practicada'"
-      placeholder="Monto Capital"
-      type="number"
-      class="input-busqueda"
-      [(ngModel)]="montoLiquidacionCapital"
-      name="montoLiquidacionCapital">
-    </ion-input>
+<ion-input
+  *ngIf="mostrarMontoCapital(subEstadoCapitalSeleccionado!)"
+  placeholder="Monto Capital"
+  type="number"
+  class="input-busqueda"
+  [(ngModel)]="montoLiquidacionCapital"
+  name="montoLiquidacionCapital">
+</ion-input>
+
 
   </div>
 

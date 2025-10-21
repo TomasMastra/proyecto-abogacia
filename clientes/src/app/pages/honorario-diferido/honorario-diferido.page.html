@@ -83,8 +83,19 @@
     
     <ng-container *ngIf="esVisible(item)">
       
-      <tr [class.hover]="item.hover" >
-        <td [attr.rowspan]="5" style="background-color: #07295c;">{{ item.numero }}/{{ item.anio }}</td>
+      <tr [class.hover]="item.hover"   style="background-color: #07295c; position: relative; padding-right: 40px;"
+>
+        <td [attr.rowspan]="5" style="background-color: #07295c;">{{ item.numero }}/{{ item.anio }}
+
+          <button
+          *ngIf="estado == 'cobrado'"
+          mat-icon-button
+          matTooltip="Restaurar cobro"
+          (click)="restaurarCobro(item)">
+          <mat-icon>restore</mat-icon>
+        </button>
+
+        </td>
         <td [attr.rowspan]="5" style="background-color: #07295c;">
           {{item.caratula}}
         </td>

@@ -81,11 +81,11 @@ const usuario = this.usuarioService.usuarioLogeado;
       // 2) Llamadas secundarias en paralelo (no bloquean, no re-ordenan)
       (expedientes ?? []).forEach(e => {
         this.getClientesPorExpediente(e.id).subscribe({
-          next: (clientes) => { e.clientes = clientes ?? []; e.caratula = this.armarCaratula(e); },
+          next: (clientes) => { e.clientes = clientes ?? [];  },
           error: () => { /* ignore */ }
         });
         this.getDemandadosPorExpediente(e.id).subscribe({
-          next: (demandados) => { e.demandados = demandados ?? []; e.caratula = this.armarCaratula(e); },
+          next: (demandados) => { e.demandados = demandados ?? [];  },
           error: () => { /* ignore */ }
         });
       });
@@ -115,7 +115,6 @@ private armarCaratula(expediente: any): string {
   const derecha   = d0 + (d.length > 1 ? ' y otros' : '');
   return `${izquierda} contra ${derecha}`;
 }
-
 
 
 /*
@@ -270,6 +269,9 @@ getHonorarios() {
     }
     
     
+    restaurarCobro(id: number) {
+      return this.http.put(`${this.apiUrl}/restaurar-cobro/${id}`, {});
+    }
 
     searchExpedientes(texto: string): Observable<ExpedienteModel[]> {
       const textoLower = texto.toLowerCase();
@@ -595,6 +597,13 @@ getExpedientesPorEstado(estado: string, texto?: string) {
 
 getCaratulaPorId(id: number) {
   return this.http.get<{numero?: any, anio?: any, juicio?: string, actor?: string, demandado?: string}>(`/expedientes/caratula/${id}`);
+}
+
+
+getPartes(expedienteId: number) {
+  return this.http.get<{actoras:any[]; demandados:any[]}>(
+    `${this.apiUrl}/partes/${expedienteId}`
+  );
 }
 
 

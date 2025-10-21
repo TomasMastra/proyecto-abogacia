@@ -376,7 +376,7 @@ if (expediente) {
     title: evento.descripcion || evento.titulo || evento.tipo_evento,
     
     html: `<div style='text-align:left;'>
-      ${caratula ? `<p><strong>Carátula:</strong> ${caratula}</p>` : ''}
+      ${caratula ? `<p><strong>Carátula:</strong> ${evento.expediente!.caratula}</p>` : ''}
      <!--  <p><strong>Caratula:</strong> ${caratula}</p> -->
       <p><strong>Fecha:</strong> ${fecha.toLocaleDateString('es-AR')}</p>
       <p><strong>Hora:</strong> ${hora}</p>
