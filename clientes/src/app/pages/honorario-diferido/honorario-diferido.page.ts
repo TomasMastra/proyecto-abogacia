@@ -155,7 +155,7 @@ estadosHonorarios: string[] = [
             });
           });
   
-          this.busqueda = '';
+          //this.busqueda = '';
         this.ordenarPor('giro');
 
           this.cargando = false;
@@ -267,9 +267,10 @@ case 'caratula':
   }
 }
 
-
-
-async cobrar(tipo: 'capital' | 'honorario' | 'alzada' | 'ejecucion' | 'diferencia', expediente: ExpedienteModel) {
+async cobrar(
+  tipo: 'capital' | 'honorario' | 'alzada' | 'ejecucion' | 'diferencia',
+  expediente: ExpedienteModel
+) {
   const tipoTexto = tipo.charAt(0).toUpperCase() + tipo.slice(1);
 
   const result = await Swal.fire({
@@ -279,7 +280,6 @@ async cobrar(tipo: 'capital' | 'honorario' | 'alzada' | 'ejecucion' | 'diferenci
     confirmButtonText: 'Sí, cobrar',
     cancelButtonText: 'Cancelar',
   });
-
   if (!result.isConfirmed) return;
 
   const dateResult = await Swal.fire({
@@ -291,51 +291,127 @@ async cobrar(tipo: 'capital' | 'honorario' | 'alzada' | 'ejecucion' | 'diferenci
     confirmButtonText: 'Guardar',
     cancelButtonText: 'Cancelar'
   });
-
   if (!dateResult.isConfirmed || !dateResult.value) return;
 
   const fechaSeleccionada = dateResult.value;
-if (tipo === 'capital') {
-  const montoResult = await Swal.fire({
-    title: '¿Cuánto te pagaron del capital?',
-    input: 'number',
-    inputLabel: 'Monto abonado',
-    inputPlaceholder: 'Ingresá el monto',
-    toast: true,
-    inputAttributes: {
-      min: '0',
-      step: '0.01'
-    },
-    showCancelButton: true,
-    confirmButtonText: 'Guardar',
-    cancelButtonText: 'Cancelar',
-    inputValue: expediente.capitalPagoParcial || this.calcularCobroFinal(expediente.montoLiquidacionCapital, expediente.porcentaje!, +expediente.usuario_id) || ''
-  });
 
-  if (!montoResult.isConfirmed || montoResult.value === '') return;
+  if (tipo === 'capital') {
+    const totalCapital = expediente.montoLiquidacionCapital ?? 0;
+    const yaPagado = Number(expediente.capitalPagoParcial) || 0;
 
-  const montoAbonado = parseFloat(montoResult.value);
+    // Si ya hubo parcial (o hay algo pagado), bloqueamos TOTAL
+    const yaEsParcial = !!(expediente as any)?.esPagoParcial || yaPagado > 0;
 
-/*
-  if (montoAbonado > montoTotal) {
-    await Swal.fire({
-      icon: 'error',
-      title: 'Monto inválido',
-      text: `El monto ingresado no puede superar los $${montoTotal.toLocaleString()}`,
-      confirmButtonText: 'Aceptar'
+    // Elegir modalidad solo si NO hubo parcial aún
+    let esParcial = true;
+    if (!yaEsParcial) {
+      const modalidadResult = await Swal.fire({
+        title: 'Tipo de cobro (capital)',
+        input: 'radio',
+        inputOptions: {
+          total: 'Pago TOTAL (se liquida el rubro)',
+          parcial: 'Pago PARCIAL (se suma al acumulado)'
+        },
+        inputValue: 'total',
+        showCancelButton: true,
+        confirmButtonText: 'Continuar',
+        cancelButtonText: 'Cancelar'
+      });
+      if (!modalidadResult.isConfirmed || !modalidadResult.value) return;
+      esParcial = modalidadResult.value === 'parcial';
+    }
+
+    const sugeridoParcial = totalCapital > 0 ? Math.max(totalCapital - yaPagado, 0) : '';
+
+    const montoResult = await Swal.fire({
+      title: '¿Cuánto te pagaron del capital?',
+      input: 'number',
+      inputLabel: 'Monto abonado',
+      inputPlaceholder: 'Ingresá el monto',
+      toast: true,
+      inputAttributes: { min: '0', step: '0.01' },
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      inputValue: esParcial
+        ? (sugeridoParcial === '' ? '' : String(sugeridoParcial))
+        : (expediente.capitalPagoParcial ||
+           this.calcularCobroFinal(expediente.montoLiquidacionCapital, expediente.porcentaje!, +expediente.usuario_id) || '')
     });
+    if (!montoResult.isConfirmed || !montoResult.value) return;
+
+    const montoAbonado = parseFloat(montoResult.value);
+    if (!Number.isFinite(montoAbonado) || montoAbonado < 0) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Monto inválido',
+        text: 'Ingresá un número válido mayor o igual a 0.',
+        confirmButtonText: 'Aceptar'
+      });
+      return;
+    }
+
+    /*
+    const montoTotal = totalCapital;
+    if (montoAbonado > montoTotal) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Monto inválido',
+        text: `El monto ingresado no puede superar los $${montoTotal.toLocaleString()}`,
+        confirmButtonText: 'Aceptar'
+      });
+      return;
+    }*/
+
+    if (esParcial) {
+      // PARCIAL: acumular
+      expediente.capitalPagoParcial = yaPagado + montoAbonado;
+
+      // Si hay total definido, cerrar auto si alcanzó/superó
+      if (totalCapital > 0) {
+        expediente.capitalCobrado = expediente.capitalPagoParcial >= totalCapital;
+      }
+
+      // Marcar que quedó en modo parcial (sin vuelta atrás)
+      (expediente as any).esPagoParcial = true;
+
+      // ⚑ STOP MANUAL: permitir cortar acá y dar por cobrado
+      if (!expediente.capitalCobrado) {
+        const stop = await Swal.fire({
+          title: '¿Detenemos aquí los pagos parciales?',
+          text: 'Si confirmás, el capital quedará marcado como COBRADO.',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, ya está todo',
+          cancelButtonText: 'Seguir cobrando después'
+        });
+        if (stop.isConfirmed) {
+          expediente.capitalCobrado = true;
+        }
+      }
+    } else {
+      // Si ya hubo parcial, no permitir TOTAL
+      if (yaEsParcial) {
+        await Swal.fire({
+          icon: 'info',
+          title: 'Ya hay pagos parciales',
+          text: 'Una vez iniciado el pago por partes, solo podés seguir abonando como PARCIAL.',
+          confirmButtonText: 'Aceptar'
+        });
+        return;
+      }
+      // TOTAL: respetar tu lógica original
+      expediente.capitalPagoParcial = montoAbonado;
+      expediente.capitalCobrado = true;
+      (expediente as any).esPagoParcial = false;
+      //expediente.montoLiquidacionCapital = montoAbonado;
+    }
+
+    expediente.fecha_cobro_capital = fechaSeleccionada;
+
+    this.finalizarCobro(expediente, tipo, tipoTexto);
     return;
-  }*/
-
-  expediente.capitalPagoParcial = montoAbonado;
-  expediente.fecha_cobro_capital = fechaSeleccionada;
-  expediente.capitalCobrado = true;
-  //expediente.montoLiquidacionCapital = montoAbonado;
-
-  this.finalizarCobro(expediente, tipo, tipoTexto);
-  return;
-}
-
+  }
 
   // Casos honorarios normales
   expediente.recalcular_caratula = false;
@@ -361,12 +437,19 @@ if (tipo === 'capital') {
   this.finalizarCobro(expediente, tipo, tipoTexto);
 }
 
+getCapitalParcial(item: ExpedienteModel) {
+  const pagado = Number(item.capitalPagoParcial ?? 0);
+  const total  = Number(item.montoLiquidacionCapital ?? 0);
+  const completo = total > 0 ? pagado >= total : !!item.capitalCobrado;
+  return { pagado, total, completo };
+}
 
 finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
   const montoCapital = expediente.montoLiquidacionCapital ?? 0;
   const capitalPagado = expediente.capitalPagoParcial ?? 0;
+  expediente.recalcular_caratula = false;
 
-  // Validación segura: solo marcar capital como cobrado si se abonó todo
+  // No forzamos acá capitalCobrado
   //expediente.capitalCobrado = capitalPagado == montoCapital;
 
   const capitalListo = expediente.capitalCobrado;
@@ -383,9 +466,14 @@ finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
     next: () => {
       this.cargarPorEstado('sentencia');
 
-      const tituloToast = todosCobrados
-        ? "Todos los rubros cobrados. Estado actualizado a COBRADO."
-        : `${tipoTexto} cobrado correctamente.`;
+      let tituloToast = '';
+      if (todosCobrados) {
+        tituloToast = "Todos los rubros cobrados. Estado actualizado a COBRADO.";
+      } else if (tipo === 'capital' && montoCapital > 0 && capitalPagado < montoCapital && !expediente.capitalCobrado) {
+        tituloToast = `${tipoTexto}: pago parcial registrado.`;
+      } else {
+        tituloToast = `${tipoTexto} cobrado correctamente.`;
+      }
 
       this.honorariosDiferidos = todosCobrados
         ? this.honorariosDiferidos.filter(e => e.id !== expediente.id)
@@ -402,14 +490,11 @@ finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
     },
     error: (err) => {
       console.error('Error al actualizar el expediente:', err);
-
-      // Revertir en caso de error solo lo que corresponda
       if (tipo === 'capital') {
         expediente.capitalCobrado = false;
         expediente.fecha_cobro_capital = null;
         expediente.capitalPagoParcial = null;
       }
-
       Swal.fire({
         toast: true,
         position: "top-end",
@@ -425,7 +510,9 @@ finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
 
 
 // Muestra el renglón si el expediente corresponde al estado seleccionado
-esVisible(item: any): boolean {
+/*esVisible(item: any): boolean {
+
+
   if (this.estado === 'sentencia') {
     return (
       !item.capitalCobrado ||
@@ -437,6 +524,7 @@ esVisible(item: any): boolean {
   } else if (this.estado === 'cobrado') {
     return (
       item.capitalCobrado ||
+      item.esPagoParcial == 1 ||
       item.honorarioCobrado ||
       item.honorarioAlzadaCobrado ||
       item.honorarioEjecucionCobrado ||
@@ -446,13 +534,29 @@ esVisible(item: any): boolean {
   }
 
   return true;
-}
+}*/
 
+esVisible(item: any): boolean {
+  if (this.estado === 'sentencia') {
+    return (!item.capitalCobrado || !item.honorarioCobrado ||
+      (!item.honorarioAlzadaCobrado && item.estadoHonorariosAlzadaSeleccionado) ||
+      (!item.honorarioEjecucionCobrado && item.estadoHonorariosEjecucionSeleccionado) ||
+      (!item.honorarioDiferenciaCobrado && item.estadoHonorariosDiferenciaSeleccionado));
+  } else if (this.estado === 'cobrado') {
+    const hayParcial = (Number(item.capitalPagoParcial) || 0) > 0;
+    const parcialFlag = item.esPagoParcial == 1 || item.esPagoParcial === true;
+    return (item.capitalCobrado || parcialFlag || hayParcial || item.honorarioCobrado ||
+            item.honorarioAlzadaCobrado || item.honorarioEjecucionCobrado ||
+            item.honorarioDiferenciaCobrado || item.estado == 'Archivo');
+  }
+  return true;
+}
 
 mostrarCapital(item: any): boolean {
-  return (this.estado === 'cobrado' && item.capitalCobrado) || 
+  return (this.estado === 'cobrado' && (item.capitalCobrado || item.esPagoParcial == 1)) || 
          (!item.capitalCobrado && this.estado === 'sentencia') ;
 }
+
 
 mostrarHonorario(item: any): boolean {
   return (!item.honorarioCobrado && this.estado === 'sentencia') ||
@@ -683,6 +787,9 @@ tieneEstadoGiroPorTipo(item: any, tipo: string): boolean {
       return false;
   }
 }
+
+
+
 restaurarCobro(item: any) {
   Swal.fire({
     icon: 'warning',
@@ -694,40 +801,59 @@ restaurarCobro(item: any) {
   }).then(res => {
     if (!res.isConfirmed) return;
 
-    this.expedienteService.restaurarCobro(item.id).subscribe({
+    // 🔒 CLAVE: preparar el cuerpo ANTES de enviar (para que el backend reciba los flags en 0)
+    const body = { ...item };
+
+    // Flags (uso 0 porque en tu UI comparás == 1 en algunos lados)
+    body.honorarioCobrado           = 0;
+    body.capitalCobrado             = 0;
+    body.honorarioAlzadaCobrado     = 0;
+    body.honorarioEjecucionCobrado  = 0;
+    body.honorarioDiferenciaCobrado = 0;
+
+    // Fechas de cobro
+    body.fecha_cobro          = null;
+    body.fecha_cobro_capital  = null;
+    body.fechaCobroAlzada     = null;
+    body.fechaCobroEjecucion  = null;
+    body.fechaCobroDiferencia = null;
+
+    // Mantené o no el parcial según tu criterio:
+    // Si querés resetearlo completamente:
+    body.capitalPagoParcial = null;      // o 0 si preferís número
+    // Si querés conservar lo cobrado hasta ahora, comentá la línea de arriba.
+
+    // Anti-recalcular carátula (el server sólo recalcula si esto NO es false)
+    body.recalcular_caratula = false;
+    body.capitalPagoParcial = null;
+    body.esPagoParcial = 0;
+    body.estado = 'sentencia';
+
+
+    this.expedienteService.actualizarExpediente(item.id, body).subscribe({
       next: () => {
-        // 🔄 reflejo en UI (sin tocar liquidaciones)
-        item.honorarioCobrado           = 0;
-        item.capitalCobrado             = 0;
-        item.honorarioAlzadaCobrado     = 0;
-        item.honorarioEjecucionCobrado  = 0;
-        item.honorarioDiferenciaCobrado = 0;
-
-        item.fecha_cobro            = null;
-        item.fecha_cobro_capital    = null;
-        item.fechaCobroAlzada       = null;
-        item.fechaCobroEjecucion    = null;
-        item.fechaCobroDiferencia   = null;
-
-        //item.montoAcuerdo_alzada       = null;
-        //item.montoHonorariosEjecucion  = null;
-        //item.montoHonorariosDiferencia = null;
-
-        item.capitalPagoParcial = null;
-        item.recalcular_caratula = false;
+        // 🔄 Reflejar en UI exactamente lo que se mandó
+        Object.assign(item, body);
 
         Swal.fire({
-          toast:true, position:'top-end', icon:'success',
-          title:'Cobro restaurado', timer:1500, showConfirmButton:false
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Cobro restaurado',
+          timer: 1500,
+          showConfirmButton: false
         });
       },
       error: (e) => {
         console.error(e);
-        Swal.fire({icon:'error',title:'Error al restaurar', text:e?.error?.message || 'Intentalo de nuevo'});
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al restaurar',
+          text: e?.error?.message || 'Intentalo de nuevo'
+        });
       }
     });
   });
 }
 
-  
 }

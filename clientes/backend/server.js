@@ -762,6 +762,8 @@ app.post('/expedientes/agregar', async (req, res) => {
     }
     const expedienteId = insertExp.recordset[0].id;
 
+
+    
     // 4) ACTORAS (secuencial)
     if (Array.isArray(actoras)) {
       for (const a of actoras) {
@@ -815,6 +817,7 @@ app.post('/expedientes/agregar', async (req, res) => {
 
     // 7) Ahora sí recalculo carátula FUERA de la transacción (evita usar la misma conexión ocupada)
     await recalcularCaratula(pool, expedienteId);
+  
 
     res.status(201).json({ message: 'Expediente agregado correctamente', expedienteId });
   } catch (err) {
@@ -1182,7 +1185,7 @@ app.put('/expedientes/modificar/:id', async (req, res) => {
     // =========================
     // Update del expediente (SE MANTIENEN TODOS TUS INPUTS)
     // =========================
-    console.log(nuevosDatos.cantidadUMA);
+    console.log(nuevosDatos.capitalPagoParcial);
     const resultado = await pool.request()
       .input('id', sql.Int, id)
       .input('titulo', sql.NVarChar, nuevosDatos.titulo)
@@ -1256,6 +1259,7 @@ app.put('/expedientes/modificar/:id', async (req, res) => {
       .input('honorarioDiferenciaCobrado', sql.Bit, nuevosDatos.honorarioDiferenciaCobrado ?? false)
       .input('fechaCobroDiferencia', sql.DateTime, nuevosDatos.fechaCobroDiferencia ?? null)
       .input('capitalPagoParcial', sql.Float, nuevosDatos.capitalPagoParcial ?? null)
+      .input('esPagoParcial', sql.Bit, nuevosDatos.esPagoParcial ?? false)
 
       .query(`
         UPDATE expedientes
@@ -1331,7 +1335,9 @@ app.put('/expedientes/modificar/:id', async (req, res) => {
           honorarioDiferenciaCobrado = @honorarioDiferenciaCobrado,
           fechaCobroDiferencia = @fechaCobroDiferencia,
 
-          capitalPagoParcial = @capitalPagoParcial
+          capitalPagoParcial = @capitalPagoParcial,
+          esPagoParcial = @esPagoParcial
+
         WHERE id = @id
       `);
 
@@ -1340,7 +1346,7 @@ app.put('/expedientes/modificar/:id', async (req, res) => {
     // =========================
 
     // DEMANDADOS MIXTOS: expedientes_demandados (empresa/cliente) – 1 o más, vos decidís
-    if (nuevosDatos.recalcular_caratula !== false) {
+    if (nuevosDatos.recalcular_caratula == true) {
 
     if (Array.isArray(nuevosDatos.demandados)) {
       await pool.request()
@@ -1905,7 +1911,7 @@ app.put('/demandados/modificar/:id', async (req, res) => {
       .input('estado', sql.NVarChar, nuevosDatos.estado)
       .input('localidad_id', sql.Int, nuevosDatos.localidad_id)
       .input('direccion', sql.NVarChar, nuevosDatos.direccion)
-      .input('esOficio', sql.Bit, nuevosDatos.esOficio ?? 0) // 👈 agregado
+      .input('esOficio', sql.Bit, nuevosDatos.esOficio ?? 0)
       .query(`
         UPDATE demandados
         SET nombre = @nombre,
@@ -2476,47 +2482,7 @@ app.get("/clientes/expedientesPorCliente", async (req, res) => {
   }
 });
 
-/*
-app.get("/expedientes/cobrados", async (req, res) => {
-  try {
-    const result = await pool.request()
-      .query(`
-        SELECT *
-        FROM expedientes
-        WHERE estado != 'eliminado'
-          AND (capitalCobrado = 1 OR honorarioCobrado = 1 OR honorarioAlzadaCobrado = 1 OR honorarioEjecucionCobrado = 1 OR honorarioDiferenciaCobrado = 1)
-      `);
 
-    res.json(result.recordset);
-  } catch (err) {
-    console.error("Error al obtener expedientes cobrados:", err);
-    res.status(500).send("Error al obtener expedientes cobrados");
-  }
-});*/
-/*
-app.get("/expedientes/cobrados", async (req, res) => {
-  try {
-    const result = await pool.request()
-      .query(`
-        SELECT *
-        FROM expedientes
-        WHERE estado != 'eliminado'
-          AND (
-            estado = 'Archivo'
-            OR capitalCobrado = 1
-            OR honorarioCobrado = 1
-            OR honorarioAlzadaCobrado = 1
-            OR honorarioEjecucionCobrado = 1
-            OR honorarioDiferenciaCobrado = 1
-          )
-      `);
-
-    res.json(result.recordset);
-  } catch (err) {
-    console.error("Error al obtener expedientes cobrados:", err);
-    res.status(500).send("Error al obtener expedientes cobrados");
-  }
-});*/
 
 app.get("/expedientes/cobrados", async (req, res) => {
   try {
@@ -2527,6 +2493,7 @@ app.get("/expedientes/cobrados", async (req, res) => {
         AND (
           estado = 'Archivo'
           OR capitalCobrado = 1
+          OR esPagoParcial = 1
           OR honorarioCobrado = 1
           OR honorarioAlzadaCobrado = 1
           OR honorarioEjecucionCobrado = 1
@@ -2839,7 +2806,7 @@ app.put('/oficios/modificar/:id', async (req, res) => {
 });
 
 // Tu endpoint ya armado para obtener cobros por mes
-app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
+/*app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const { anio, mes } = req.query;
 
   try {
@@ -2898,6 +2865,371 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
   } catch (error) {
     console.error("Error al obtener total de cobranzas por mes:", error);
+    res.status(500).send("Error en el servidor");
+  }
+});*/
+// ==========================================================
+//  COBRANZAS - TOTALES POR MES (FINAL)
+//  GET /expedientes/total-cobranzas-por-mes?anio=YYYY&mes=MM
+// ==========================================================
+/*app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
+  const { anio, mes } = req.query;
+  if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
+
+  const y = parseInt(anio, 10);
+  const m = parseInt(mes, 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12)
+    return res.status(400).send("Parámetros inválidos. 'mes' debe ser 1..12.");
+
+  const inicio = new Date(Date.UTC(y, m - 1, 1));
+  const fin    = new Date(Date.UTC(y, m, 1));
+
+  try {
+    const result = await pool.request()
+      .input("inicio", sql.Date, new Date(inicio.toISOString().slice(0,10)))
+      .input("fin",    sql.Date, new Date(fin.toISOString().slice(0,10)))
+      .query(`
+        WITH movimientos AS (
+          -- CAPITAL: usa capitalPagoParcial (ya saneado con %)
+          SELECT 'capital' AS concepto, ISNULL(e.capitalPagoParcial, 0) AS monto
+          FROM expedientes e
+          WHERE CAST(e.fecha_cobro_capital AS DATE) >= @inicio
+            AND CAST(e.fecha_cobro_capital AS DATE) < @fin
+
+          UNION ALL
+          -- HONORARIOS: aplica % del abogado
+          SELECT 'honorarios',
+                 ISNULL(e.montoLiquidacionHonorarios, 0) * (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE CAST(e.fecha_cobro AS DATE) >= @inicio
+            AND CAST(e.fecha_cobro AS DATE) < @fin
+
+          UNION ALL
+          -- ALZADA (sin %)
+          SELECT 'alzada', ISNULL(e.montoAcuerdo_alzada, 0)
+          FROM expedientes e
+          WHERE CAST(e.fechaCobroAlzada AS DATE) >= @inicio
+            AND CAST(e.fechaCobroAlzada AS DATE) < @fin
+
+          UNION ALL
+          -- EJECUCIÓN (sin %)
+          SELECT 'ejecucion', ISNULL(e.montoHonorariosEjecucion, 0)
+          FROM expedientes e
+          WHERE CAST(e.fechaCobroEjecucion AS DATE) >= @inicio
+            AND CAST(e.fechaCobroEjecucion AS DATE) < @fin
+
+          UNION ALL
+          -- DIFERENCIA (sin %)
+          SELECT 'diferencia', ISNULL(e.montoHonorariosDiferencia, 0)
+          FROM expedientes e
+          WHERE CAST(e.fechaCobroDiferencia AS DATE) >= @inicio
+            AND CAST(e.fechaCobroDiferencia AS DATE) < @fin
+        )
+        SELECT
+          SUM(CASE WHEN concepto='capital'    THEN monto ELSE 0 END) AS totalCapital,
+          SUM(CASE WHEN concepto='honorarios' THEN monto ELSE 0 END) AS totalHonorarios,
+          SUM(CASE WHEN concepto='alzada'     THEN monto ELSE 0 END) AS totalAlzada,
+          SUM(CASE WHEN concepto='ejecucion'  THEN monto ELSE 0 END) AS totalEjecucion,
+          SUM(CASE WHEN concepto='diferencia' THEN monto ELSE 0 END) AS totalDiferencia,
+          SUM(monto) AS totalGeneral
+        FROM movimientos;
+      `);
+
+    res.json(result.recordset[0] ?? {
+      totalCapital: 0, totalHonorarios: 0, totalAlzada: 0,
+      totalEjecucion: 0, totalDiferencia: 0, totalGeneral: 0
+    });
+  } catch (error) {
+    console.error("Error al obtener total de cobranzas por mes:", error);
+    res.status(500).send("Error en el servidor");
+  }
+});*/
+
+// ==========================================================
+// GET /expedientes/total-cobranzas-por-mes?anio=YYYY&mes=MM
+// ==========================================================
+app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
+  const { anio, mes } = req.query;
+  if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
+
+  const y = parseInt(anio, 10);
+  const m = parseInt(mes, 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12)
+    return res.status(400).send("Parámetros inválidos. 'mes' debe ser 1..12.");
+
+  const inicio = new Date(Date.UTC(y, m - 1, 1));
+  const fin    = new Date(Date.UTC(y, m, 1));
+
+  try {
+    const result = await pool.request()
+      .input("inicio", sql.Date, new Date(inicio.toISOString().slice(0,10)))
+      .input("fin",    sql.Date, new Date(fin.toISOString().slice(0,10)))
+      .query(`
+        WITH movimientos AS (
+          SELECT 'capital' AS concepto, ISNULL(e.capitalPagoParcial, 0) AS monto
+          FROM expedientes e
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
+            AND CAST(e.fecha_cobro_capital AS DATE) < @fin
+
+          UNION ALL
+          SELECT 'honorarios',
+                 ISNULL(e.montoLiquidacionHonorarios, 0) *
+                 (100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fecha_cobro AS DATE) >= @inicio
+            AND CAST(e.fecha_cobro AS DATE) < @fin
+
+          UNION ALL
+          SELECT 'alzada', ISNULL(e.montoAcuerdo_alzada, 0)
+          FROM expedientes e
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fechaCobroAlzada AS DATE) >= @inicio
+            AND CAST(e.fechaCobroAlzada AS DATE) < @fin
+
+          UNION ALL
+          SELECT 'ejecucion', ISNULL(e.montoHonorariosEjecucion, 0)
+          FROM expedientes e
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fechaCobroEjecucion AS DATE) >= @inicio
+            AND CAST(e.fechaCobroEjecucion AS DATE) < @fin
+
+          UNION ALL
+          SELECT 'diferencia', ISNULL(e.montoHonorariosDiferencia, 0)
+          FROM expedientes e
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fechaCobroDiferencia AS DATE) >= @inicio
+            AND CAST(e.fechaCobroDiferencia AS DATE) < @fin
+        )
+        SELECT
+          SUM(CASE WHEN concepto='capital'    THEN monto ELSE 0 END) AS totalCapital,
+          SUM(CASE WHEN concepto='honorarios' THEN monto ELSE 0 END) AS totalHonorarios,
+          SUM(CASE WHEN concepto='alzada'     THEN monto ELSE 0 END) AS totalAlzada,
+          SUM(CASE WHEN concepto='ejecucion'  THEN monto ELSE 0 END) AS totalEjecucion,
+          SUM(CASE WHEN concepto='diferencia' THEN monto ELSE 0 END) AS totalDiferencia,
+          SUM(monto) AS totalGeneral
+        FROM movimientos;
+      `);
+
+    res.json(result.recordset[0] ?? {
+      totalCapital: 0, totalHonorarios: 0, totalAlzada: 0,
+      totalEjecucion: 0, totalDiferencia: 0, totalGeneral: 0
+    });
+  } catch (error) {
+    console.error("Error al obtener total de cobranzas por mes:", error);
+    res.status(500).send("Error en el servidor");
+  }
+});
+
+
+// ==========================================================
+// GET /expedientes/cobranzas-detalle-por-mes?anio=YYYY&mes=MM
+// ==========================================================
+app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
+  const { anio, mes } = req.query;
+  if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
+
+  const y = parseInt(anio, 10), m = parseInt(mes, 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12)
+    return res.status(400).send("Parámetros inválidos.");
+
+  const inicio = new Date(Date.UTC(y, m - 1, 1));
+  const fin    = new Date(Date.UTC(y, m, 1));
+
+  try {
+    const result = await pool.request()
+      .input("inicio", sql.Date, new Date(inicio.toISOString().slice(0,10)))
+      .input("fin",    sql.Date, new Date(fin.toISOString().slice(0,10)))
+      .query(`
+        WITH movimientos AS (
+          SELECT e.id AS expediente_id, e.numero, e.anio AS anio_expediente, e.caratula,
+                'capital' AS concepto, ISNULL(e.capitalPagoParcial, 0) AS monto
+          FROM expedientes e
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
+            AND CAST(e.fecha_cobro_capital AS DATE) < @fin
+
+          UNION ALL
+          SELECT e.id, e.numero, e.anio, e.caratula,
+                'honorarios',
+                ISNULL(e.montoLiquidacionHonorarios, 0) *
+                (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fecha_cobro AS DATE) >= @inicio
+            AND CAST(e.fecha_cobro AS DATE) < @fin
+
+          UNION ALL
+          SELECT e.id, e.numero, e.anio, e.caratula,
+                'alzada',
+                ISNULL(e.montoAcuerdo_alzada, 0) *
+                (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fechaCobroAlzada AS DATE) >= @inicio
+            AND CAST(e.fechaCobroAlzada AS DATE) < @fin
+
+          UNION ALL
+          SELECT e.id, e.numero, e.anio, e.caratula,
+                'ejecucion',
+                ISNULL(e.montoHonorariosEjecucion, 0) *
+                (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fechaCobroEjecucion AS DATE) >= @inicio
+            AND CAST(e.fechaCobroEjecucion AS DATE) < @fin
+
+          UNION ALL
+          SELECT e.id, e.numero, e.anio, e.caratula,
+                'diferencia',
+                ISNULL(e.montoHonorariosDiferencia, 0) *
+                (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.estado != 'eliminado'
+            AND CAST(e.fechaCobroDiferencia AS DATE) >= @inicio
+            AND CAST(e.fechaCobroDiferencia AS DATE) < @fin
+        ),
+        detalle AS (
+          SELECT
+            m.expediente_id,
+            m.numero,
+            m.anio_expediente,
+            m.caratula,
+            SUM(CASE WHEN m.concepto = 'capital'    THEN m.monto ELSE 0 END) AS Capital,
+            SUM(CASE WHEN m.concepto = 'honorarios' THEN m.monto ELSE 0 END) AS Honorarios,
+            SUM(CASE WHEN m.concepto = 'alzada'     THEN m.monto ELSE 0 END) AS Alzada,
+            SUM(CASE WHEN m.concepto = 'ejecucion'  THEN m.monto ELSE 0 END) AS Ejecucion,
+            SUM(CASE WHEN m.concepto = 'diferencia' THEN m.monto ELSE 0 END) AS Diferencia,
+            SUM(m.monto) AS TotalExpediente
+          FROM movimientos m
+          GROUP BY m.expediente_id, m.numero, m.anio_expediente, m.caratula
+        )
+        SELECT * FROM (
+          SELECT 
+            expediente_id,
+            CAST(numero AS NVARCHAR(100)) AS numero,
+            anio_expediente,
+            caratula,
+            Capital, Honorarios, Alzada, Ejecucion, Diferencia, TotalExpediente,
+            0 AS orden
+          FROM detalle
+
+          UNION ALL
+
+          SELECT 
+            NULL,
+            CAST('TOTAL GENERAL' AS NVARCHAR(100)),
+            NULL,
+            NULL,
+            SUM(Capital), SUM(Honorarios), SUM(Alzada), SUM(Ejecucion), SUM(Diferencia), SUM(TotalExpediente),
+            1
+          FROM detalle
+        ) X
+        ORDER BY X.orden, X.numero;
+      `);
+
+    res.json(result.recordset ?? []);
+  } catch (error) {
+    console.error("Error en /expedientes/cobranzas-detalle-por-mes:", error);
+    res.status(500).send("Error en el servidor");
+  }
+});
+
+
+
+
+
+
+// ==========================================================
+//  COBRANZAS - RESUMEN MENSUAL (lista por mes/año)
+//  GET /expedientes/cobranzas-mensuales            -> todos los años
+//  GET /expedientes/cobranzas-mensuales?anio=YYYY  -> solo ese año
+//  Respuesta: [{ anio, mes, totalCapital, totalHonorarios, totalAlzada, totalEjecucion, totalDiferencia, totalGeneral }]
+// ==========================================================
+app.get("/expedientes/cobranzas-mensuales", async (req, res) => {
+  const { anio } = req.query;
+  const y = anio ? parseInt(anio, 10) : null;
+  if (anio && (isNaN(y) || y < 1900)) {
+    return res.status(400).send("Parámetro 'anio' inválido.");
+  }
+
+  try {
+    const result = await pool.request()
+      .input("anio", sql.Int, y)
+      .query(`
+        WITH movs AS (
+          -- CAPITAL: ya viene neto en capitalPagoParcial
+          SELECT CAST(e.fecha_cobro_capital AS DATE) AS fecha,
+                 'capital' AS concepto,
+                 ISNULL(e.capitalPagoParcial, 0) AS monto
+          FROM expedientes e
+          WHERE e.fecha_cobro_capital IS NOT NULL
+
+          UNION ALL
+          -- HONORARIOS: (100 - % honorarios)
+          SELECT CAST(e.fecha_cobro AS DATE),
+                 'honorarios',
+                 ISNULL(e.montoLiquidacionHonorarios, 0) *
+                 (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.fecha_cobro IS NOT NULL
+
+          UNION ALL
+          -- ALZADA
+          SELECT CAST(e.fechaCobroAlzada AS DATE),
+                 'alzada',
+                 ISNULL(e.montoAcuerdo_alzada, 0) *
+                 (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.fechaCobroAlzada IS NOT NULL
+
+          UNION ALL
+          -- EJECUCIÓN
+          SELECT CAST(e.fechaCobroEjecucion AS DATE),
+                 'ejecucion',
+                 ISNULL(e.montoHonorariosEjecucion, 0) *
+                 (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.fechaCobroEjecucion IS NOT NULL
+
+          UNION ALL
+          -- DIFERENCIA
+          SELECT CAST(e.fechaCobroDiferencia AS DATE),
+                 'diferencia',
+                 ISNULL(e.montoHonorariosDiferencia, 0) *
+                 (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN usuario u ON u.id = e.usuario_id
+          WHERE e.fechaCobroDiferencia IS NOT NULL
+        )
+        SELECT
+          YEAR(fecha)  AS anio,
+          MONTH(fecha) AS mes,
+          SUM(CASE WHEN concepto='capital'    THEN monto ELSE 0 END) AS totalCapital,
+          SUM(CASE WHEN concepto='honorarios' THEN monto ELSE 0 END) AS totalHonorarios,
+          SUM(CASE WHEN concepto='alzada'     THEN monto ELSE 0 END) AS totalAlzada,
+          SUM(CASE WHEN concepto='ejecucion'  THEN monto ELSE 0 END) AS totalEjecucion,
+          SUM(CASE WHEN concepto='diferencia' THEN monto ELSE 0 END) AS totalDiferencia,
+          SUM(monto) AS totalGeneral
+        FROM movs
+        WHERE (@anio IS NULL OR YEAR(fecha) = @anio)
+        GROUP BY YEAR(fecha), MONTH(fecha)
+        ORDER BY anio DESC, mes DESC;
+      `);
+
+    res.json(result.recordset ?? []);
+  } catch (error) {
+    console.error("Error en /expedientes/cobranzas-mensuales:", error);
     res.status(500).send("Error en el servidor");
   }
 });

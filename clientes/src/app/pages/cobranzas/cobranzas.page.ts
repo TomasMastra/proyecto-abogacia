@@ -82,6 +82,11 @@ export class CobranzasPage implements OnInit {
 
   grafico: any;
 
+  // === Estado para la vista de detalle ===
+  detalleMesFilas: any[] = [];
+  detalleMesTotal: any | null = null;
+  detalleMesTitulo = '';
+
 ngOnInit() {
   this.cargarPagos();
 
@@ -366,5 +371,28 @@ async eliminarPago(p: Pago): Promise<void> {
       }
     });
   }
+
+
+
+verDetalleMes(key: string) {
+  const [anio, mes] = key.split('-').map(n => +n);
+  this.cargando = true;
+
+  this.expedienteService.getCobranzasDetallePorMes(anio, mes).subscribe({
+    next: (det: any[]) => {
+      const data = det || [];
+      this.detalleMesFilas = data.filter(r => (r?.numero ?? '') !== 'TOTAL GENERAL');
+      this.detalleMesTotal = data.find(r => r?.numero === 'TOTAL GENERAL') || null;
+      this.detalleMesTitulo = `${this.convertirMes(key)} / ${anio}`;
+
+      this.vista = 'detalleMes';
+      this.cargando = false;
+    },
+    error: (e) => {
+      console.error('[Cobranzas] Error detalle', e);
+      this.cargando = false;
+    }
+  });
+}
 
 }

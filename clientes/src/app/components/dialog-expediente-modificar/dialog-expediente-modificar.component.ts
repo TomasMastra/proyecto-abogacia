@@ -110,10 +110,16 @@ export class DialogExpedienteModificarComponent implements OnInit {
 
   // -------- autocompletes
   actoraClienteCtrl = new FormControl<string>('');
+  actoraEmpresaCtrl = new FormControl<string | DemandadoModel>('');
+
   demandadoClienteCtrl = new FormControl<string>('');
   filteredActoraClientes!: Observable<ClienteModel[]>;
-  filteredDemandadoClientes!: Observable<ClienteModel[]>;
+  filteredActoraEmpresas!: Observable<DemandadoModel[]>;
 
+  filteredDemandadoClientes!: Observable<ClienteModel[]>;
+  demandadoEmpresaCtrl = new FormControl<string | DemandadoModel>('');
+  filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
+  
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -152,13 +158,23 @@ export class DialogExpedienteModificarComponent implements OnInit {
     this.cargarUsuarios();
 
     // Autocomplete robusto: maneja string u objeto y resetea al enfocar/seleccionar
+    // Autocomplete robusto (clientes)
     this.filteredActoraClientes = this.actoraClienteCtrl.valueChanges.pipe(
       startWith(''),
-      map(v => this.filtrarClientes(this.textoDeCliente(v)))
+      map(v => this.filtrarClientes(v ?? ''))
     );
     this.filteredDemandadoClientes = this.demandadoClienteCtrl.valueChanges.pipe(
       startWith(''),
-      map(v => this.filtrarClientes(this.textoDeCliente(v)))
+      map(v => this.filtrarClientes(v ?? ''))
+    );
+
+    this.filteredActoraEmpresas = this.actoraEmpresaCtrl.valueChanges.pipe(
+      startWith(''),
+      map(v => this.filtrarEmpresas(v ?? ''))
+    );
+    this.filteredDemandadoEmpresas = this.demandadoEmpresaCtrl.valueChanges.pipe(
+      startWith(''),
+      map(v => this.filtrarEmpresas(v ?? ''))
     );
 
     // Traigo las partes del backend (si hay id)
@@ -288,6 +304,10 @@ export class DialogExpedienteModificarComponent implements OnInit {
   // ============================================================
   // acciones actora
   // ============================================================
+
+    private yaExiste(arr: any[], tipo: 'cliente'|'empresa', id: number): boolean {
+    return arr.some(x => x.tipo === tipo && Number(x.id) === Number(id));
+  }
   seleccionarActoraCliente(c: ClienteModel) {
     if (!c?.id) return;
     const ya = this.actorasAgregadas.find(x => x.tipo === 'cliente' && x.id === +c.id);
@@ -295,28 +315,19 @@ export class DialogExpedienteModificarComponent implements OnInit {
     this.actoraClienteCtrl.setValue(''); // limpia input
   }
   seleccionarActoraEmpresa(e: DemandadoModel) {
-    if (!e?.id) return;
-    const ya = this.actorasAgregadas.find(x => x.tipo === 'empresa' && x.id === +e.id);
-    if (!ya) this.actorasAgregadas.push({ tipo: 'empresa', id: +e.id, nombre: e.nombre! });
+    if (!e?.id) { Swal.fire('Empresa inválida'); return; }
+    const id = Number(e.id);
+    if (Number.isNaN(id)) { Swal.fire('ID empresa inválido'); return; }
+
+    if (!this.yaExiste(this.actorasAgregadas, 'empresa', id)) {
+      this.actorasAgregadas.push({ tipo: 'empresa', id, nombre: e.nombre ?? '' });
+    }
   }
   eliminarActora(a: ParteMixta) {
     this.actorasAgregadas = this.actorasAgregadas.filter(x => !(x.tipo === a.tipo && x.id === a.id));
   }
 
-  // ============================================================
-  // acciones demandado (MULTIPLE)
-  // ============================================================
-  seleccionarDemandadoCliente(c: ClienteModel) {
-    if (!c?.id) return;
-    const ya = this.demandadosAgregados.find(x => x.tipo === 'cliente' && x.id === +c.id);
-    if (!ya) this.demandadosAgregados.push({ tipo: 'cliente', id: +c.id, nombre: c.nombre!, apellido: c.apellido ?? '' });
-    this.demandadoClienteCtrl.setValue(''); // limpia input
-  }
-  seleccionarDemandadoEmpresa(e: DemandadoModel) {
-    if (!e?.id) return;
-    const ya = this.demandadosAgregados.find(x => x.tipo === 'empresa' && x.id === +e.id);
-    if (!ya) this.demandadosAgregados.push({ tipo: 'empresa', id: +e.id, nombre: e.nombre! });
-  }
+
   eliminarDemandado(d: ParteMixta) {
     this.demandadosAgregados = this.demandadosAgregados.filter(x => !(x.tipo === d.tipo && x.id === d.id));
   }
@@ -383,6 +394,7 @@ export class DialogExpedienteModificarComponent implements OnInit {
       fechaLiquidacionCapital: this.data.fechaLiquidacionCapital ?? null,
       montoLiquidacionCapital: this.data.montoLiquidacionCapital ?? null,
       capitalCobrado: this.data.capitalCobrado ?? null,
+      capitalPagoParcial: this.data.capitalPagoParcial ?? null,
 
       // Honorarios principal
       estadoHonorariosSeleccionado: this.data.estadoHonorariosSeleccionado ?? null,
@@ -433,4 +445,42 @@ export class DialogExpedienteModificarComponent implements OnInit {
   }
 
   closeDialog(): void { this.dialogRef.close(); }
+
+  private filtrarEmpresas(termLike: string | DemandadoModel): DemandadoModel[] {
+  const toText = (v: string | DemandadoModel) =>
+    typeof v === 'string' ? v : (v?.nombre ?? '');
+  const normalize = (s: string) =>
+    (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+  const term = normalize(toText(termLike));
+  if (!term) return this.demandados.slice();
+  return this.demandados.filter(e => normalize(e.nombre ?? '').includes(term));
+}
+
+  displayEmpresa = (e: DemandadoModel) => e ? (e.nombre ?? '') : '';
+
+// ========= DEMANDADOS (múltiples) =========
+  seleccionarDemandadoCliente(c: ClienteModel) {
+    if (!c?.id) { Swal.fire('Cliente inválido'); return; }
+    const id = Number(c.id);
+    if (Number.isNaN(id)) { Swal.fire('ID cliente inválido'); return; }
+
+    if (!this.yaExiste(this.demandadosAgregados, 'cliente', id)) {
+      this.demandadosAgregados.push({ tipo: 'cliente', id, nombre: c.nombre ?? '', apellido: c.apellido ?? '' });
+    }
+
+    // reset para volver a ver toda la lista
+    this.demandadoClienteCtrl.setValue('');
+  }
+
+  seleccionarDemandadoEmpresa(e: DemandadoModel) {
+    if (!e?.id) { Swal.fire('Empresa inválida'); return; }
+    const id = Number(e.id);
+    if (Number.isNaN(id)) { Swal.fire('ID empresa inválido'); return; }
+
+    if (!this.yaExiste(this.demandadosAgregados, 'empresa', id)) {
+      this.demandadosAgregados.push({ tipo: 'empresa', id, nombre: e.nombre ?? '' });
+    }
+  }
+
 }

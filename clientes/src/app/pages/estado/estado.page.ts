@@ -703,7 +703,8 @@ cambioTipoHonorarioExtra(valores: string[]) {
             honorarioDiferenciaCobrado: this.expediente?.honorarioDiferenciaCobrado ?? null,
             fechaCobroDiferencia: this.expediente?.fechaCobroDiferencia ?? null,
             capitalPagoParcial: this.expediente?.capitalPagoParcial,
-            recalcular_caratula: false
+            recalcular_caratula: false,
+            esPagoParcial: this.expediente?.esPagoParcial
 
           };
       

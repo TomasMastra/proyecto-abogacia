@@ -45,7 +45,8 @@
       </thead>
       <tbody>
         <ng-container *ngFor="let mes of mesesDisponibles">
-          <tr *ngIf="cobrosPorMes[mes]!.total > 0">
+<tr *ngIf="cobrosPorMes[mes]!.total > 0" (click)="verDetalleMes(mes)" style="cursor:pointer">
+
             <td>{{ convertirMes(mes) }} / {{ mes.split('-')[0] }}</td>
             <td><strong>${{ cobrosPorMes[mes].total | number:'1.0-0' }}</strong></td>
           </tr>
@@ -120,6 +121,57 @@
     </tbody>
   </table>
 </div>
+
+<!-- 4) DETALLE DEL MES (tu vista, con un mini ajuste) -->
+<div class="table-container" *ngIf="vista === 'detalleMes'">
+  <button mat-button class="menu-button" (click)="vista = 'cobranzas'">
+    <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+    <span style="color: #ffffff">Regresar</span>
+  </button>
+
+  <div class="header-with-btn">
+    <h3>Detalle {{ detalleMesTitulo }}</h3>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left">Expediente</th>
+        <th>Capital</th>
+        <th>Honorarios</th>
+        <th>Alzada</th>
+        <th>Ejecución</th>
+        <th>Diferencia</th>
+        <th><strong>Total</strong></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of detalleMesFilas">
+        <td style="text-align:left">{{ r.numero }}/{{ r.anio_expediente || '' }} {{r.caratula}}</td>
+        <td>${{ (r.Capital || 0)     | number:'1.2-2' }}</td>
+        <td>${{ (r.Honorarios || 0)  | number:'1.2-2' }}</td>
+        <td>${{ (r.Alzada || 0)      | number:'1.2-2' }}</td>
+        <td>${{ (r.Ejecucion || 0)   | number:'1.2-2' }}</td>
+        <td>${{ (r.Diferencia || 0)  | number:'1.2-2' }}</td>
+        <td><b>${{ (r.TotalExpediente || 0) | number:'1.2-2' }}</b></td>
+      </tr>
+
+      <tr *ngIf="detalleMesTotal" style="border-top:2px solid #ccc">
+        <td style="text-align:left"><b>TOTAL GENERAL</b></td>
+        <td><b>${{ (detalleMesTotal?.Capital || 0)      | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.Honorarios || 0)   | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.Alzada || 0)       | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.Ejecucion || 0)    | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.Diferencia || 0)   | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.TotalExpediente
+                     ?? detalleMesTotal?.totalGeneral
+                     ?? detalleMesTotal?.total
+                     ?? 0) | number:'1.2-2' }}</b></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
 
 
 </div>

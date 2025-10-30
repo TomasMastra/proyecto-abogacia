@@ -617,7 +617,7 @@ cambiarMenu(menu: string) {
             sala: this.sala,
             requiere_atencion: this.form.value.requiere_atencion,
             fecha_atencion: this.form.value.fecha_atencion ?? null,
-
+            esPagoParcial: this.expediente?.esPagoParcial,
             // Capital
             estadoCapitalSeleccionado: esSentencia ? this.estadoCapitalSeleccionado ?? null : null,
             subEstadoCapitalSeleccionado: esSentencia ? this.subEstadoCapitalSeleccionado ?? null : null,

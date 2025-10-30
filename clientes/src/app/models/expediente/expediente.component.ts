@@ -93,7 +93,7 @@ export interface ExpedienteModel {
     fechaCobroDiferencia: string | null;
 
     capitalPagoParcial: number | null;
-
+    esPagoParcial: boolean | null;
     caratula?: any;
     recalcular_caratula?: boolean;
 

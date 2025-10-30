@@ -340,7 +340,9 @@ filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
       procurador_id: this.procuradorSeleccionado?.id ?? null,
 
       actoras: this.actorasAgregadas,       // [{tipo, id, nombre, apellido?}]
-      demandados: this.demandadosAgregados  // [{tipo, id, nombre, apellido?}]
+      demandados: this.demandadosAgregados,  // [{tipo, id, nombre, apellido?}]
+      recalcular_caratula: true
+
     };
 
     this.dialogRef.close(expediente);

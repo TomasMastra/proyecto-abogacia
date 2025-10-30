@@ -606,5 +606,17 @@ getPartes(expedienteId: number) {
   );
 }
 
+// expedientes.service.ts
+getCobranzasMensuales(anio?: number) {
+  const params = anio ? { params: { anio: anio.toString() } } : {};
+  return this.http.get<any[]>(`${this.apiUrl}/cobranzas-mensuales`, params);
+}
+
+// (opcional para el click de un mes → detalle ya hecho antes)
+getCobranzasDetallePorMes(anio: number, mes: number) {
+  return this.http.get<any[]>(`${this.apiUrl}/cobranzas-detalle-por-mes`, {
+    params: { anio: anio.toString(), mes: mes.toString() }
+  });
+}
 
 }
