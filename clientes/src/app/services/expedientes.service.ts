@@ -84,6 +84,15 @@ const usuario = this.usuarioService.usuarioLogeado;
           next: (clientes) => { e.clientes = clientes ?? [];  },
           error: () => { /* ignore */ }
         });
+        
+          this.getJuzgadoPorId(e.juzgado_id).subscribe({
+          next: (juzgado) => {
+            e.juzgadoModel = juzgado ?? null;
+            
+          },
+          error: () => {  } 
+        });
+
         this.getDemandadosPorExpediente(e.id).subscribe({
           next: (demandados) => { e.demandados = demandados ?? [];  },
           error: () => { /* ignore */ }
@@ -176,6 +185,14 @@ getHonorarios() {
           error: () => { listo(); } // no bloquea
         });
 
+        this.getJuzgadoPorId(expediente.juzgado_id).subscribe({
+          next: (juzgado) => {
+            expediente.juzgadoModel = juzgado ?? null;
+            listo();
+          },
+          error: () => { listo(); } // no bloquea
+        });
+
         if (expediente.demandado_id) {
           this.getDemandadoPorId(expediente.demandado_id).subscribe({
             next: (dem) => {
@@ -216,7 +233,17 @@ getHonorarios() {
     
     return this.http.get<DemandadoModel>(url);
   }
-  
+
+    getJuzgadoPorId(id: number): Observable<DemandadoModel> {
+    if (id === undefined || id === null) {
+      console.error('ID de demandado no definido');
+    }
+
+    const url = `http://192.168.1.36:3000/juzgados/${id}`;
+    
+    return this.http.get<DemandadoModel>(url);
+  }
+
   getExpedientePorId(id: number): Observable<ExpedienteModel> {
   return this.http.get<ExpedienteModel>(`${this.apiUrl}/obtener/${id}`).pipe(
     switchMap(expediente => {
@@ -533,7 +560,6 @@ obtenerDemandadosPorMes(): Observable<{ [mes: string]: number }> {
   return this.http.get<{ [mes: string]: number }>(`${this.apiUrl}/expedientes/demandados-por-mes`);
 }
 
-// SOLO REEMPLAZÁ ESTE MÉTODO
 getExpedientesPorEstado(estado: string, texto?: string) {
   const paramsEstado: any = { estado };
 
@@ -560,10 +586,8 @@ getExpedientesPorEstado(estado: string, texto?: string) {
         let hits = 0;
         const esperadas = (expediente.demandado_id ? 3 : 2);
         const listo = () => {
-          hits++;
-          if (hits === esperadas) {
-            restantes--;
-            if (restantes === 0) this.expedientesSubject.next(lista);
+          if (++hits === esperadas) {
+            if (--restantes === 0) this.expedientesSubject.next(lista);
           }
         };
 
@@ -572,17 +596,25 @@ getExpedientesPorEstado(estado: string, texto?: string) {
           error: () => { listo(); }
         });
 
+          this.getJuzgadoPorId(expediente.juzgado_id).subscribe({
+          next: (juzgado) => {
+            expediente.juzgadoModel = juzgado ?? null;
+            listo();
+          },
+          error: () => { listo(); }
+        });
+
         this.getDemandadosPorExpediente(expediente.id).subscribe({
           next: (demandados) => { expediente.demandados = demandados ?? []; listo(); },
           error: () => { listo(); }
         });
 
-        if (expediente.demandado_id) {
+        /*if (expediente.demandado_id) {
           this.getDemandadoPorId(expediente.demandado_id).subscribe({
             next: (demandado) => { expediente.demandadoModel = demandado ?? null; listo(); },
             error: () => { listo(); }
           });
-        }
+        }*/
       });
     },
     (error) => {

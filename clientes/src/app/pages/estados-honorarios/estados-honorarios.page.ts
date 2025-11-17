@@ -668,7 +668,8 @@ cambiarMenu(menu: string) {
 
             honorarioDiferenciaCobrado: this.expediente?.honorarioDiferenciaCobrado ?? null,
             fechaCobroDiferencia: this.expediente?.fechaCobroDiferencia ?? null,
-            capitalPagoParcial: this.expediente?.capitalPagoParcial
+            capitalPagoParcial: this.expediente?.capitalPagoParcial,
+            codigo_id: this.expediente?.codigo_id
 
             
           };

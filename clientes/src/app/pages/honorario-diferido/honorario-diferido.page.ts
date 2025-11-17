@@ -65,6 +65,7 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
   valorUMA: number = 70709;
 
 estadoHonorarioSeleccionado: any;
+procuradorSeleccionado: string = '';
 estadosHonorarios: string[] = [
   'espera que vuelva',
   'honorario se intima',
@@ -94,11 +95,6 @@ estadosHonorarios: string[] = [
   'embargo citese de venta',
   'giro - consentido' // este es diferente de 'giro - consiente'
 ];
-
-
-
-
-
 
   constructor(
     private expedienteService: ExpedientesService,
@@ -136,7 +132,8 @@ estadosHonorarios: string[] = [
           this.cargando = false;
         }
       );
-  }
+    }
+  
   
   cargarPorEstado(estado: string) {
     this.cargando = true;
@@ -149,11 +146,11 @@ estadosHonorarios: string[] = [
           this.hayHonorarios = this.honorariosDiferidos.length > 0;
           this.honorariosOriginales = honorarios!
   
-          this.honorariosDiferidos.forEach(expediente => {
+         /* this.honorariosDiferidos.forEach(expediente => {
             this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
               expediente.juzgadoModel = juzgado;
             });
-          });
+          });*/
   
           //this.busqueda = '';
         this.ordenarPor('giro');
@@ -206,6 +203,7 @@ cambiarEstado(event: Event) {
   }
 }
 
+
 get honorariosDiferidosOrdenados() {
   return [...this.honorariosDiferidos].sort((a, b) => {
     const campo = this.ordenCampo;
@@ -217,6 +215,7 @@ get honorariosDiferidosOrdenados() {
     if (valorA > valorB) return this.ordenAscendente ? 1 : -1;
     return 0;
   });
+   return [];
 }
 
 ordenarPor(campo: string) {
@@ -246,7 +245,6 @@ case 'caratula':
       const prioridad = (estado: string | null | undefined, fecha: string | null | undefined) =>
         estado?.toLowerCase() === 'giro' && !fecha ? '0' : '1' + (estado?.toLowerCase() || '');
 
-      // Chequea prioridad en orden: honorarios, capital, alzada, ejecución, diferencia
       const prioridades = [
         prioridad(item.subEstadoHonorariosSeleccionado, item.fecha_cobro),
         prioridad(item.subEstadoCapitalSeleccionado, item.fecha_cobro_capital),
@@ -677,11 +675,13 @@ filtrar() {
     return estadoCoincide && busquedaOk;
   });
 }*/
+
 filtrar() {
   const texto = (this.busqueda || '').toLowerCase().trim();
 
   this.honorariosDiferidos = this.honorariosOriginales.filter((expediente: any) => {
     const estadoBuscado = this.estadoHonorarioSeleccionado?.toLowerCase();
+    const procuradorOk  = this.procuradorSeleccionado ? expediente.procurador_id === +this.procuradorSeleccionado : true;
 
     const coincideEstado = (estado: string | null | undefined, fechaCobro: string | null | undefined) => {
       return estado?.toLowerCase() === estadoBuscado && (!fechaCobro || `${fechaCobro}`.trim() === '');
@@ -737,7 +737,7 @@ filtrar() {
 
     const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
 
-    return estadoCoincide && busquedaOk;
+    return estadoCoincide && busquedaOk && procuradorOk;
   });
 }
 
@@ -746,47 +746,48 @@ filtrar() {
 
 
 tieneEstadoGiroPorTipo(item: any, tipo: string): boolean {
-  const revisar = (estado: string | undefined) =>
-    estado?.toLowerCase() === 'giro';
+  const revisar = (estado?: string) => (estado ?? '').toLowerCase() === 'giro';
 
-  if (this.estado !== 'sentencia') {
-    return false;
-  }
-    switch (tipo) {
+  if (this.estado !== 'sentencia') return false;
+
+  switch (tipo) {
     case 'capital':
       return (
         !item.capitalCobrado &&
-        (revisar(item.subEstadoCapitalSeleccionado) || revisar(item.estadoLiquidacionCapitalSeleccionado))
+        (revisar(item.subEstadoCapitalSeleccionado) ||
+         revisar(item.estadoLiquidacionCapitalSeleccionado))
       );
 
     case 'honorarios':
       return (
         !item.honorarioCobrado &&
-        (revisar(item.subEstadoHonorariosSeleccionado) || revisar(item.estadoLiquidacionHonorariosSeleccionado))
+        (revisar(item.subEstadoHonorariosSeleccionado) ||
+         revisar(item.estadoLiquidacionHonorariosSeleccionado))
       );
 
     case 'alzada':
       return (
-        !item.alzadaCobrado &&
-        revisar(item.subEstadoAlzadaSeleccionado)
+        !item.honorarioAlzadaCobrado &&
+        revisar(item.subEstadoHonorariosAlzadaSeleccionado)
       );
 
     case 'ejecucion':
       return (
-        !item.ejecucionCobrado &&
-        revisar(item.subEstadoEjecucionSeleccionado)
+        !item.honorarioEjecucionCobrado &&
+        revisar(item.subEstadoHonorariosEjecucionSeleccionado)
       );
 
     case 'diferencia':
       return (
-        !item.diferenciaCobrado &&
-        revisar(item.subEstadoDiferenciaSeleccionado)
+        !item.honorarioDiferenciaCobrado &&
+        revisar(item.subEstadoHonorariosDiferenciaSeleccionado)
       );
 
     default:
       return false;
   }
 }
+
 
 
 

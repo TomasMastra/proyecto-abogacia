@@ -20,12 +20,14 @@ import { DemandadosService } from 'src/app/services/demandado.service';
 import { JuzgadosService } from 'src/app/services/juzgados.service';
 import { JuezService } from 'src/app/services/juez.service';
 import { UsuarioService } from 'src/app/services/usuario.service';
+import { CodigosService } from 'src/app/services/codigos.service';
 
 import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 import { DemandadoModel } from 'src/app/models/demandado/demandado.component';
 import { JuzgadoModel } from 'src/app/models/juzgado/juzgado.component';
 import { JuezModel } from 'src/app/models/juez/juez.component';
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
+import { CodigoModel } from 'src/app/models/codigo/codigo.component';
 
 @Component({
   selector: 'app-dialog-expediente',
@@ -54,6 +56,9 @@ export class DialogExpedienteComponent {
   juzgadosOriginales: JuzgadoModel[] = [];
   jueces: JuezModel[] = [];
   listaUsuarios: UsuarioModel[] = [];
+  codigos: CodigoModel[] = [];
+  codigosOriginales: CodigoModel[] = [];
+
 
   // múltiples
   actorasAgregadas: Array<{tipo: 'cliente'|'empresa'; id: number; nombre: string; apellido?: string | null}> = [];
@@ -66,10 +71,10 @@ export class DialogExpedienteComponent {
   filteredDemandadoClientes!: Observable<ClienteModel[]>;
 
   actoraEmpresaCtrl = new FormControl<string | DemandadoModel>('');
-filteredActoraEmpresas!: Observable<DemandadoModel[]>;
+  filteredActoraEmpresas!: Observable<DemandadoModel[]>;
 
-demandadoEmpresaCtrl = new FormControl<string | DemandadoModel>('');
-filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
+  demandadoEmpresaCtrl = new FormControl<string | DemandadoModel>('');
+  filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
 
 
   mensajeSelectJuzgado = 'Filtrar juzgado';
@@ -84,6 +89,7 @@ filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
   abogadoSeleccionado: any = null;
   procuradorSeleccionado: any = null;
   juezSeleccionado: any = null;
+  codigoSeleccionado: any = null;
 
   constructor(
     private clienteService: ClientesService,
@@ -91,6 +97,7 @@ filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
     private juzgadoService: JuzgadosService,
     private juezService: JuezService,
     private usuarioService: UsuarioService,
+    private codigoService: CodigosService,
     public dialogRef: MatDialogRef<DialogExpedienteComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {
@@ -110,6 +117,7 @@ filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
       juez: new FormControl(null),
 
       honorario: new FormControl(''),
+      codigo: new FormControl<number|null>(null),
 
       // ACTORA (mixta)
       actoraTipo: new FormControl<'cliente'|'empresa'>('cliente', Validators.required),
@@ -167,6 +175,9 @@ filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
       this.juzgados = [...this.juzgadosOriginales];
     });
     this.juezService.getJuez().subscribe(j => { this.jueces = j || []; });
+    this.codigoService.getCodigos().subscribe(j => { this.codigos = j || []; });
+
+
     this.usuarioService.getUsuarios().subscribe(u => {
       this.listaUsuarios = u || [];
       this.abogadoSeleccionado = this.listaUsuarios.find(x => x.id === this.usuarioService.usuarioLogeado?.id) || null;
@@ -341,7 +352,8 @@ filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
 
       actoras: this.actorasAgregadas,       // [{tipo, id, nombre, apellido?}]
       demandados: this.demandadosAgregados,  // [{tipo, id, nombre, apellido?}]
-      recalcular_caratula: true
+      recalcular_caratula: true,
+      codigo_id: this.codigoSeleccionado?.id ?? null
 
     };
 
@@ -361,5 +373,27 @@ filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
 
 displayEmpresa = (e: DemandadoModel) => e ? (e.nombre ?? '') : '';
 
+cambiarTipoCodigo() {
 
+  const tipo = this.form.get('tipo')?.value;
+
+  if (!tipo || tipo === 'todos') {
+    this.codigos = [...this.codigosOriginales];
+    return;
+  }
+
+  if (tipo === 'COM') {
+    // Solo las comerciales
+    this.codigos = this.codigosOriginales.filter(j => 
+      j.tipo?.toLowerCase() === 'comercial'
+    );
+  } else {
+    // Todo menos las comerciales
+    this.codigos = this.codigosOriginales.filter(j => 
+      j.tipo?.toLowerCase() !== 'comercial'
+    );
+  }
+
+
+}
 }

@@ -58,7 +58,7 @@
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label style="color:black">{{ mensajeSelectJuzgado }}</mat-label>
-        <mat-select style="color:black" formControlName="tipo" (selectionChange)="cambiarTipoJuzgado()">
+        <mat-select style="color:black" formControlName="tipo" (selectionChange)="cambiarTipoJuzgado(); cambiarTipoCodigo()">
           <mat-option *ngFor="let tipo of tipos" [value]="tipo">{{ tipo }}</mat-option>
         </mat-select>
         <mat-error *ngIf="form.get('tipo')?.invalid && form.get('tipo')?.touched">
@@ -75,6 +75,24 @@
           <span *ngIf="form.controls?.['juzgado']?.errors?.['required']" style="color:red">El juzgado es requerido</span>
         </mat-error>
       </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label style="color:black">Dodigo</mat-label>
+                <mat-select style="color:black"
+                            formControlName="codigo"
+                            [(ngModel)]="codigoSeleccionado">
+                  <mat-option *ngFor="let j of codigos" [value]="j">
+                    {{ j.codigo }} - {{ j.descripcion }}
+                  </mat-option>
+                </mat-select>
+                <mat-error *ngIf="form.controls?.['codigo']?.invalid && (form.controls?.['codigo']?.dirty || form.controls?.['codigo']?.touched)">
+                  <span *ngIf="form.controls?.['codigo']?.errors?.['required']" style="color:red">
+                    El codigo es requerida
+                  </span>
+                </mat-error>
+              </mat-form-field>
+
+
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label style="color:black">Abogado</mat-label>

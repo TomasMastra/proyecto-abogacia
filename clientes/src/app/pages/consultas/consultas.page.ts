@@ -209,11 +209,11 @@ cargarExpedientes() {
           this.expedientes = honorarios!;
           this.hayExpedientes = this.expedientes.length > 0;
   
-          this.expedientes.forEach(expediente => {
+        /*  this.expedientes.forEach(expediente => {
             this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
               expediente.juzgadoModel = juzgado;
             });
-          });
+          });*/
   
           this.busqueda = '';
           this.cargando = false;
@@ -369,6 +369,7 @@ filtrar() {
     return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && estadoOk && busquedaOk;
   });
 }*/
+
 filtrar() {
   const texto = (this.busqueda || '').toLowerCase().trim();
   const textoNorm = (this.busqueda || '')

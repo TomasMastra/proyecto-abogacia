@@ -97,6 +97,8 @@ export interface ExpedienteModel {
     caratula?: any;
     recalcular_caratula?: boolean;
 
+    codigo_id: number;
+
 
 
   }

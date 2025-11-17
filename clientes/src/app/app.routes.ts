@@ -1,10 +1,13 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './guards/auth.guard';
+import { LoginRedirectGuard } from './guards/login-redirect.guard';
 
 export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('./pages/login/login.page').then((m) => m.LoginPage),
+    canActivate: [LoginRedirectGuard]
+
   },
   /*{
     path: '',
@@ -98,5 +101,13 @@ export const routes: Routes = [
   {
     path: 'datos-importantes',
     loadComponent: () => import('./pages/datos-importantes/datos-importantes.page').then( m => m.DatosImportantesPage)
+  },
+  {
+    path: 'codigos',
+    loadComponent: () => import('./pages/codigos/codigos.page').then( m => m.CodigosPage)
+  },
+  {
+    path: 'jurisprudencias',
+    loadComponent: () => import('./pages/jurisprudencias/jurisprudencias.page').then( m => m.JurisprudenciasPage)
   }
 ];

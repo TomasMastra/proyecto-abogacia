@@ -21,9 +21,12 @@ import { DemandadoModel } from 'src/app/models/demandado/demandado.component';
 import { ClientesService } from 'src/app/services/clientes.service';
 import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 import { JuzgadosService } from 'src/app/services/juzgados.service';
+import { CodigosService } from 'src/app/services/codigos.service';
+
 import { JuzgadoModel } from 'src/app/models/juzgado/juzgado.component';
 import { UsuarioService } from 'src/app/services/usuario.service';
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
+import { CodigoModel } from 'src/app/models/codigo/codigo.component';
 
 import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
@@ -32,6 +35,7 @@ import Swal from 'sweetalert2';
 type ParteMixta =
   | { tipo: 'empresa'; id: number; nombre: string }
   | { tipo: 'cliente'; id: number; nombre: string; apellido?: string | null };
+
 
 @Component({
   selector: 'app-dialog-expediente-modificar',
@@ -53,6 +57,8 @@ type ParteMixta =
     MatAutocompleteModule
   ]
 })
+
+
 export class DialogExpedienteModificarComponent implements OnInit {
   // -------- form
   protected form: FormGroup = new FormGroup({
@@ -66,6 +72,7 @@ export class DialogExpedienteModificarComponent implements OnInit {
     juzgado: new FormControl('', [Validators.required]),
     abogado: new FormControl('', [Validators.required]),
     procurador: new FormControl('', [Validators.required]),
+    codigo: new FormControl<number|null>(null), // ← NUEVO
 
     // mixto
     actoraTipo: new FormControl<'cliente'|'empresa'>('cliente', [Validators.required]),
@@ -80,6 +87,8 @@ export class DialogExpedienteModificarComponent implements OnInit {
   demandados: DemandadoModel[] = [];  // empresas
   clientes: ClienteModel[]   = [];
   listaUsuarios: UsuarioModel[] = [];
+  codigos: CodigoModel[] = [];
+  codigosOriginales: CodigoModel[] = [];
 
   actorasAgregadas: ParteMixta[] = [];
   demandadosAgregados: ParteMixta[] = [];
@@ -87,6 +96,7 @@ export class DialogExpedienteModificarComponent implements OnInit {
   abogadoSeleccionado: UsuarioModel | null = null;
   procuradorSeleccionado: UsuarioModel | null = null;
   juzgadoElegido: JuzgadoModel | null = null;
+  codigoSeleccionado: any = null;
 
   tipos = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
   estados = [
@@ -119,7 +129,8 @@ export class DialogExpedienteModificarComponent implements OnInit {
   filteredDemandadoClientes!: Observable<ClienteModel[]>;
   demandadoEmpresaCtrl = new FormControl<string | DemandadoModel>('');
   filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
-  
+  codigosFiltradas: any[] = [];
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -128,6 +139,7 @@ export class DialogExpedienteModificarComponent implements OnInit {
     private demandadoService: DemandadosService,
     private clienteService: ClientesService,
     private expedienteService: ExpedientesService,
+    private codigosService: CodigosService,
 
     public dialogRef: MatDialogRef<DialogExpedienteModificarComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ExpedienteModel
@@ -156,6 +168,7 @@ export class DialogExpedienteModificarComponent implements OnInit {
     this.cargarDemandados();
     this.cargarClientes();
     this.cargarUsuarios();
+    this.cargarCodigos();
 
     // Autocomplete robusto: maneja string u objeto y resetea al enfocar/seleccionar
     // Autocomplete robusto (clientes)
@@ -345,7 +358,6 @@ export class DialogExpedienteModificarComponent implements OnInit {
       Swal.fire({ icon: 'warning', title: 'Faltan datos obligatorios' });
       return;
     }
-
     const expediente = {
       id: this.data?.id,
       numero: this.form.value.numero,
@@ -438,7 +450,9 @@ export class DialogExpedienteModificarComponent implements OnInit {
       montoHonorariosDiferencia: this.data.montoHonorariosDiferencia ?? null,
       honorarioDiferenciaCobrado: this.data.honorarioDiferenciaCobrado ?? false,
       fechaCobroDiferencia: this.data.fechaCobroDiferencia ?? null,
-      recalcular_caratula: true
+      recalcular_caratula: true,
+      codigo_id: this.codigoSeleccionado?.id ?? null
+
     };
 
     this.dialogRef.close(expediente);
@@ -482,5 +496,43 @@ export class DialogExpedienteModificarComponent implements OnInit {
       this.demandadosAgregados.push({ tipo: 'empresa', id, nombre: e.nombre ?? '' });
     }
   }
+
+  cargarCodigos() {
+    this.codigosService.getCodigos()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(codigos => {
+        this.codigosOriginales = codigos || [];
+        this.codigos = [...this.codigosOriginales];
+        if (this.data?.codigo_id) {
+          const j = this.codigos.find(x => +x.id === +this.data.codigo_id!);
+          if (j) { this.form.get('codigo')?.setValue(j); this.codigoSeleccionado = j; }
+        }
+      });
+  }
+
+cambiarTipoCodigo() {
+
+  const tipo = this.form.get('tipo')?.value;
+
+  if (!tipo || tipo === 'todos') {
+    this.codigos = [...this.codigosOriginales];
+    return;
+  }
+
+  if (tipo === 'COM') {
+    // Solo las comerciales
+    this.codigos = this.codigosOriginales.filter(j => 
+      j.tipo?.toLowerCase() === 'comercial'
+    );
+  } else {
+    // Todo menos las comerciales
+    this.codigos = this.codigosOriginales.filter(j => 
+      j.tipo?.toLowerCase() !== 'comercial'
+    );
+  }
+
+
+}
+
 
 }

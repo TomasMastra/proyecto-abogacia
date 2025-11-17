@@ -186,7 +186,7 @@
               </mat-select>
             </mat-form-field>
 
-                  <ion-input *ngIf="umaSeleccionado == 'acuerdo'"
+              <ion-input *ngIf="umaSeleccionado == 'acuerdo' && expediente.honorarioCobrado == 0"
                 placeholder="Monto" 
                 formControlName="montoAcuerdo"
                 class="input-busqueda"
@@ -200,8 +200,8 @@
             
             
               <!-- Monto calculado -->
-               <h2 *ngIf="expediente.honorarioCobrado == 0">
-                MONTO: ${{ montoUMA | number:'1.0-0' }}
+               <h2 >
+                MONTO HONORARIO: ${{ montoUMA | number:'1.0-0' }}
               </h2> 
         
         <!-- Campo de fecha de sentencia -->

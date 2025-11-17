@@ -1,10 +1,13 @@
 const express = require("express");
 const sql = require("mssql");
 const cors = require("cors");
+const argon2 = require("argon2"); // <-- usamos Argon2
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+
 
 // Configuración de la conexión a SQL Server con autenticación SQL
 const dbConfig = {
@@ -50,7 +53,7 @@ sql.connect(dbConfig)
                     res.status(500).send(err);  // En caso de error, devuelve 500
                 });
         });
-// VER
+/*
   app.post('/login', async (req, res) => {
   const { email, contraseña } = req.body;
 
@@ -72,17 +75,17 @@ sql.connect(dbConfig)
     const usuario = result.recordset[0];
 
     // Podés devolver solo lo que necesites (sin contraseña)
-res.status(200).json({
-  message: 'Login exitoso',
-  usuario: {
-    id: usuario.id,
-    nombre: usuario.nombre,
-    email: usuario.email,
-    rol: usuario.rol,
-    estado: usuario.estado,
-    fecha_creacion: usuario.fecha_creacion
-  }
-});
+    res.status(200).json({
+      message: 'Login exitoso',
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+        estado: usuario.estado,
+        fecha_creacion: usuario.fecha_creacion
+      }
+    });
 
 
 
@@ -91,9 +94,93 @@ res.status(200).json({
     console.error('Error al iniciar sesión:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
+});*/
+
+
+app.post('/login', async (req, res) => {
+  const { email, contraseña } = req.body;
+
+  try {
+    const result = await pool.request()
+      .input('email', sql.NVarChar, email)
+      .query(`
+        SELECT TOP 1 
+          id,
+          nombre,
+          email,
+          rol,
+          estado,
+          fecha_creacion,
+          password_hash
+        FROM usuario 
+        WHERE email = @email 
+          AND estado = 'activo'
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+    }
+
+    const usuario = result.recordset[0];
+
+    if (!usuario.password_hash || !usuario.password_hash.startsWith('$argon2')) {
+      console.error('Usuario sin hash Argon2 configurado. ID:', usuario.id);
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+    }
+
+    let esValida = false;
+
+    try {
+      esValida = await argon2.verify(usuario.password_hash, contraseña);
+    } catch (err) {
+      console.error('Error verificando hash Argon2:', err);
+      return res.status(500).json({ error: 'Error al verificar la contraseña' });
+    }
+
+    if (!esValida) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+    }
+
+    // Nunca mandamos el hash al frontend
+    delete usuario.password_hash;
+
+    res.status(200).json({
+      message: 'Login exitoso',
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        email: usuario.email,
+        rol: usuario.rol,
+        estado: usuario.estado,
+        fecha_creacion: usuario.fecha_creacion
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al iniciar sesión:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
 });
 
+async function hashPassword(plainPassword) {
+  return await argon2.hash(plainPassword, {
+    type: argon2.argon2id,
+    memoryCost: 19456, // m=19456
+    timeCost: 3,       // t=3
+    parallelism: 1,    // p=1
+  });
+}
 
+async function verifyPassword(storedHash, plainPassword) {
+  try {
+    // Node puede verificar directamente el hash estilo:
+    // $argon2id$v=19$m=19456,t=3,p=1$...
+    return await argon2.verify(storedHash, plainPassword);
+  } catch (e) {
+    console.error("Error verificando password Argon2:", e);
+    return false;
+  }
+}
         // Ruta para obtener clientes
 app.get("/clientes", (req, res) => {
   const usuario_id = parseInt(req.query.usuario_id);
@@ -332,93 +419,7 @@ app.get('/expedientes/demandadosPorExpediente/:id_expediente', async (req, res) 
 });
 
 
-/*** ============================================================
- *  HELPER: recalcular y guardar carátula de un expediente
- *  Formato: "<Primer Cliente> [y otros] contra <Demandado>"
- *  (Si no hay clientes: "(sin actora) contra <Demandado>")
- *  ============================================================ */
-/*async function recalcularCaratula(pool, expedienteId) {
-  // === ACTORAS (clientes_expedientes) ===
-  const rsAct = await pool.request()
-    .input('id', sql.Int, expedienteId)
-    .query(`
-      SELECT ce.tipo,
-             cli.nombre  AS c_nombre,  cli.apellido AS c_apellido,
-             emp.nombre  AS e_nombre
-      FROM clientes_expedientes ce
-      LEFT JOIN clientes   cli ON cli.id = ce.id_cliente
-      LEFT JOIN demandados emp ON emp.id = ce.id_empresa
-      WHERE ce.id_expediente = @id
-      ORDER BY ce.id ASC
-    `);
-
-  const actoras = rsAct.recordset.map(r => {
-    if ((r.tipo || '').toLowerCase() === 'cliente') {
-      const nombre = (r.c_nombre || '').trim();
-      const ape    = (r.c_apellido || '').trim();
-      return (nombre || ape) ? `${nombre} ${ape}`.trim() : 'Cliente';
-    } else {
-      return (r.e_nombre || '').trim() || 'Empresa';
-    }
-  });
-
-  let actoraStr = '(sin actora)';
-  if (actoras.length === 1) actoraStr = actoras[0];
-  else if (actoras.length > 1) actoraStr = `${actoras[0]} y otros`;
-
-  // === DEMANDADOS (expedientes_demandados) ===
-  const rsDem = await pool.request()
-    .input('id', sql.Int, expedienteId)
-    .query(`
-      SELECT ed.tipo,
-             cli.nombre  AS c_nombre,  cli.apellido AS c_apellido,
-             emp.nombre  AS e_nombre
-      FROM expedientes_demandados ed
-      LEFT JOIN clientes   cli ON cli.id = ed.id_cliente
-      LEFT JOIN demandados emp ON emp.id = ed.id_demandado
-      WHERE ed.id_expediente = @id
-      ORDER BY ed.id ASC
-    `);
-
-  const demandados = rsDem.recordset.map(r => {
-    if ((r.tipo || '').toLowerCase() === 'cliente') {
-      const nombre = (r.c_nombre || '').trim();
-      const ape    = (r.c_apellido || '').trim();
-      return (nombre || ape) ? `${nombre} ${ape}`.trim() : 'Cliente';
-    } else {
-      return (r.e_nombre || '').trim() || 'Empresa';
-    }
-  });
-
-  let demandadoStr = '(sin demandado)';
-  if (demandados.length === 1) demandadoStr = demandados[0];
-  else if (demandados.length > 1) demandadoStr = `${demandados[0]} y otros`;
-
-  // === Juicio para el "s/ ..." (opcional) ===
-  const rsExp = await pool.request()
-    .input('id', sql.Int, expedienteId)
-    .query(`SELECT juicio, ISNULL(NULLIF(LTRIM(RTRIM(titulo)), ''), NULL) AS titulo FROM expedientes WHERE id = @id`);
-
-  const juicio = (rsExp.recordset[0]?.juicio || '').toString().trim();
-  const caratula = juicio ? `${actoraStr} c/ ${demandadoStr} s/ ${juicio}` : `${actoraStr} c/ ${demandadoStr}`;
-
-  // === Guardar carátula y (si corresponde) también título ===
-  const tituloActual = rsExp.recordset[0]?.titulo || null;
-  const tituloNuevo  = tituloActual ?? caratula; // si estaba null/vacío, lo seteamos igual a carátula
-
-  await pool.request()
-    .input('id', sql.Int, expedienteId)
-    .input('caratula', sql.NVarChar, caratula)
-    .input('titulo', sql.NVarChar, tituloNuevo)
-    .query(`
-      UPDATE expedientes
-         SET caratula = @caratula,
-             titulo   = @titulo
-       WHERE id = @id
-    `);
-
-  return caratula;
-}*/
+/*
 async function recalcularCaratula(pool, expedienteId) {
   // === ACTORAS (clientes_expedientes) ===
   const rsAct = await pool.request()
@@ -516,7 +517,111 @@ async function recalcularCaratula(pool, expedienteId) {
 
   console.log(`Carátula recalculada: ${caratula}`);
   return caratula;
+}*/
+
+async function recalcularCaratula(pool, expedienteId) {
+  // === ACTORAS (clientes_expedientes) ===
+  const rsAct = await pool.request()
+    .input('id', sql.Int, expedienteId)
+    .query(`
+      SELECT ce.id, ce.tipo,
+             cli.nombre  AS c_nombre, cli.apellido AS c_apellido,
+             emp.nombre  AS e_nombre
+      FROM clientes_expedientes ce
+      LEFT JOIN clientes   cli ON cli.id = ce.id_cliente
+      LEFT JOIN demandados emp ON emp.id = ce.id_empresa
+      WHERE ce.id_expediente = @id
+      ORDER BY ce.id ASC
+    `);
+
+  const actoras = rsAct.recordset.map(r => {
+    const tipo = (r.tipo || '').toLowerCase();
+    if (tipo === 'cliente') {
+      const nombre = (r.c_nombre || '').trim();
+      const apellido = (r.c_apellido || '').trim();
+      return (nombre || apellido) ? `${nombre} ${apellido}`.trim() : 'Cliente';
+    } else if (tipo === 'empresa') {
+      return (r.e_nombre || '').trim() || 'Empresa';
+    }
+    return '(sin actora)';
+  }).filter(Boolean);
+
+  let actoraStr = '(sin actora)';
+  if (actoras.length === 1) actoraStr = actoras[0];
+  else if (actoras.length > 1) actoraStr = `${actoras[0]} y otros`;
+
+  // === DEMANDADOS (expedientes_demandados) ===
+  const rsDem = await pool.request()
+    .input('id', sql.Int, expedienteId)
+    .query(`
+      SELECT ed.id, ed.tipo,
+             cli.nombre  AS c_nombre, cli.apellido AS c_apellido,
+             emp.nombre  AS e_nombre
+      FROM expedientes_demandados ed
+      LEFT JOIN clientes   cli ON cli.id = ed.id_cliente
+      LEFT JOIN demandados emp ON emp.id = ed.id_demandado
+      WHERE ed.id_expediente = @id
+      ORDER BY ed.id ASC
+    `);
+
+  const demandados = rsDem.recordset.map(r => {
+    const tipo = (r.tipo || '').toLowerCase();
+    if (tipo === 'cliente') {
+      const nombre = (r.c_nombre || '').trim();
+      const apellido = (r.c_apellido || '').trim();
+      return (nombre || apellido) ? `${nombre} ${apellido}`.trim() : 'Cliente';
+    } else if (tipo === 'empresa') {
+      return (r.e_nombre || '').trim() || 'Empresa';
+    }
+    return '(sin demandado)';
+  }).filter(Boolean);
+
+  let demandadoStr = '(sin demandado)';
+  if (demandados.length === 1) demandadoStr = demandados[0];
+  else if (demandados.length > 1) demandadoStr = `${demandados[0]} y otros`;
+
+  // === Materia: prioridad descripción de codigo > juicio ===
+  const rsExp = await pool.request()
+    .input('id', sql.Int, expedienteId)
+    .query(`
+      SELECT 
+        e.juicio,
+        e.titulo,
+        j.descripcion AS codigo_descripcion,
+        COALESCE(NULLIF(LTRIM(RTRIM(j.descripcion)), ''), NULLIF(LTRIM(RTRIM(e.juicio)), '')) AS materia
+      FROM expedientes e
+      LEFT JOIN dbo.codigos j
+             ON j.id = e.codigo_id
+      WHERE e.id = @id
+    `);
+
+  const row = rsExp.recordset[0] || {};
+  const materia = (row.materia || '').toString().trim();
+  const tituloActual = row.titulo ? row.titulo.toString().trim() : null;
+
+  // Carátula final: "Actora c/ Demandado s/ Materia"
+  const caratula = materia
+    ? `${actoraStr} c/ ${demandadoStr} s/ ${materia}`
+    : `${actoraStr} c/ ${demandadoStr}`;
+
+  const tituloNuevo = tituloActual ?? caratula;
+
+  // === Actualización ===
+  await pool.request()
+    .input('id', sql.Int, expedienteId)
+    .input('caratula', sql.NVarChar, caratula)
+    .input('titulo', sql.NVarChar, tituloNuevo)
+    .query(`
+      UPDATE expedientes
+         SET caratula = @caratula,
+             titulo   = @titulo
+       WHERE id = @id
+    `);
+
+  console.log(`Carátula recalculada: ${caratula}`);
+  return caratula;
 }
+
 
 
 
@@ -677,7 +782,7 @@ app.post('/expedientes/agregar', async (req, res) => {
     usuario_id, estado, honorario, monto, ultimo_movimiento,
     fecha_inicio, juez_id, juicio, requiere_atencion, fecha_sentencia,
     numeroCliente, minutosSinLuz, periodoCorte,
-    actoras, demandados, porcentaje, procurador_id
+    actoras, demandados, porcentaje, procurador_id, codigo_id
   } = req.body;
 
   if (!numero || !anio || !juzgado_id) {
@@ -739,13 +844,15 @@ app.post('/expedientes/agregar', async (req, res) => {
       .input('porcentaje', sql.Float, porcentaje ?? null)
       .input('procurador_id', sql.Int, procurador_id ?? null)
       .input('requiere_atencion', sql.Bit, !!requiere_atencion)
+      .input('codigo_id', sql.Int, codigo_id ?? null)
+
       .query(`
         INSERT INTO expedientes (
           titulo, descripcion, numero, anio, demandado_id, juzgado_id,
           fecha_creacion, estado, fecha_inicio, honorario,
           juez_id, juicio, fecha_sentencia, ultimo_movimiento,
           monto, usuario_id, numeroCliente, minutosSinLuz, periodoCorte,
-          porcentaje, procurador_id, requiere_atencion
+          porcentaje, procurador_id, requiere_atencion, codigo_id
         )
         OUTPUT INSERTED.id
         VALUES (
@@ -753,7 +860,7 @@ app.post('/expedientes/agregar', async (req, res) => {
           GETDATE(), @estado, @fecha_inicio, @honorario,
           @juez_id, @juicio, @fecha_sentencia, @fecha_inicio,
           @monto, @usuario_id, @numeroCliente, @minutosSinLuz, @periodoCorte,
-          @porcentaje, @procurador_id, @requiere_atencion
+          @porcentaje, @procurador_id, @requiere_atencion, @codigo_id
         )
       `);
 
@@ -1185,7 +1292,7 @@ app.put('/expedientes/modificar/:id', async (req, res) => {
     // =========================
     // Update del expediente (SE MANTIENEN TODOS TUS INPUTS)
     // =========================
-    console.log(nuevosDatos.capitalPagoParcial);
+console.log(`Honorario actualizado: monto=${nuevosDatos.montoLiquidacionHonorarios}, porcentaje=${nuevosDatos.porcentaje}, usuario=${nuevosDatos.usuario_id}`);
     const resultado = await pool.request()
       .input('id', sql.Int, id)
       .input('titulo', sql.NVarChar, nuevosDatos.titulo)
@@ -1260,6 +1367,7 @@ app.put('/expedientes/modificar/:id', async (req, res) => {
       .input('fechaCobroDiferencia', sql.DateTime, nuevosDatos.fechaCobroDiferencia ?? null)
       .input('capitalPagoParcial', sql.Float, nuevosDatos.capitalPagoParcial ?? null)
       .input('esPagoParcial', sql.Bit, nuevosDatos.esPagoParcial ?? false)
+      .input('codigo_id', sql.Int, nuevosDatos.codigo_id)
 
       .query(`
         UPDATE expedientes
@@ -1336,7 +1444,8 @@ app.put('/expedientes/modificar/:id', async (req, res) => {
           fechaCobroDiferencia = @fechaCobroDiferencia,
 
           capitalPagoParcial = @capitalPagoParcial,
-          esPagoParcial = @esPagoParcial
+          esPagoParcial = @esPagoParcial,
+          codigo_id = @codigo_id
 
         WHERE id = @id
       `);
@@ -2949,7 +3058,7 @@ app.put('/oficios/modificar/:id', async (req, res) => {
 // ==========================================================
 // GET /expedientes/total-cobranzas-por-mes?anio=YYYY&mes=MM
 // ==========================================================
-app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
+/*app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const { anio, mes } = req.query;
   if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
 
@@ -3022,8 +3131,106 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
     console.error("Error al obtener total de cobranzas por mes:", error);
     res.status(500).send("Error en el servidor");
   }
-});
+});*/
 
+app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
+  const { anio, mes } = req.query;
+  if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
+
+  const y = parseInt(anio, 10);
+  const m = parseInt(mes, 10);
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12)
+    return res.status(400).send("Parámetros inválidos. 'mes' debe ser 1..12.");
+
+  const inicio = new Date(Date.UTC(y, m - 1, 1));
+  const fin    = new Date(Date.UTC(y, m, 1));
+
+  try {
+    const result = await pool.request()
+      .input("inicio", sql.Date, new Date(inicio.toISOString().slice(0,10)))
+      .input("fin",    sql.Date, new Date(fin.toISOString().slice(0,10)))
+      .query(`
+        WITH U AS (
+          SELECT id,
+                 COALESCE(porcentajeHonorarios, porcentaje, 0) AS porc
+          FROM (
+            SELECT id, porcentajeHonorarios, porcentaje,
+                   ROW_NUMBER() OVER (PARTITION BY id ORDER BY id) AS rn
+            FROM usuario
+          ) x
+          WHERE rn = 1
+        ),
+        movimientos AS (
+          -- CAPITAL: sin prorrateo (usa capitalPagoParcial del mes)
+          SELECT 'capital' AS concepto, ISNULL(e.capitalPagoParcial, 0) AS monto
+          FROM expedientes e
+          WHERE e.estado <> 'eliminado'
+            AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
+            AND CAST(e.fecha_cobro_capital AS DATE) <  @fin
+
+          UNION ALL
+          -- HONORARIOS: prorrateado por % del abogado
+          SELECT 'honorarios',
+                 ISNULL(e.montoLiquidacionHonorarios, 0) * (100 - ISNULL(u.porc, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN U u ON u.id = e.usuario_id
+          WHERE e.estado <> 'eliminado'
+            AND CAST(e.fecha_cobro AS DATE) >= @inicio
+            AND CAST(e.fecha_cobro AS DATE) <  @fin
+
+          UNION ALL
+          -- ALZADA: prorrateado por % del abogado (alineado a detalle-por-mes)
+          SELECT 'alzada',
+                 ISNULL(e.montoAcuerdo_alzada, 0) * (100 - ISNULL(u.porc, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN U u ON u.id = e.usuario_id
+          WHERE e.estado <> 'eliminado'
+            AND CAST(e.fechaCobroAlzada AS DATE) >= @inicio
+            AND CAST(e.fechaCobroAlzada AS DATE) <  @fin
+
+          UNION ALL
+          -- EJECUCIÓN: prorrateado por % del abogado
+          SELECT 'ejecucion',
+                 ISNULL(e.montoHonorariosEjecucion, 0) * (100 - ISNULL(u.porc, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN U u ON u.id = e.usuario_id
+          WHERE e.estado <> 'eliminado'
+            AND CAST(e.fechaCobroEjecucion AS DATE) >= @inicio
+            AND CAST(e.fechaCobroEjecucion AS DATE) <  @fin
+
+          UNION ALL
+          -- DIFERENCIA: prorrateado por % del abogado
+          SELECT 'diferencia',
+                 ISNULL(e.montoHonorariosDiferencia, 0) * (100 - ISNULL(u.porc, 0)) / 100.0
+          FROM expedientes e
+          LEFT JOIN U u ON u.id = e.usuario_id
+          WHERE e.estado <> 'eliminado'
+            AND CAST(e.fechaCobroDiferencia AS DATE) >= @inicio
+            AND CAST(e.fechaCobroDiferencia AS DATE) <  @fin
+        )
+        SELECT
+          SUM(CASE WHEN concepto = 'capital'    THEN monto ELSE 0 END) AS totalCapital,
+          SUM(CASE WHEN concepto = 'honorarios' THEN monto ELSE 0 END) AS totalHonorarios,
+          SUM(CASE WHEN concepto = 'alzada'     THEN monto ELSE 0 END) AS totalAlzada,
+          SUM(CASE WHEN concepto = 'ejecucion'  THEN monto ELSE 0 END) AS totalEjecucion,
+          SUM(CASE WHEN concepto = 'diferencia' THEN monto ELSE 0 END) AS totalDiferencia,
+          SUM(monto) AS totalGeneral
+        FROM movimientos;
+      `);
+
+    res.json(result.recordset?.[0] ?? {
+      totalCapital: 0,
+      totalHonorarios: 0,
+      totalAlzada: 0,
+      totalEjecucion: 0,
+      totalDiferencia: 0,
+      totalGeneral: 0
+    });
+  } catch (error) {
+    console.error("Error al obtener total de cobranzas por mes:", error);
+    res.status(500).send("Error en el servidor");
+  }
+});
 
 // ==========================================================
 // GET /expedientes/cobranzas-detalle-por-mes?anio=YYYY&mes=MM
@@ -3153,7 +3360,7 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 //  GET /expedientes/cobranzas-mensuales?anio=YYYY  -> solo ese año
 //  Respuesta: [{ anio, mes, totalCapital, totalHonorarios, totalAlzada, totalEjecucion, totalDiferencia, totalGeneral }]
 // ==========================================================
-app.get("/expedientes/cobranzas-mensuales", async (req, res) => {
+/*app.get("/expedientes/cobranzas-mensuales", async (req, res) => {
   const { anio } = req.query;
   const y = anio ? parseInt(anio, 10) : null;
   if (anio && (isNaN(y) || y < 1900)) {
@@ -3232,8 +3439,193 @@ app.get("/expedientes/cobranzas-mensuales", async (req, res) => {
     console.error("Error en /expedientes/cobranzas-mensuales:", error);
     res.status(500).send("Error en el servidor");
   }
-});
+});*/
+/*
+app.get('/expedientes/honorarios-pendientes', async (req, res) => {
+  try {
+    const result = await pool.request().query(`
 
+      DECLARE @valorUMA FLOAT;
+      SELECT TOP 1 @valorUMA = valor FROM uma ORDER BY valor DESC;
+      SET @valorUMA = ISNULL(@valorUMA, 0);
+
+      SELECT 
+        ROUND(SUM(pendienteCapital + pendienteHonorarios + pendienteAlzada + pendienteEjecucion + pendienteDiferencia), 2) AS totalPendiente
+      FROM (
+        SELECT
+          -- CAPITAL (se mantiene tu lógica con e.porcentaje y u.porcentaje)
+          CASE 
+            WHEN e.fecha_cobro_capital IS NULL AND e.montoLiquidacionCapital > 0
+              THEN ROUND(
+                e.montoLiquidacionCapital * 
+                ISNULL(e.porcentaje, 100) / 100.0 * 
+                (100.0 - ISNULL(u.porcentaje, 0)) / 100.0,
+              2)
+            ELSE 0
+          END AS pendienteCapital,
+
+          -- HONORARIOS (corregido: usar montoLiquidacionHonorarios; fallback a UMA*@valorUMA)
+          CASE 
+            WHEN e.fecha_cobro IS NULL THEN
+              CASE 
+                WHEN LOWER(ISNULL(e.subEstadoHonorariosSeleccionado, '')) IN ('giro', 'da en pago parcial', 'da en pago total')
+                  THEN ROUND(
+                    ISNULL(e.montoLiquidacionHonorarios, 0) * 
+                    ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0),
+                  2)
+                ELSE ROUND(
+                  (
+                    CASE 
+                      WHEN ISNULL(e.montoLiquidacionHonorarios, 0) > 0
+                        THEN ISNULL(e.montoLiquidacionHonorarios, 0)
+                      ELSE ISNULL(e.cantidadUMA, 0) * @valorUMA
+                    END
+                  ) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0),
+                2)
+              END
+            ELSE 0
+          END AS pendienteHonorarios,
+
+          -- ALZADA
+          CASE 
+            WHEN e.fechaCobroAlzada IS NULL THEN
+              ROUND(ISNULL(e.montoAcuerdo_alzada, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+            ELSE 0
+          END AS pendienteAlzada,
+
+          -- EJECUCIÓN
+          CASE 
+            WHEN e.fechaCobroEjecucion IS NULL THEN
+              ROUND(ISNULL(e.montoHonorariosEjecucion, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+            ELSE 0
+          END AS pendienteEjecucion,
+
+          -- DIFERENCIA
+          CASE 
+            WHEN e.fechaCobroDiferencia IS NULL THEN
+              ROUND(ISNULL(e.montoHonorariosDiferencia, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+            ELSE 0
+          END AS pendienteDiferencia
+
+        FROM expedientes e
+        LEFT JOIN usuario u ON e.usuario_id = u.id
+        WHERE e.estado <> 'eliminado'
+      ) AS MontosPendientes
+      WHERE (pendienteCapital + pendienteHonorarios + pendienteAlzada + pendienteEjecucion + pendienteDiferencia) > 0;
+
+    `);
+
+    const total = result.recordset[0]?.totalPendiente ?? 0;
+    res.status(200).json(total);
+
+  } catch (err) {
+    console.error('Error al calcular honorarios pendientes:', err);
+    res.status(500).json({ error: 'Error al calcular honorarios pendientes' });
+  }
+});
+*/
+
+app.get('/expedientes/honorarios-pendientes', async (req, res) => {
+  try {
+    const result = await pool.request().query(`
+
+      DECLARE @valorUMA FLOAT;
+      SELECT TOP 1 @valorUMA = valor FROM uma ORDER BY valor DESC;
+      SET @valorUMA = ISNULL(@valorUMA, 0);
+
+      IF OBJECT_ID('tempdb..#Pendientes') IS NOT NULL DROP TABLE #Pendientes;
+
+      -- ======================================================
+      -- Carga de pendientes por expediente
+      -- ======================================================
+      SELECT
+        e.id,
+        e.numero,
+        e.anio,
+        e.caratula,
+
+        -- CAPITAL (tal cual: con e.porcentaje y u.porcentaje)
+        CASE 
+          WHEN e.fecha_cobro_capital IS NULL AND e.montoLiquidacionCapital > 0
+            THEN ROUND(
+              e.montoLiquidacionCapital *
+              ISNULL(e.porcentaje, 100) / 100.0 *
+              (100.0 - ISNULL(u.porcentaje, 0)) / 100.0,
+            2)
+          ELSE 0
+        END AS pendienteCapital,
+
+        -- HONORARIOS
+        CASE 
+          WHEN e.fecha_cobro IS NULL THEN
+            CASE 
+              WHEN LOWER(ISNULL(e.subEstadoHonorariosSeleccionado, '')) IN ('giro', 'da en pago parcial', 'da en pago total')
+                THEN ROUND(
+                  ISNULL(e.montoLiquidacionHonorarios, 0) *
+                  ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0),
+                2)
+              ELSE ROUND(
+                (
+                  CASE 
+                    WHEN ISNULL(e.montoLiquidacionHonorarios, 0) > 0
+                      THEN ISNULL(e.montoLiquidacionHonorarios, 0)
+                    ELSE ISNULL(e.cantidadUMA, 0) * @valorUMA
+                  END
+                ) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0),
+              2)
+            END
+          ELSE 0
+        END AS pendienteHonorarios,
+
+        -- ALZADA
+        CASE 
+          WHEN e.fechaCobroAlzada IS NULL THEN
+            ROUND(ISNULL(e.montoAcuerdo_alzada, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+          ELSE 0
+        END AS pendienteAlzada,
+
+        -- EJECUCIÓN
+        CASE 
+          WHEN e.fechaCobroEjecucion IS NULL THEN
+            ROUND(ISNULL(e.montoHonorariosEjecucion, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+          ELSE 0
+        END AS pendienteEjecucion,
+
+        -- DIFERENCIA
+        CASE 
+          WHEN e.fechaCobroDiferencia IS NULL THEN
+            ROUND(ISNULL(e.montoHonorariosDiferencia, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
+          ELSE 0
+        END AS pendienteDiferencia
+      INTO #Pendientes
+      FROM expedientes e
+      LEFT JOIN usuario u ON e.usuario_id = u.id
+      WHERE e.estado != 'eliminado';
+
+      -- ======================================================
+      -- SOLO TOTALES (lo que nos interesa es totalGeneral)
+      -- ======================================================
+      SELECT 
+        ROUND(SUM(
+          pendienteCapital 
+          + pendienteHonorarios 
+          + pendienteAlzada 
+          + pendienteEjecucion 
+          + pendienteDiferencia
+        ), 2) AS totalGeneral
+      FROM #Pendientes
+      WHERE (pendienteCapital + pendienteHonorarios + pendienteAlzada + pendienteEjecucion + pendienteDiferencia) > 0;
+
+    `);
+
+    const total = result.recordset[0]?.totalGeneral ?? 0;
+    res.status(200).json(total);
+
+  } catch (err) {
+    console.error('Error al calcular honorarios pendientes:', err);
+    res.status(500).json({ error: 'Error al calcular honorarios pendientes' });
+  }
+});
 
 
 
@@ -3278,76 +3670,6 @@ app.get("/expedientes/sentencias-emitidas", async (req, res) => {
   } catch (err) {
     console.error("Error al contar sentencias emitidas:", err);
     res.status(500).send("Error en sentencias-emitidas");
-  }
-});
-app.get('/expedientes/honorarios-pendientes', async (req, res) => {
-  try {
-    const result = await pool.request().query(`
-
-      DECLARE @valorUMA FLOAT;
-      SELECT TOP 1 @valorUMA = valor FROM uma ORDER BY valor DESC;
-
-      SELECT 
-        SUM(pendienteCapital + pendienteHonorarios + pendienteAlzada + pendienteEjecucion + pendienteDiferencia) AS totalPendiente
-      FROM (
-        SELECT
-          -- CAPITAL
-          CASE 
-            WHEN e.fecha_cobro_capital IS NULL AND e.montoLiquidacionCapital > 0
-              THEN ROUND(
-                e.montoLiquidacionCapital * 
-                ISNULL(e.porcentaje, 100) / 100.0 * 
-                (100.0 - ISNULL(u.porcentaje, 0)) / 100.0,
-              2)
-            ELSE 0
-          END AS pendienteCapital,
-
-          -- HONORARIOS
-          CASE 
-            WHEN e.fecha_cobro IS NULL THEN
-              CASE 
-                WHEN LOWER(ISNULL(e.subEstadoHonorariosSeleccionado, '')) IN ('giro', 'da en pago parcial', 'da en pago total')
-                  THEN ROUND(ISNULL(e.montoLiquidacionHonorarios, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
-                ELSE ROUND(ISNULL(e.cantidadUMA, 0) * @valorUMA * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
-              END
-            ELSE 0
-          END AS pendienteHonorarios,
-
-          -- ALZADA
-          CASE 
-            WHEN e.fechaCobroAlzada IS NULL THEN
-              ROUND(ISNULL(e.montoAcuerdo_alzada, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
-            ELSE 0
-          END AS pendienteAlzada,
-
-          -- EJECUCIÓN
-          CASE 
-            WHEN e.fechaCobroEjecucion IS NULL THEN
-              ROUND(ISNULL(e.montoHonorariosEjecucion, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
-            ELSE 0
-          END AS pendienteEjecucion,
-
-          -- DIFERENCIA
-          CASE 
-            WHEN e.fechaCobroDiferencia IS NULL THEN
-              ROUND(ISNULL(e.montoHonorariosDiferencia, 0) * ((100 - ISNULL(u.porcentajeHonorarios, 0)) / 100.0), 2)
-            ELSE 0
-          END AS pendienteDiferencia
-
-        FROM expedientes e
-        LEFT JOIN usuario u ON e.usuario_id = u.id
-        WHERE e.estado != 'eliminado'
-      ) AS MontosPendientes
-      WHERE (pendienteCapital + pendienteHonorarios + pendienteAlzada + pendienteEjecucion + pendienteDiferencia) > 0;
-
-    `);
-
-    const total = result.recordset[0]?.totalPendiente || 0;
-    res.status(200).json(total);
-
-  } catch (err) {
-    console.error('Error al calcular honorarios pendientes:', err);
-    res.status(500).json({ error: 'Error al calcular honorarios pendientes' });
   }
 });
 
@@ -3753,6 +4075,298 @@ app.put('/expedientes/restaurar-cobro/:id', async (req, res) => {
     try { await tx.rollback(); } catch {}
     console.error('REST/expedientes/restaurar-cobro', e);
     res.status(500).json({ ok:false, message:'Error al restaurar cobro' });
+  }
+});
+// ------- CODIGO -------
+// Campos: id, tipo ('familia' | 'patrimoniales' | 'comercial'), codigo, descripcion
+
+const TIPOS_JURIS = ['familia', 'patrimoniales', 'comercial'];
+
+/**
+ * GET /codigos
+ * Query params opcionales:
+ *   - q: busca en tipo, codigo o descripcion
+ *   - tipo: filtra por tipo exacto
+ *   - page, pageSize: paginación
+ */
+app.get('/codigos', async (req, res) => {
+  try {
+    const request = pool.request();
+    let query = "SELECT * FROM codigos";   // ← tabla nueva
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error al obtener codigos:", err);
+    res.status(500).send(err);
+  }
+});
+
+
+/**
+ * POST /codigos
+ * Body JSON: { tipo, codigo, descripcion }
+ */
+app.post('/codigos', async (req, res) => {
+  try {
+    const { tipo, codigo, descripcion } = req.body || {};
+
+    if (!tipo || !codigo || !descripcion) {
+      return res.status(400).json({ error: 'Faltan campos: tipo, codigo y descripcion son obligatorios.' });
+    }
+    if (!TIPOS_JURIS.includes(String(tipo).toLowerCase())) {
+      return res.status(400).json({ error: 'Tipo inválido. Use: familia, patrimoniales o comercial.' });
+    }
+
+    const exists = await pool.request()
+      .input('codigo', sql.VarChar, codigo)
+      .query(`SELECT TOP 1 id FROM codigos WHERE codigo = @codigo;`);
+
+    if (exists.recordset.length > 0) {
+      return res.status(409).json({ error: 'El código ya existe.' });
+    }
+
+    const rs = await pool.request()
+      .input('tipo', sql.VarChar, tipo.toLowerCase())
+      .input('codigo', sql.VarChar, codigo)
+      .input('descripcion', sql.NVarChar(sql.MAX), descripcion)
+      .query(`
+        INSERT INTO codigos (tipo, codigo, descripcion)
+        VALUES (@tipo, @codigo, @descripcion);
+        SELECT SCOPE_IDENTITY() AS id;
+      `);
+
+    const id = rs.recordset[0] ? rs.recordset[0].id : null;
+    res.status(201).json({ id, tipo: tipo.toLowerCase(), codigo, descripcion });
+  } catch (err) {
+    console.error('POST /codigos error:', err);
+    res.status(500).json({ error: 'Error al crear codigo' });
+  }
+});
+
+/**
+ * PUT /codigos/:id
+ * Body JSON: { tipo?, codigo?, descripcion? }
+ */
+app.put('/codigos/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'ID inválido' });
+    }
+
+    const { tipo, codigo, descripcion } = req.body || {};
+    if (tipo !== undefined && !TIPOS_JURIS.includes(String(tipo).toLowerCase())) {
+      return res.status(400).json({ error: 'Tipo inválido. Use: familia, patrimoniales o comercial.' });
+    }
+    if (tipo === undefined && codigo === undefined && descripcion === undefined) {
+      return res.status(400).json({ error: 'No hay datos para actualizar.' });
+    }
+
+    const current = await pool.request()
+      .input('id', sql.Int, id)
+      .query(`SELECT TOP 1 * FROM codigos WHERE id = @id;`);
+
+    if (current.recordset.length === 0) {
+      return res.status(404).json({ error: 'codigos no encontrada' });
+    }
+
+    if (codigo !== undefined) {
+      const dup = await pool.request()
+        .input('id', sql.Int, id)
+        .input('codigo', sql.VarChar, codigo)
+        .query(`SELECT TOP 1 id FROM codigos WHERE codigo = @codigo AND id <> @id;`);
+      if (dup.recordset.length > 0) {
+        return res.status(409).json({ error: 'El código ya existe en otro registro.' });
+      }
+    }
+
+    // Construcción del UPDATE dinámico
+    const sets = [];
+    const reqUpd = pool.request().input('id', sql.Int, id);
+
+    if (tipo !== undefined) {
+      sets.push('tipo = @tipo');
+      reqUpd.input('tipo', sql.VarChar, String(tipo).toLowerCase());
+    }
+    if (codigo !== undefined) {
+      sets.push('codigo = @codigo');
+      reqUpd.input('codigo', sql.VarChar, codigo);
+    }
+    if (descripcion !== undefined) {
+      sets.push('descripcion = @descripcion');
+      reqUpd.input('descripcion', sql.NVarChar(sql.MAX), descripcion);
+    }
+
+    const sqlUpdate = `
+      UPDATE codigos
+      SET ${sets.join(', ')}
+      WHERE id = @id;
+      SELECT id, tipo, codigo, descripcion, fecha_creacion
+      FROM codigos WHERE id = @id;
+    `;
+
+    const rs = await reqUpd.query(sqlUpdate);
+    const updated = rs.recordset[0];
+
+    res.json(updated);
+  } catch (err) {
+    console.error('PUT /codigos/:id error:', err);
+    res.status(500).json({ error: 'Error al actualizar el codigo' });
+  }
+});
+
+
+app.delete('/codigos/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: 'ID inválido' });
+
+  try {
+
+    // 1) Eliminar codigo
+    const del = await pool.request()
+      .input('id', sql.Int, id)
+      .query(`DELETE FROM codigos WHERE id = @id; SELECT @@ROWCOUNT AS deleted;`);
+
+    const deleted = del.recordset?.[0]?.deleted || 0;
+    if (deleted === 0) return res.status(404).json({ error: 'No encontrada' });
+
+    return res.json({ ok: true, del });
+  } catch (e) {
+    console.error('DELETE /codigos error:', e);
+    return res.status(500).json({ error: 'Error al eliminar' });
+  }
+});
+
+const FUEROS = ['CCF', 'COM', 'CIV', 'CC'];
+
+app.get('/jurisprudencias', async (req, res) => {
+  try {
+    const request = pool.request();
+    let query = `
+      SELECT 
+        j.id,
+        j.expediente_id,
+        j.fuero,
+        j.demandado_id,
+        d.nombre       AS demandado_nombre,
+        j.juzgado_id,
+        juz.nombre     AS juzgado_nombre,
+        j.sentencia,
+        j.juez_id,
+        jue.nombre     AS juez_nombre,
+        j.camara,
+        j.codigo_id,
+        c.codigo       AS codigo,
+        c.descripcion  AS codigo_descripcion
+      FROM jurisprudencias j
+      LEFT JOIN demandados d ON d.id = j.demandado_id
+      LEFT JOIN juzgados   juz ON juz.id = j.juzgado_id
+      LEFT JOIN juez       jue ON jue.id = j.juez_id
+      LEFT JOIN codigos    c   ON c.id = j.codigo_id
+      WHERE 1 = 1
+    `;
+
+    const { expedienteId } = req.query;
+    if (expedienteId) {
+    request.input('expedienteId', sql.Int, parseInt(expedienteId, 10));
+      query += ' AND j.expediente_id = @expedienteId';
+    }
+
+    query += ' ORDER BY j.id DESC';
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('GET /jurisprudencias error:', err);
+    res.status(500).json({ error: 'Error al obtener jurisprudencias' });
+  }
+});
+
+app.post('/jurisprudencias', async (req, res) => {
+  try {
+    const {
+      expediente_id,
+      fuero,
+      demandado_id,
+      juzgado_id,
+      sentencia,    // puede venir null o string fecha
+      juez_id,
+      camara,
+      codigo_id
+    } = req.body || {};
+
+    // Validaciones básicas
+    if (!expediente_id || !fuero || !demandado_id || !juzgado_id || !juez_id || !camara || !codigo_id) {
+      return res.status(400).json({
+        error: 'Faltan datos obligatorios: expediente_id, fuero, demandado_id, juzgado_id, juez_id, camara, codigo_id'
+      });
+    }
+
+    if (!FUEROS.includes(String(fuero).toUpperCase())) {
+      return res.status(400).json({ error: 'Fuero inválido. Use: CCF, COM, CIV o CC.' });
+    }
+
+    const reqIns = pool.request()
+      .input('expediente_id', sql.Int, Number(expediente_id))
+      .input('fuero',        sql.NVarChar, String(fuero).toUpperCase())
+      .input('demandado_id', sql.Int, Number(demandado_id))
+      .input('juzgado_id',   sql.Int, Number(juzgado_id))
+      .input('juez_id',      sql.Int, Number(juez_id))
+      .input('camara',       sql.NVarChar, String(camara))
+      .input('codigo_id',    sql.Int, Number(codigo_id))
+      .input('sentencia',    sql.DateTime, sentencia ? new Date(sentencia) : null);
+
+    const rs = await reqIns.query(`
+      INSERT INTO jurisprudencias (
+        expediente_id,
+        fuero,
+        demandado_id,
+        juzgado_id,
+        sentencia,
+        juez_id,
+        camara,
+        codigo_id
+      )
+      VALUES (
+        @expediente_id,
+        @fuero,
+        @demandado_id,
+        @juzgado_id,
+        @sentencia,
+        @juez_id,
+        @camara,
+        @codigo_id
+      );
+
+      SELECT 
+        j.id,
+        j.expediente_id,
+        j.fuero,
+        j.demandado_id,
+        d.nombre       AS demandado_nombre,
+        j.juzgado_id,
+        juz.nombre     AS juzgado_nombre,
+        j.sentencia,
+        j.juez_id,
+        jue.nombre     AS juez_nombre,
+        j.camara,
+        j.codigo_id,
+        c.codigo       AS codigo,
+        c.descripcion  AS codigo_descripcion
+      FROM jurisprudencias j
+      LEFT JOIN demandados d ON d.id = j.demandado_id
+      LEFT JOIN juzgados   juz ON juz.id = j.juzgado_id
+      LEFT JOIN juez       jue ON jue.id = j.juez_id
+      LEFT JOIN codigos    c   ON c.id = j.codigo_id
+      WHERE j.id = SCOPE_IDENTITY();
+    `);
+
+    const creado = rs.recordset[0];
+    res.status(201).json(creado);
+  } catch (err) {
+    console.error('POST /jurisprudencias error:', err);
+    res.status(500).json({ error: 'Error al crear jurisprudencia' });
   }
 });
 

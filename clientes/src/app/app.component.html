@@ -69,6 +69,11 @@
             <mat-icon>exclamation</mat-icon>
             <span>Datos importantes</span>
           </button>
+
+          <button mat-menu-item [class.active-route]="isActive('jurisprudencias')" (click)="goTo('jurisprudencias')">
+            <mat-icon>pin</mat-icon>
+            <span>jurisprudencias</span>
+          </button>
         </mat-menu>
         
         <!-- General -->
@@ -94,7 +99,10 @@
             <mat-icon>balance</mat-icon>
             <span>Jueces</span>
           </button>
-
+          <button mat-menu-item [class.active-route]="isActive('codigos')" (click)="goTo('codigos')">
+            <mat-icon>pin</mat-icon>
+            <span>Codigos</span>
+          </button>
           <button mat-menu-item [class.active-route]="isActive('graficos')" (click)="goTo('graficos')">
             <mat-icon>insert_chart</mat-icon>
             <span>Estadisticas</span>

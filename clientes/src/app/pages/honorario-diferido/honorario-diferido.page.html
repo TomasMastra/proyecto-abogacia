@@ -15,24 +15,40 @@
       <mat-icon style="color: #ffffff">more_vert</mat-icon>
     </button> -->
 
-    <label for="selectEstadoHonorario" class="custom-select">
-  <select id="selectEstadoHonorario" [(ngModel)]="estadoHonorarioSeleccionado" (change)="filtrar()">
-    <option value="">Todos los estados de honorario</option>
-    <option *ngFor="let estado of estadosHonorarios" [value]="estado">
+<mat-form-field appearance="fill" class="custom-mat-select">
+  <mat-label>Estado de Honorario</mat-label>
+  <mat-select [(value)]="estadoHonorarioSeleccionado" (selectionChange)="filtrar()">
+    <mat-option value="">Todos los estados de honorario</mat-option>
+    <mat-option *ngFor="let estado of estadosHonorarios" [value]="estado">
       {{ estado }}
-    </option>
-  </select>
-</label>
+    </mat-option>
+  </mat-select>
+</mat-form-field>
 
+<mat-form-field appearance="fill" class="custom-mat-select">
+  <mat-label>Procurador</mat-label>
+  <mat-select [(value)]="procuradorSeleccionado" (selectionChange)="filtrar()">
+    <mat-option value="">Todos los Procuradores</mat-option>
+    <mat-option *ngFor="let abogado of listaUsuarios" [value]="abogado.id">
+      {{ abogado.nombre }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
 
-
-    <label for="styledSelect1" class="custom-select">
+  <!--   <label for="styledSelect1" class="custom-select">
       <select id="styledSelect1" name="options" (change)="cambiarEstado($event)">
         <option value="sentencia" selected>Sentencia</option>
         <option value="cobrado">Cobrado</option>
 
       </select>
-    </label>
+    </label> -->
+
+<mat-form-field appearance="fill" class="custom-mat-select">
+  <mat-select [(value)]="estado" (selectionChange)="cambiarEstado($event.value)">
+    <mat-option value="sentencia">Sentencia</mat-option>
+    <mat-option value="cobrado">Cobrado</mat-option>
+  </mat-select>
+</mat-form-field>
   </div>
 
   <div *ngIf="cargando" class="fullscreen-loader">
@@ -50,10 +66,10 @@
           <th>
             Caratula
           </th>
-          <th *ngIf="estado == 'sentencia'"  (click)="ordenarPor('juzgado')" [class.activo]="ordenCampo === 'juzgado'">
+        <!--   <th *ngIf="estado == 'sentencia'"  (click)="ordenarPor('juzgado')" [class.activo]="ordenCampo === 'juzgado'">
             Juzgado
             <span class="flecha" *ngIf="ordenCampo === 'juzgado'">{{ ordenAscendente ? '↑' : '↓' }}</span>
-          </th>
+          </th> -->
           <th>
             Cobranza
           </th>
@@ -99,7 +115,7 @@
         <td [attr.rowspan]="5" style="background-color: #07295c;">
           {{item.caratula}}
         </td>
-        <td [attr.rowspan]="5" *ngIf="estado == 'sentencia'" style="background-color: #07295c;">{{ item.juzgadoModel?.tipo }}</td>
+      <!--  <td [attr.rowspan]="5" *ngIf="estado == 'sentencia'" style="background-color: #07295c;">{{ item.juzgadoModel?.tipo }}</td> -->
 
         <!-- CAPITAL -->
         <td [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">Capital</td>

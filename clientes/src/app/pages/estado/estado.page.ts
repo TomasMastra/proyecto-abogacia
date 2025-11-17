@@ -321,6 +321,10 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
 
   this.umaSeleccionado = umaSel;
 
+  if(this.expediente.montoLiquidacionHonorarios && this.expediente.honorarioCobrado){
+    this.montoUMA = this.expediente.montoHonorariosDiferencia;
+  }
+
   // Caso UMA seleccionado (no 'acuerdo')
   if (umaSel && umaSel !== 'acuerdo') {
     // cantidadUMA es requerida (0 permitido)
@@ -704,7 +708,9 @@ cambioTipoHonorarioExtra(valores: string[]) {
             fechaCobroDiferencia: this.expediente?.fechaCobroDiferencia ?? null,
             capitalPagoParcial: this.expediente?.capitalPagoParcial,
             recalcular_caratula: false,
-            esPagoParcial: this.expediente?.esPagoParcial
+            esPagoParcial: this.expediente?.esPagoParcial,
+
+            codigo_id: this.expediente?.codigo_id
 
           };
       
@@ -818,7 +824,32 @@ asignarDatos() {
   this.fechaHonorariosSubestado = this.expediente.fechaHonorariosSubestado
     ? new Date(this.expediente.fechaHonorariosSubestado).toISOString().split('T')[0]
     : null;
-  this.cantidadUMA = this.expediente.cantidadUMA ?? 0;
+
+        if (this.expediente.valorUMA == null) {
+      // No hay UMA -> acuerdo
+      this.umaSeleccionado = 'acuerdo';
+      this.montoUMA = this.expediente.montoLiquidacionHonorarios ?? 0;
+
+      this.form.patchValue({
+        umaSeleccionado: 'acuerdo',
+        montoAcuerdo: this.montoUMA
+      }, { emitEvent: true });
+
+      this.form.get('umaSeleccionado')?.markAsDirty();
+      this.form.get('umaSeleccionado')?.updateValueAndValidity();
+      
+    } else {
+      // Hay UMA previa -> seleccionar objeto correspondiente
+      this.cantidadUMA = this.expediente.cantidadUMA ?? 0;
+      const encontradaUMA = this.uma.find(u => u.valor == this.expediente.valorUMA) ?? null;
+      this.form.patchValue({ umaSeleccionado: encontradaUMA });
+    }
+
+
+
+    this.calcularMontoUMA();
+
+
 
   // Tipo (Juzgado)
   this.tipoSeleccionado = this.expediente.tipo ?? null;
@@ -1164,6 +1195,7 @@ private llenarFormularioConExpediente(expediente: ExpedienteModel) {
       : '',
     cantidadUMA: expediente.cantidadUMA ?? '',
     umaSeleccionado: encontradaUMA,
+    montoAcuerdo: expediente.montoLiquidacionHonorarios,
     requiere_atencion: this.expediente.requiere_atencion,
     fecha_atencion: expediente.fecha_atencion
       ? new Date(expediente.fecha_atencion).toISOString().split('T')[0]

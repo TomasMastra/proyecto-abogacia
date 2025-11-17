@@ -18,6 +18,7 @@ import { UmaService } from 'src/app/services/uma.service';
 import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { CommonModule } from '@angular/common';
+import { UsuarioService } from '../services/usuario.service';
 
 @Component({
   selector: 'app-home',
@@ -36,7 +37,8 @@ export class HomePage {
   sentenciasEmitidas: number = 0;
   honorariosPendientes: number = 0;
 
-  constructor(private router: Router, private umaService: UmaService, private expedienteService: ExpedientesService
+  constructor(private router: Router, private umaService: UmaService, 
+    private expedienteService: ExpedientesService, public usuarioService: UsuarioService
   ) {}
 
   goTo(path: string) {
