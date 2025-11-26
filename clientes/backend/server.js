@@ -10,6 +10,7 @@ app.use(express.json());
 
 
 // Configuración de la conexión a SQL Server con autenticación SQL
+
 const dbConfig = {
     user: 'userMastrapasquaABOGACIA',         // Usuario de SQL Server
     password: '1503',  // Contraseña de SQL Server
@@ -20,6 +21,17 @@ const dbConfig = {
         trustServerCertificate: true  // Evita problemas con certificados SSL
     }
 };
+/*
+const dbConfig = {
+  user: 'sqladmin',                 // ej: 'userMastrapasquaABOGACIA'
+  password: 'Lam@ceta2025!',            // la que creaste en Azure, NO la local
+  server: 'servidormastrapasqua.database.windows.net', // ej: 'abogacia-sqlserver.database.windows.net'
+  database: 'abogacia',                   // el nombre de la base en Azure
+  options: {
+    encrypt: true,                        // en Azure tiene que ir en true
+    trustServerCertificate: false         // en Azure lo normal es false
+  }
+};*/
 
 const pool = new sql.ConnectionPool(dbConfig);
 const poolConnect = pool.connect();
@@ -264,115 +276,116 @@ app.get('/clientes/buscar', async (req, res) => {
 
 
 
-          app.post('/clientes/agregar', async (req, res) => {
-            try {
-              const { nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado, usuario_id, fecha_mediacion  } = req.body;
-          
-              if (!nombre || !apellido || !dni || !email) {
-                return res.status(400).json({
-                  error: 'Faltan campos obligatorios',
-                  camposRequeridos: ['nombre', 'apellido', 'dni', 'email']
-                });
-              }
-          
-              const result = await pool.request()
-                .input('nombre', sql.NVarChar, nombre)
-                .input('apellido', sql.NVarChar, apellido)
-                .input('dni', sql.Int, dni)
-                .input('telefono', sql.NVarChar, telefono)
-                .input('direccion', sql.NVarChar, direccion)
-                .input('fecha_nacimiento', sql.DateTime, fecha_nacimiento)
-                .input('email', sql.NVarChar, email)
-                .input('estado', sql.NVarChar, estado)
-                .input('usuario_id', sql.Int, usuario_id)
-                .input('fecha_mediacion', sql.DateTime, fecha_mediacion)
-
-                .query(`
-                  INSERT INTO clientes (nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado, usuario_id, fecha_mediacion)
-                  OUTPUT INSERTED.id  -- Esto devuelve el id del nuevo cliente insertado
-                  VALUES (@nombre, @apellido, @dni, @telefono, @direccion, @fecha_nacimiento, @email, @estado, @usuario_id, @fecha_mediacion)
-                `);
-          
-              // El id del cliente insertado estará en result.recordset[0].id
-              res.status(201).json({
-                message: 'Cliente agregado exitosamente',
-                id: result.recordset[0].id
-              });
-          
-            } catch (err) {
-              console.error('Error al agregar cliente:', err.message);
-              console.error('Error details:', err);
-              res.status(500).json({
-                error: 'Error al agregar cliente',
-                message: err.message
-              });
-            }
-          });
-
-          /* Ruta para modificar cliente*/
-          app.put('/clientes/modificar/:id', async (req, res) => {
-            const { id } = req.params;
-            const nuevosDatos = req.body;
-            
-            console.log('ID del cliente a modificar:', id);
-            console.log('Nuevos datos recibidos:', nuevosDatos);
-        
-            try {
-                const resultado = await pool.request()
-                    .input('id', sql.Int, id)
-                    .input('nombre', sql.NVarChar, nuevosDatos.nombre)
-                    .input('apellido', sql.NVarChar, nuevosDatos.apellido)
-                    .input('email', sql.NVarChar, nuevosDatos.email)
-                    .input('telefono', sql.NVarChar, nuevosDatos.telefono)
-                    .input('fecha_nacimiento', sql.DateTime, nuevosDatos.fecha_nacimiento)
-                    .input('dni', sql.Int, nuevosDatos.dni)
-                    .input('estado', sql.NVarChar, nuevosDatos.estado)
-                    .input('direccion', sql.NVarChar, nuevosDatos.direccion)
-                    .input('fecha_mediacion', sql.NVarChar, nuevosDatos.fecha_mediacion)
-
-                    .query(`
-                        UPDATE Clientes
-                        SET nombre = @nombre,
-                            apellido = @apellido,
-                            email = @email,
-                            telefono = @telefono,
-                            fecha_nacimiento = @fecha_nacimiento,
-                            dni = @dni,
-                            estado = @estado,
-                            direccion = @direccion,
-                            fecha_mediacion = @fecha_mediacion
-                        WHERE id = @id
-                    `);
-        
-                if (resultado.rowsAffected[0] > 0) {
-                    res.status(200).json({ mensaje: 'Cliente actualizado correctamente' });
-                } else {
-                    res.status(404).json({ mensaje: 'Cliente no encontrado' });
-                }
-            } catch (error) {
-                console.error('Error al actualizar cliente:', error);
-                res.status(500).json({ mensaje: 'Error al actualizar cliente' });
-            }
+  app.post('/clientes/agregar', async (req, res) => {
+    try {
+      const { nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado, usuario_id, fecha_mediacion  } = req.body;
+  
+      if (!nombre || !apellido || !dni || !email) {
+        return res.status(400).json({
+          error: 'Faltan campos obligatorios',
+          camposRequeridos: ['nombre', 'apellido', 'dni', 'email']
         });
+      }
+      const nuevoId = await generarNuevoId(pool, 'clientes', 'id');
+      const result = await pool.request()
+        //.input('id', sql.Int, nuevoId)
+        .input('nombre', sql.NVarChar, nombre)
+        .input('apellido', sql.NVarChar, apellido)
+        .input('dni', sql.Int, dni)
+        .input('telefono', sql.NVarChar, telefono)
+        .input('direccion', sql.NVarChar, direccion)
+        .input('fecha_nacimiento', sql.DateTime, fecha_nacimiento)
+        .input('email', sql.NVarChar, email)
+        .input('estado', sql.NVarChar, estado)
+        .input('usuario_id', sql.Int, usuario_id)
+        .input('fecha_mediacion', sql.DateTime, fecha_mediacion)
 
-        /*   */
-      app.get('/expedientes/clientesPorExpediente/:id_expediente', async (req, res) => {
-        const { id_expediente } = req.params;
-        try {
-            const result = await pool.request()
-                .input('id_expediente', sql.Int, id_expediente)
-                .query(`
-                    SELECT c.*
-                    FROM clientes c
-                    JOIN clientes_expedientes ce ON c.id = ce.id_cliente
-                    WHERE ce.id_expediente = @id_expediente
-                `);
-
-            res.json(result.recordset);
-        } catch (error) {
-            res.status(500).json({ error: 'Error al obtener clientes del expediente' });
-        }
+        .query(`
+          INSERT INTO clientes ( nombre, apellido, dni, telefono, direccion, fecha_nacimiento, email, estado, usuario_id, fecha_mediacion)
+          OUTPUT INSERTED.id  -- Esto devuelve el id del nuevo cliente insertado
+          VALUES (@nombre, @apellido, @dni, @telefono, @direccion, @fecha_nacimiento, @email, @estado, @usuario_id, @fecha_mediacion)
+        `);
+  
+      // El id del cliente insertado estará en result.recordset[0].id
+      res.status(201).json({
+        message: 'Cliente agregado exitosamente',
+        id: result.recordset[0].id
       });
+  
+    } catch (err) {
+      console.error('Error al agregar cliente:', err.message);
+      console.error('Error details:', err);
+      res.status(500).json({
+        error: 'Error al agregar cliente',
+        message: err.message
+      });
+    }
+  });
+
+  /* Ruta para modificar cliente*/
+  app.put('/clientes/modificar/:id', async (req, res) => {
+    const { id } = req.params;
+    const nuevosDatos = req.body;
+    
+    console.log('ID del cliente a modificar:', id);
+    console.log('Nuevos datos recibidos:', nuevosDatos);
+
+    try {
+        const resultado = await pool.request()
+            .input('id', sql.Int, id)
+            .input('nombre', sql.NVarChar, nuevosDatos.nombre)
+            .input('apellido', sql.NVarChar, nuevosDatos.apellido)
+            .input('email', sql.NVarChar, nuevosDatos.email)
+            .input('telefono', sql.NVarChar, nuevosDatos.telefono)
+            .input('fecha_nacimiento', sql.DateTime, nuevosDatos.fecha_nacimiento)
+            .input('dni', sql.Int, nuevosDatos.dni)
+            .input('estado', sql.NVarChar, nuevosDatos.estado)
+            .input('direccion', sql.NVarChar, nuevosDatos.direccion)
+            .input('fecha_mediacion', sql.NVarChar, nuevosDatos.fecha_mediacion)
+
+            .query(`
+                UPDATE Clientes
+                SET nombre = @nombre,
+                    apellido = @apellido,
+                    email = @email,
+                    telefono = @telefono,
+                    fecha_nacimiento = @fecha_nacimiento,
+                    dni = @dni,
+                    estado = @estado,
+                    direccion = @direccion,
+                    fecha_mediacion = @fecha_mediacion
+                WHERE id = @id
+            `);
+
+        if (resultado.rowsAffected[0] > 0) {
+            res.status(200).json({ mensaje: 'Cliente actualizado correctamente' });
+        } else {
+            res.status(404).json({ mensaje: 'Cliente no encontrado' });
+        }
+    } catch (error) {
+        console.error('Error al actualizar cliente:', error);
+        res.status(500).json({ mensaje: 'Error al actualizar cliente' });
+    }
+});
+
+/*   */
+app.get('/expedientes/clientesPorExpediente/:id_expediente', async (req, res) => {
+const { id_expediente } = req.params;
+try {
+    const result = await pool.request()
+        .input('id_expediente', sql.Int, id_expediente)
+        .query(`
+            SELECT c.*
+            FROM clientes c
+            JOIN clientes_expedientes ce ON c.id = ce.id_cliente
+            WHERE ce.id_expediente = @id_expediente
+        `);
+
+    res.json(result.recordset);
+} catch (error) {
+    res.status(500).json({ error: 'Error al obtener clientes del expediente' });
+}
+});
 
 app.get("/expedientes/obtener/:id", async (req, res) => {
   const id = parseInt(req.params.id);
@@ -773,7 +786,7 @@ async function recalcularCaratula(pool, expedienteId) {
   }
 });*/
 
-
+/*
 app.post('/expedientes/agregar', async (req, res) => {
   await poolConnect; // <-- asegura que el pool ya está logueado
 
@@ -783,6 +796,174 @@ app.post('/expedientes/agregar', async (req, res) => {
     fecha_inicio, juez_id, juicio, requiere_atencion, fecha_sentencia,
     numeroCliente, minutosSinLuz, periodoCorte,
     actoras, demandados, porcentaje, procurador_id, codigo_id
+  } = req.body;
+
+  if (!numero || !anio || !juzgado_id) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios', camposRequeridos: ['numero','anio','juzgado'] });
+  }
+
+  const tx = new sql.Transaction(pool);
+  try {
+    await tx.begin();
+
+    const R = () => new sql.Request(tx); // helper corto para crear requests con la transacción
+
+    // 1) Tipo de juzgado
+    const tipoJuzgadoResult = await R()
+      .input('juzgado_id', sql.Int, juzgado_id)
+      .query(`SELECT tipo FROM juzgados WHERE id = @juzgado_id`);
+
+    if (!tipoJuzgadoResult.recordset.length) {
+      throw new Error('No se encontró el tipo del juzgado especificado.');
+    }
+    const tipoJ = tipoJuzgadoResult.recordset[0].tipo;
+
+    // 2) Unicidad (numero + anio + tipo juzgado)
+    const resultExiste = await R()
+      .input('numero', sql.Int, numero)
+      .input('anio', sql.Int, anio)
+      .input('tipo', sql.NVarChar, tipoJ)
+      .query(`
+        SELECT COUNT(*) AS count
+        FROM expedientes e
+        JOIN juzgados j ON e.juzgado_id = j.id
+        WHERE e.numero=@numero AND e.anio=@anio AND j.tipo=@tipo AND e.estado!='eliminado'
+      `);
+
+    if (resultExiste.recordset[0].count > 0) {
+      await tx.rollback();
+      return res.status(400).json({ error: 'Ya existe un expediente con el mismo número, año y juzgado.' });
+    }
+
+    const idExpediente = await generarNuevoId(pool, 'expedientes', 'id');
+
+    // 3) Insert expediente
+    const insertExp = await R()
+      .input('id', sql.Int, idExpediente)
+      .input('titulo', sql.NVarChar, (titulo ?? '').toString())
+      .input('descripcion', sql.NVarChar, (descripcion ?? '').toString())
+      .input('numero', sql.Int, numero)
+      .input('anio', sql.Int, anio)
+      .input('demandado_id', sql.Int, demandado_id ?? null)
+      .input('juzgado_id', sql.Int, juzgado_id)
+      .input('estado', sql.NVarChar, estado ?? null)
+      .input('fecha_inicio', sql.DateTime, fecha_inicio ?? null)
+      .input('fecha_sentencia', sql.DateTime, fecha_sentencia ?? null)
+      .input('honorario', sql.NVarChar, honorario ?? null)
+      .input('juez_id', sql.Int, juez_id ?? null)
+      .input('juicio', sql.NVarChar, juicio ?? null)
+      .input('monto', sql.NVarChar, monto ?? null)
+      .input('usuario_id', sql.Int, usuario_id ?? null)
+      .input('numeroCliente', sql.NVarChar, numeroCliente ?? null)
+      .input('minutosSinLuz', sql.Int, minutosSinLuz ?? null)
+      .input('periodoCorte', sql.NVarChar, periodoCorte ?? null)
+      .input('porcentaje', sql.Float, porcentaje ?? null)
+      .input('procurador_id', sql.Int, procurador_id ?? null)
+      .input('requiere_atencion', sql.Bit, !!requiere_atencion)
+      .input('codigo_id', sql.Int, codigo_id ?? null)
+      .input('esPagoParcial', sql.Bit, false)
+
+      .query(`
+        INSERT INTO expedientes (
+          titulo, descripcion, numero, anio, demandado_id, juzgado_id,
+          fecha_creacion, estado, fecha_inicio, honorario,
+          juez_id, juicio, fecha_sentencia, ultimo_movimiento,
+          monto, usuario_id, numeroCliente, minutosSinLuz, periodoCorte,
+          porcentaje, procurador_id, requiere_atencion, codigo_id, esPagoParcial
+        )
+        OUTPUT INSERTED.id
+        VALUES (
+          @titulo, @descripcion, @numero, @anio, @demandado_id, @juzgado_id,
+          GETDATE(), @estado, @fecha_inicio, @honorario,
+          @juez_id, @juicio, @fecha_sentencia, @fecha_inicio,
+          @monto, @usuario_id, @numeroCliente, @minutosSinLuz, @periodoCorte,
+          @porcentaje, @procurador_id, @requiere_atencion, @codigo_id, @esPagoParcial
+        )
+      `);
+
+    if (!insertExp.recordset?.length) {
+      throw new Error('No se pudo generar el expediente');
+    }
+    const expedienteId = insertExp.recordset[0].id;
+
+
+    
+    // 4) ACTORAS (secuencial)
+    if (Array.isArray(actoras)) {
+      for (const a of actoras) {
+        const idActora = await generarNuevoId(pool, 'clientes_expedientes', 'id');
+        const tipoA = (a?.tipo || '').toLowerCase();
+        const idA   = Number(a?.id) || null;
+        if (!idA || (tipoA !== 'cliente' && tipoA !== 'empresa')) {
+          throw new Error(`Actora inválida: ${JSON.stringify(a)}`);
+        }
+        await R()
+          .input('id_expediente', sql.Int, expedienteId)
+          .input('tipo', sql.NVarChar, tipoA)
+          .input('id', sql.Int, idActora)
+          .query(`
+            INSERT INTO clientes_expedientes (id_expediente, id_cliente, id_empresa, tipo)
+            VALUES ( 
+              @id_expediente,
+              CASE WHEN @tipo = 'cliente' THEN @id ELSE NULL END,
+              CASE WHEN @tipo = 'empresa' THEN @id ELSE NULL END,
+              @tipo
+            )
+          `);
+      }
+    }
+
+    // 5) DEMANDADOS (secuencial)
+    if (Array.isArray(demandados)) {
+      for (const d of demandados) {
+        const idDemandado = await generarNuevoId(pool, 'expedientes_demandados', 'id');
+        const tipoD = (d?.tipo || '').toLowerCase();
+        const idD   = Number(d?.id) || null;
+        if (!idD || (tipoD !== 'cliente' && tipoD !== 'empresa')) {
+          throw new Error(`Demandado inválido: ${JSON.stringify(d)}`);
+        }
+        await R()
+          .input('id_expediente', sql.Int, expedienteId)
+          .input('tipo', sql.NVarChar, tipoD)
+          .input('id', sql.Int, idDemandado)
+          .query(`
+            INSERT INTO expedientes_demandados (id_expediente, id_cliente, id_demandado, tipo)
+            VALUES (
+              @id_expediente,
+              CASE WHEN @tipo = 'cliente' THEN @id ELSE NULL END,
+              CASE WHEN @tipo = 'empresa' THEN @id ELSE NULL END,
+              @tipo
+            )
+          `);
+      }
+    }
+
+    // 6) Confirmo primero
+    await tx.commit();
+
+    // 7) Ahora sí recalculo carátula FUERA de la transacción (evita usar la misma conexión ocupada)
+    await recalcularCaratula(pool, expedienteId);
+  
+
+    res.status(201).json({ message: 'Expediente agregado correctamente', expedienteId });
+  } catch (err) {
+    try { await tx.rollback(); } catch {}
+    console.error('POST /expedientes/agregar ERROR =>', err);
+    res.status(500).json({ error: 'Error al agregar expediente', message: err?.message || String(err) });
+  }
+});
+*/
+
+
+app.post('/expedientes/agregar', async (req, res) => {
+  await poolConnect; // <-- asegura que el pool ya está logueado
+
+  const {
+    titulo, descripcion, demandado_id, juzgado_id, numero, anio,
+    usuario_id, estado, honorario, monto, ultimo_movimiento,
+    fecha_inicio, juez_id, juicio, requiere_atencion, fecha_sentencia,
+    numeroCliente, minutosSinLuz, periodoCorte,
+    actoras, demandados, porcentaje, procurador_id
   } = req.body;
 
   if (!numero || !anio || !juzgado_id) {
@@ -844,15 +1025,13 @@ app.post('/expedientes/agregar', async (req, res) => {
       .input('porcentaje', sql.Float, porcentaje ?? null)
       .input('procurador_id', sql.Int, procurador_id ?? null)
       .input('requiere_atencion', sql.Bit, !!requiere_atencion)
-      .input('codigo_id', sql.Int, codigo_id ?? null)
-
       .query(`
         INSERT INTO expedientes (
           titulo, descripcion, numero, anio, demandado_id, juzgado_id,
           fecha_creacion, estado, fecha_inicio, honorario,
           juez_id, juicio, fecha_sentencia, ultimo_movimiento,
           monto, usuario_id, numeroCliente, minutosSinLuz, periodoCorte,
-          porcentaje, procurador_id, requiere_atencion, codigo_id
+          porcentaje, procurador_id, requiere_atencion
         )
         OUTPUT INSERTED.id
         VALUES (
@@ -860,7 +1039,7 @@ app.post('/expedientes/agregar', async (req, res) => {
           GETDATE(), @estado, @fecha_inicio, @honorario,
           @juez_id, @juicio, @fecha_sentencia, @fecha_inicio,
           @monto, @usuario_id, @numeroCliente, @minutosSinLuz, @periodoCorte,
-          @porcentaje, @procurador_id, @requiere_atencion, @codigo_id
+          @porcentaje, @procurador_id, @requiere_atencion
         )
       `);
 
@@ -1640,43 +1819,37 @@ app.get('/expedientes/buscar', async (req, res) => {
 });
 
 
-
-
-
-
+    /*  BUSCAR DEMANDADOS */
+    app.get('/demandados/buscar', async (req, res) => {
+      const texto = req.query.texto;  // Obtener el parámetro 'texto' de la URL
       
+      try {
+        const result = await pool.request()
+          .input('texto', sql.NVarChar, `%${texto}%`)
+          .query("SELECT * FROM demandados WHERE CAST(nombre AS NVARCHAR) LIKE @texto AND estado != 'eliminado'");
+    
+        res.json(result.recordset);  // Retornar los clientes encontrados
+      } catch (err) {
+        console.error('Error al ejecutar la consulta:', err);
+        return res.status(500).send('Error al obtener demandados');
+      }
+    });
 
-      /*  BUSCAR DEMANDADOS */
-      app.get('/demandados/buscar', async (req, res) => {
-        const texto = req.query.texto;  // Obtener el parámetro 'texto' de la URL
-        
-        try {
-          const result = await pool.request()
-            .input('texto', sql.NVarChar, `%${texto}%`)
-            .query("SELECT * FROM demandados WHERE CAST(nombre AS NVARCHAR) LIKE @texto AND estado != 'eliminado'");
+    /*  BUSCAR JUZGADOS */
+    app.get('/juzgados/buscar', async (req, res) => {
+      const texto = req.query.texto;
       
-          res.json(result.recordset);  // Retornar los clientes encontrados
-        } catch (err) {
-          console.error('Error al ejecutar la consulta:', err);
-          return res.status(500).send('Error al obtener demandados');
-        }
-      });
-
-      /*  BUSCAR JUZGADOS */
-      app.get('/juzgados/buscar', async (req, res) => {
-        const texto = req.query.texto;
-        
-        try {
-          const result = await pool.request()
-            .input('texto', sql.NVarChar, `%${texto}%`)
-            .query("SELECT * FROM juzgados WHERE CAST(nombre AS NVARCHAR) LIKE @texto AND estado != 'eliminado'");
-      
-          res.json(result.recordset); 
-        } catch (err) {
-          console.error('Error al ejecutar la consulta:', err);
-          return res.status(500).send('Error al obtener juzgados');
-        }
-      });
+      try {
+        const result = await pool.request()
+          .input('texto', sql.NVarChar, `%${texto}%`)
+          .query("SELECT * FROM juzgados WHERE CAST(nombre AS NVARCHAR) LIKE @texto AND estado != 'eliminado'");
+    
+        res.json(result.recordset); 
+      } catch (err) {
+        console.error('Error al ejecutar la consulta:', err);
+        return res.status(500).send('Error al obtener juzgados');
+      }
+    });
 
 
 /* agrega cliente-expediente */
@@ -1691,7 +1864,10 @@ app.post('/clientes-expedientes/agregar', async (req, res) => {
       });
     }
 
+    const nuevoId = await generarNuevoId(pool, 'clientes_expedientes', 'id');
+
     const result = await pool.request()
+      //.input('id', sql.Int, nuevoId)
       .input('id_cliente', sql.Int, cliente)
       .input('id_expediente', sql.Int, expediente)
       .query(`
@@ -1723,8 +1899,10 @@ app.post('/localidades/agregar', async (req, res) => {
         camposRequeridos: ['localidad', 'partido', 'provincia']
       });
     }
+    const nuevoId = await generarNuevoId(pool, 'localidades', 'id');
 
     const result = await pool.request()
+      //.input('id', sql.NVarChar, nuevoId)
       .input('localidad', sql.NVarChar, localidad)
       .input('partido', sql.NVarChar, partido)
       .input('provincia', sql.NVarChar, provincia)
@@ -1772,8 +1950,10 @@ app.post('/juzgados/agregar', async (req, res) => {
         camposRequeridos: ['localidad']
       });
     }
+    const id = await generarNuevoId(pool, 'expedientes', 'id');
 
     const result = await pool.request()
+    //.input('id', sql.Int, id)
     .input('localidad_id', sql.Int, Number(localidad_id))
     .input('nombre', sql.NVarChar, nombre)
     .input('direccion', sql.NVarChar, direccion)
@@ -2400,8 +2580,10 @@ app.post('/eventos/agregar', async (req, res) => {
         camposRequeridos: ['fecha_evento', 'tipo_evento']
       });
     }
+    const id = await generarNuevoId(pool, 'eventos_calendario', 'id');
 
     const result = await pool.request()
+      //.input('id', sql.NVarChar, id)
       .input('titulo', sql.NVarChar, titulo)
       .input('descripcion', sql.NVarChar, descripcion || null)
       .input('fecha_evento', sql.DateTime2, new Date(fecha_evento))
@@ -2414,6 +2596,7 @@ app.post('/eventos/agregar', async (req, res) => {
 
       .query(`
         INSERT INTO eventos_calendario (
+           
           titulo,
           descripcion,
           fecha_evento,
@@ -2426,6 +2609,7 @@ app.post('/eventos/agregar', async (req, res) => {
         )
         OUTPUT INSERTED.id
         VALUES (
+          
           @titulo,
           @descripcion,
           @fecha_evento,
@@ -2447,7 +2631,10 @@ app.post('/eventos/agregar', async (req, res) => {
 
 // Insertar clientes relacionados
 for (const cliente of clientes) {
+  const id = await generarNuevoId(pool, 'clientes_evento', 'id');
+
   await pool.request()
+    //.input('id', sql.Int, id)
     .input('id_evento', sql.Int, eventoId)
     .input('id_cliente', sql.Int, cliente.id)
     .query(`
@@ -2483,8 +2670,10 @@ app.post('/juez/agregar', async (req, res) => {
         camposRequeridos: ['nombre', 'apellido', 'estado']
       });
     }
+  const nuevoId = await generarNuevoId(pool, 'mediaciones', 'id');
 
-    const result = await pool.request()
+  const result = await pool.request()
+  //.input('id', sql.NVarChar, nuevoId)
   .input('nombre', sql.NVarChar, nombre)
   .input('apellido', sql.NVarChar, apellido)
   .input('estado', sql.NVarChar, estado)
@@ -2496,6 +2685,7 @@ app.post('/juez/agregar', async (req, res) => {
     )
     OUTPUT INSERTED.id
     VALUES (
+       
       @nombre,
       @apellido,
       @estado
@@ -2653,7 +2843,9 @@ app.post('/mediaciones', async (req, res) => {
       finalizada
     } = req.body;
 
+    const nuevoId = await generarNuevoId(pool, 'mediaciones', 'id');
     const result = await pool.request()
+      //.input('id', sql.NVarChar, nuevoId)
       .input('numero', sql.NVarChar, numero)
       .input('abogado_id', sql.Int, abogado_id)
       .input('cliente_id', sql.Int, cliente_id)
@@ -2834,8 +3026,10 @@ app.post('/oficios/agregar', async (req, res) => {
         return res.status(400).json({ error: 'tipo_pericia inválido. Solo "Pericial informática".' });
       }
     }
+    const nuevoId = await generarNuevoId(pool, 'pagos', 'id');
 
     const r = await pool.request()
+      //.input('id', sql.Int, nuevoId)
       .input('expediente_id', sql.Int, expediente_id)
       .input('demandado_id', sql.Int, demandado_id ?? null)
       .input('parte', sql.NVarChar(100), parte)
@@ -3939,8 +4133,10 @@ app.post('/pagos', async (req, res) => {
   }
 
   try {
+    const nuevoId = await generarNuevoId(pool, 'pagos', 'id');
     let pool = await sql.connect(dbConfig);
     let result = await pool.request()
+      //.input('id', sql.Int, nuevoId)
       .input('fecha', sql.Date, fecha)
       .input('monto', sql.Decimal(12,2), monto)
       .input('tipo_pago', sql.VarChar(30), tipo_pago)
@@ -4369,6 +4565,51 @@ app.post('/jurisprudencias', async (req, res) => {
     res.status(500).json({ error: 'Error al crear jurisprudencia' });
   }
 });
+
+// 🔢 Método genérico para generar un nuevo ID para cualquier tabla
+async function generarNuevoId(pool, tabla, columna = 'id') {
+  // Por seguridad, solo permito tablas conocidas
+  const tablasValidas = [
+    'clientes',
+    'expedientes',
+    'localidades',
+    'juzgados',
+    'demandados',
+    'juez',
+    'eventos_calendario',
+    'partido',
+    'pagos',
+    'pagos_expediente',
+    'clientes_expedientes',
+    'jurisprudencias',
+    'codigos',
+    'uma',
+    'usuario',
+    'oficios',
+    'mediaciones',
+    'clientes_eventos',
+    'expedientes_demandados'
+  ];
+
+  if (!tablasValidas.includes(tabla)) {
+    throw new Error(`Tabla no permitida para generar nuevo id: ${tabla}`);
+  }
+
+  const consulta = `
+    SELECT ISNULL(MAX(${columna}), 0) + 1 AS nuevoId
+    FROM dbo.${tabla}
+  `;
+
+  const result = await pool.request().query(consulta);
+  const nuevoId = result.recordset[0]?.nuevoId;
+
+  if (!nuevoId) {
+    throw new Error(`No se pudo calcular nuevo id para tabla ${tabla}`);
+  }
+
+  return nuevoId;
+}
+
 
              // Iniciar el servidor
       app.listen(3000, () => {

@@ -347,7 +347,7 @@ if (expediente) {
 
   const juicio = expediente.juicio ? ` por ${expediente.juicio}` : '';
 
-  caratula = `${numeroAnio} ${actor} c/ ${demandado}${juicio}`;
+  caratula = `${expediente.caratula}`;
 }
 
   const fecha = new Date(evento.fecha_evento);
