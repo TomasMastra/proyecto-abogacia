@@ -35,7 +35,7 @@ demandadosPorNombre: { [nombre: string]: number } = {};
   }
 
   obtenerCobranza() {
-    const desdeAnio = 2016;
+    const desdeAnio = 2014;
     const hoy = new Date();
     const hastaAnio = hoy.getFullYear();
     const hastaMes = hoy.getMonth() + 1;

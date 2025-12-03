@@ -4,6 +4,7 @@ import { JuzgadoModel } from 'src/app/models/juzgado/juzgado.component';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 
 @Injectable({
@@ -17,7 +18,9 @@ export class JuzgadosService {
       'Accept': 'application/json'
     })
   };
-  private apiUrl = 'http://192.168.1.36:3000/juzgados';
+  //private apiUrl = 'http://192.168.1.36:3000/juzgados';
+  private apiUrl = `${environment.apiBase}/juzgados`;
+
   private juzgadosSubject = new BehaviorSubject<JuzgadoModel[]>([]); 
   juzgados$ = this.juzgadosSubject.asObservable();  
 

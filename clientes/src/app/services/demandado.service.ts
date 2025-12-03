@@ -5,13 +5,15 @@ import { DemandadoModel } from '../models/demandado/demandado.component';
 import { map } from 'rxjs/operators';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DemandadosService {
   //private apiUrl = 'http://localhost:3000/demandados';  
-  private apiUrl = 'http://192.168.1.36:3000/demandados';
+  //private apiUrl = 'http://192.168.1.36:3000/demandados';
+  private apiUrl = `${environment.apiBase}/demandados`;
 
   private demandadosSubject = new BehaviorSubject<DemandadoModel[]>([]); // Emite un arreglo vacío inicialmente
   demandados$ = this.demandadosSubject.asObservable();  // Expone el observable de clientes

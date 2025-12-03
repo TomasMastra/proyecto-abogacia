@@ -3,11 +3,13 @@ import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { catchError, map, tap } from 'rxjs/operators';
 import { JurisprudenciaModel } from 'src/app/models/jurisprudencia/jurisprudencia.component';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class JurisprudenciasService {
 
-  private apiUrl = 'http://192.168.1.36:3000/jurisprudencias';
+  //private apiUrl = 'http://192.168.1.36:3000/jurisprudencias';
+  private apiUrl = `${environment.apiBase}/jurisprudencias`;
 
   private httpOptions = {
     headers: new HttpHeaders({

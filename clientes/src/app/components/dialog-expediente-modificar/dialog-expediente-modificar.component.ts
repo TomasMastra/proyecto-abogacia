@@ -12,7 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators, FormBuilder  } from '@angular/forms';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 
@@ -81,6 +81,9 @@ export class DialogExpedienteModificarComponent implements OnInit {
     demandadoEmpresa: new FormControl<any | null>(null),
   });
 
+  expediente!: ExpedienteModel;
+  cargando = false;
+
   // -------- catálogos / estado
   juzgados: JuzgadoModel[] = [];
   juzgadosOriginales: JuzgadoModel[] = [];
@@ -140,6 +143,8 @@ export class DialogExpedienteModificarComponent implements OnInit {
     private clienteService: ClientesService,
     private expedienteService: ExpedientesService,
     private codigosService: CodigosService,
+      private fb: FormBuilder,
+
 
     public dialogRef: MatDialogRef<DialogExpedienteModificarComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ExpedienteModel
@@ -164,6 +169,11 @@ export class DialogExpedienteModificarComponent implements OnInit {
   // lifecycle
   // ============================================================
   ngOnInit(): void {
+    //alert(this.data.id);
+
+    this.inicializarForm();
+    this.cargarExpediente();
+
     this.cargarJuzgado();
     this.cargarDemandados();
     this.cargarClientes();
@@ -231,6 +241,112 @@ export class DialogExpedienteModificarComponent implements OnInit {
       });
     }
   }
+
+private inicializarForm(): void {
+  this.form = this.fb.group({
+
+    // ===========================
+    // DATOS PRINCIPALES
+    // ===========================
+    numero: ['', Validators.required],
+    anio: ['', Validators.required],
+    estado: ['', Validators.required],
+    porcentaje: ['', Validators.required],
+    fechaInicio: ['', Validators.required],
+    juicio: ['', Validators.required],
+
+    // ===========================
+    // TIPO DE JUZGADO
+    // (CCF — COM — CIV — todos)
+    // ===========================
+    tipo: ['todos', Validators.required],
+
+    // ===========================
+    // RELACIONES
+    // ===========================
+    juzgado: [null, Validators.required],   // ← antes era "juzgado"
+    abogado: ['', Validators.required],         // usuario_id
+    procurador: ['', Validators.required],      // procurador_id
+    codigo: [null],                             // código jurisprudencia
+
+    // ===========================
+    // ACTORA MIXTA
+    // ===========================
+    actoraTipo: ['cliente', Validators.required],   // cliente | empresa
+    actoraEmpresa: [null],                          // si es empresa va acá
+
+    // ===========================
+    // DEMANDADO MIXTO
+    // ===========================
+    demandadoTipo: ['empresa', Validators.required], // cliente | empresa
+    demandadoEmpresa: [null]                         // si es empresa va acá
+  });
+}
+
+private cargarExpediente(): void {
+  this.cargando = true;
+
+  this.expedienteService.getExpedientePorId(this.data.id).subscribe({
+    next: (exp) => {
+      this.expediente = exp;
+      if (!exp) {
+        this.cargando = false;
+        return;
+      }
+
+      // buscar los objetos correspondientes al id
+      const juzgadoSel =
+        this.juzgados.find(j => +j.id == +exp.juzgado_id!) || null;
+
+      const codigoSel =
+        this.codigos.find(c => +c.id == exp.codigo_id) || null;
+
+      const abogadoSel =
+        this.listaUsuarios.find(u => +u.id == +exp.usuario_id) || null;
+
+      const procuradorSel =
+        this.listaUsuarios.find(u => u.id === exp.procurador_id) || null;
+
+      // por ahora tomamos el primer demandado para el selector
+      const primerDemandado =
+        exp.demandados && exp.demandados.length ? exp.demandados[0] : null;
+
+      this.form.patchValue({
+        numero: exp.numero ?? '',
+        anio: exp.anio ?? '',
+        estado: exp.estado ?? '',
+        porcentaje: exp.porcentaje ?? '',
+        fechaInicio: exp.fecha_inicio ? exp.fecha_inicio.substring(0, 10) : '',
+        juicio: exp.juicio ?? '',
+
+        tipo: (exp as any).tipo ?? 'todos',
+
+        juzgado: juzgadoSel,
+        codigo: codigoSel,
+        abogado: abogadoSel,
+        procurador: procuradorSel,
+
+        actoraTipo: 'cliente',
+        actoraEmpresa: null,
+
+        demandadoTipo: 'empresa',
+        demandadoEmpresa: primerDemandado
+      });
+
+      // sincronizás los [(ngModel)] también
+      this.juzgadoElegido = juzgadoSel;
+      this.codigoSeleccionado = codigoSel;
+      this.abogadoSeleccionado = abogadoSel;
+      this.procuradorSeleccionado = procuradorSel;
+
+      this.cargando = false;
+    },
+    error: (err) => {
+      console.error('Error cargando expediente en diálogo:', err);
+      this.cargando = false;
+    }
+  });
+}
 
   // ============================================================
   // catálogos

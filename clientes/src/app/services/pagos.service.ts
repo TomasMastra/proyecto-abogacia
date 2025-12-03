@@ -9,7 +9,8 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class PagosService {
-    private apiUrl = 'http://192.168.1.36:3000/pagos';
+    //private apiUrl = 'http://192.168.1.36:3000/pagos';
+      private apiUrl = `${environment.apiBase}/pagos`;
 
   private resource = `${this.apiUrl}`;
 

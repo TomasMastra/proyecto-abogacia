@@ -2,12 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { MediacionModel } from 'src/app/models/mediacion/mediacion.component'; // ajustá si tu path es distinto
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MediacionesService {
-  private apiUrl = 'http://192.168.1.36:3000/mediaciones';
+  //private apiUrl = 'http://192.168.1.36:3000/mediaciones';
+    private apiUrl = `${environment.apiBase}/medicaiones`;
 
   constructor(private http: HttpClient) {}
 

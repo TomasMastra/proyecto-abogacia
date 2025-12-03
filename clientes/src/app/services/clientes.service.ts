@@ -5,6 +5,7 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { UsuarioService } from 'src/app/services/usuario.service';
+import { environment } from '../../environments/environment';
 
 
 @Injectable({
@@ -18,8 +19,10 @@ export class ClientesService {
       'Accept': 'application/json'
     })
   };
-  private apiUrl = 'http://192.168.1.36:3000/clientes';
+  //private apiUrl = 'http://192.168.1.36:3000/clientes';
   //private apiUrl = 'http://localhost:3000/clientes';  
+  private apiUrl = `${environment.apiBase}/clientes`;
+
   public clientesSubject = new BehaviorSubject<ClienteModel[] | null>(null);
   clientes$ = this.clientesSubject.asObservable();  // Expone el observable de clientes
 
@@ -95,12 +98,17 @@ searchClientes(texto: string): Observable<ClienteModel[]> {
 
 
   getExpedientesPorCliente(clienteId: string) {
-    const url = `http://192.168.1.36:3000/expedientes/clientes?id=${clienteId}`;
+    //const url = `http://192.168.1.36:3000/expedientes/clientes?id=${clienteId}`;
+    const url = `${environment.apiBase}/expedientes/clientes?id=${clienteId}`
+
     return this.http.get<any[]>(url);
   }
   
   ObtenerExpedientesPorCliente(clienteId: string) {
-    const url = `http://192.168.1.36:3000/clientes/expedientesPorCliente?id=${clienteId}`;
+    //const url = `http://192.168.1.36:3000/clientes/expedientesPorCliente?id=${clienteId}`;
+    //const url = `${environment.apiBase}/expedientesPorCliente?id=${clienteId}`
+    const url = `${environment.apiBase}/expedientesPorCliente?id=${clienteId}`;
+
     return this.http.get<any[]>(url);
   }
   

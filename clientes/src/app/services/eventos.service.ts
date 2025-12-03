@@ -7,12 +7,15 @@ import { catchError, tap } from 'rxjs/operators';
 import { MediacionModel } from '../models/mediacion/mediacion.component';
 import { MediacionesService } from 'src/app/services/mediaciones.service';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EventosService {
-  private apiUrl = 'http://192.168.1.36:3000/eventos';
+  //private apiUrl = 'http://192.168.1.36:3000/eventos';
+  private apiUrl = `${environment.apiBase}/eventos`;
+
   private eventosSubject = new BehaviorSubject<EventoModel[]>([]);
   eventos$ = this.eventosSubject.asObservable();
 
@@ -71,12 +74,12 @@ getEventos() {
 
 
 
-  addEvento(evento: EventoModel): Observable<any> {
-    const url = `${this.apiUrl}/agregar`;
-    //console.log('URL de búsqueda:', url);
-    //console.log('Datos enviados:', cliente);
-    return this.http.post(`${this.apiUrl}/agregar`, evento);
-  }
+addEvento(evento: EventoModel): Observable<any> {
+  const url = `${this.apiUrl}/agregar`;
+  //console.log('URL de búsqueda:', url);
+  //console.log('Datos enviados:', cliente);
+  return this.http.post(`${this.apiUrl}/agregar`, evento);
+}
 
 editarEvento(evento: EventoModel): Observable<any> {
   const url = `${this.apiUrl}/editar/${evento.id}`;

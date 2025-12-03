@@ -12,13 +12,15 @@ import { catchError, tap } from 'rxjs/operators';
 
 import { UsuarioService } from 'src/app/services/usuario.service';
 import { JuzgadosService } from 'src/app/services/juzgados.service';
+import { environment } from '../../environments/environment';
 
 
 @Injectable({
   providedIn: 'root'
 })
 export class ExpedientesService {
-  private apiUrl = 'http://192.168.1.36:3000/expedientes';
+  //private apiUrl = 'http://192.168.1.36:3000/expedientes';
+  private apiUrl = `${environment.apiBase}/expedientes`;
 
   //private expedientesSubject = new BehaviorSubject<ExpedienteModel[]>([]); // Emite un arreglo vacío inicialmente
   private expedientesSubject = new BehaviorSubject<ExpedienteModel[] | null>(null);
@@ -27,44 +29,8 @@ export class ExpedientesService {
   constructor(private http: HttpClient, private usuarioService: UsuarioService,
     private juzgadosService: JuzgadosService
   ) {}
-/*
-getExpedientes() {
-  const usuario = this.usuarioService.usuarioLogeado;
-    const params = {
-    usuario_id: usuario!.id,
-    rol: usuario!.rol
-  };
 
-
-  this.http.get<ExpedienteModel[]>(this.apiUrl, { params }).subscribe(
-    (expedientes) => {
-
-      expedientes.forEach((expediente) => {
-          expediente.clientes = []; // 👈 prevenís error
-          expediente.demandados = [];
-
-        this.getClientesPorExpediente(expediente.id).subscribe((clientes) => {
-          expediente.clientes = clientes;
-        });
-
-        this.getDemandadosPorExpediente(expediente.id).subscribe((demandados) => {
-          expediente.demandados = demandados;
-        });
-
-     //  this.getDemandadoPorId(expediente.demandado_id!).subscribe((demandado) => {
-    //      expediente.demandadoModel = demandado;
-       // });
-      });
-
-      this.expedientesSubject.next(expedientes);
-    },
-    (error) => {
-      console.error('Error al obtener expedientes:', error);
-    }
-  );
-
-  return this.clientes$;
-}*/
+  /*
 getExpedientes() {
 const usuario = this.usuarioService.usuarioLogeado;
   const params = { usuario_id: usuario!.id, rol: usuario!.rol };
@@ -78,12 +44,12 @@ const usuario = this.usuarioService.usuarioLogeado;
       });
       this.expedientesSubject.next(expedientes ?? []);
 
-      // 2) Llamadas secundarias en paralelo (no bloquean, no re-ordenan)
-      (expedientes ?? []).forEach(e => {
+
+     (expedientes ?? []).forEach(e => {
         this.getClientesPorExpediente(e.id).subscribe({
           next: (clientes) => { e.clientes = clientes ?? [];  },
-          error: () => { /* ignore */ }
-        });
+          error: () => {  }
+        })
         
           this.getJuzgadoPorId(e.juzgado_id).subscribe({
           next: (juzgado) => {
@@ -95,7 +61,7 @@ const usuario = this.usuarioService.usuarioLogeado;
 
         this.getDemandadosPorExpediente(e.id).subscribe({
           next: (demandados) => { e.demandados = demandados ?? [];  },
-          error: () => { /* ignore */ }
+          error: () => { }
         });
       });
     },
@@ -105,6 +71,27 @@ const usuario = this.usuarioService.usuarioLogeado;
   });
 
   return this.clientes$; // lo que ya devolvías
+}*/
+
+
+getExpedientes() {
+  const usuario = this.usuarioService.usuarioLogeado;
+  const params = { usuario_id: usuario!.id, rol: usuario!.rol };
+
+  this.http.get<any[]>(this.apiUrl, { params }).subscribe({
+    next: (expedientes) => {
+      (expedientes ?? []).forEach(e => {
+        e.clientes = [];
+        e.demandados = [];
+      });
+      this.expedientesSubject.next(expedientes ?? []);
+    },
+    error: () => {
+      this.expedientesSubject.next([]);
+    }
+  });
+
+  return this.clientes$; 
 }
 
 
@@ -125,34 +112,6 @@ private armarCaratula(expediente: any): string {
   return `${izquierda} contra ${derecha}`;
 }
 
-
-/*
-
-      getHonorarios() {
-        this.http.get<ExpedienteModel[]>(`${this.apiUrl}/honorarios`).subscribe(
-          (expedientes) => {
-            expedientes.forEach((expediente) => {
-              this.getClientesPorExpediente(expediente.id).subscribe((clientes) => {
-                expediente.clientes = clientes;
-
-              });
-      
-              this.getDemandadoPorId(expediente.demandado_id!).subscribe((demandado) => {
-                expediente.demandadoModel = demandado
-
-              });
-            });
-
-            this.expedientesSubject.next(expedientes);
-          },
-          (error) => {
-            console.error('Error al obtener expedientes:', error);
-          }
-        );
-      
-        return this.clientes$;
-      }
-        */
 getHonorarios() {
   this.http.get<any[]>(`${this.apiUrl}/honorarios`).subscribe(
     (expedientes) => {
@@ -224,27 +183,38 @@ getHonorarios() {
     return this.http.get<DemandadoModel[]>(url);
   }
 
-  getDemandadoPorId(id: number): Observable<DemandadoModel> {
+/*  getDemandadoPorId(id: number): Observable<DemandadoModel> {
     if (id === undefined || id === null) {
       console.error('ID de demandado no definido');
     }
 
-    const url = `http://192.168.1.36:3000/demandados/${id}`;
-    
+    //const url = `http://192.168.1.36:3000/demandados/${id}`;
+    const url = `${environment.apiBase}/demandados/${id}`
     return this.http.get<DemandadoModel>(url);
+  }*/
+
+  getDemandadoPorId(id: number): Observable<DemandadoModel> {
+  if (id === undefined || id === null) {
+    console.error('ID de demandado no definido');
   }
+
+  const url = `${environment.apiBase}/expedientes/demandados/${id}`;
+  return this.http.get<DemandadoModel>(url);
+}
+
 
     getJuzgadoPorId(id: number): Observable<DemandadoModel> {
     if (id === undefined || id === null) {
       console.error('ID de demandado no definido');
     }
 
-    const url = `http://192.168.1.36:3000/juzgados/${id}`;
-    
+    //const url = `http://192.168.1.36:3000/juzgados/${id}`;
+    const url = `${environment.apiBase}/juzgados/${id}`
+
     return this.http.get<DemandadoModel>(url);
   }
 
-  getExpedientePorId(id: number): Observable<ExpedienteModel> {
+  getExpedientePorId(id: number | string): Observable<ExpedienteModel> {
   return this.http.get<ExpedienteModel>(`${this.apiUrl}/obtener/${id}`).pipe(
     switchMap(expediente => {
       const clientes$ = this.getClientesPorExpediente(expediente.id);
@@ -256,7 +226,7 @@ getHonorarios() {
           expediente.clientes = clientes;
           expediente.demandados = demandados;
           expediente.juzgadoModel = juzgado;
-          console.log(expediente.juzgadoModel);
+          //console.log(expediente.juzgadoModel);
           return expediente;
         })
       );

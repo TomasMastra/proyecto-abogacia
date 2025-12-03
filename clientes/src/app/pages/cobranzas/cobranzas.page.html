@@ -45,7 +45,7 @@
       </thead>
       <tbody>
         <ng-container *ngFor="let mes of mesesDisponibles">
-<tr *ngIf="cobrosPorMes[mes]!.total > 0" (click)="verDetalleMes(mes)" style="cursor:pointer">
+<tr *ngIf="cobrosPorMes[mes]!.total! > 0" (click)="verDetalleMes(mes)" style="cursor:pointer">
 
             <td>{{ convertirMes(mes) }} / {{ mes.split('-')[0] }}</td>
             <td><strong>${{ cobrosPorMes[mes].total | number:'1.0-0' }}</strong></td>

@@ -332,19 +332,20 @@ let caratula = '';
 
 if (expediente) {
   const numeroAnio = `${expediente.numero}/${expediente.anio}`;
-
+/*
   const actor = expediente.clientes.length > 1
     ? `${expediente.clientes[0].apellido} ${expediente.clientes[0].nombre} y otros`
     : expediente.clientes.length === 1
       ? `${expediente.clientes[0].apellido} ${expediente.clientes[0].nombre}`
       : '(sin actora)';
 
+
   const demandado = expediente.demandados.length > 1
     ? `${expediente.demandados[0].nombre} y otros`
     : expediente.demandados.length === 1
       ? expediente.demandados[0].nombre
       : '(sin demandado)';
-
+*/
   const juicio = expediente.juicio ? ` por ${expediente.juicio}` : '';
 
   caratula = `${expediente.caratula}`;
@@ -353,6 +354,7 @@ if (expediente) {
   const fecha = new Date(evento.fecha_evento);
   const hora = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
+  console.log(expediente!.caratula);
   const clientes = (evento.clientes?.length ? evento.clientes : evento.expediente?.clientes || [])
     .map(c => `${c.nombre} ${c.apellido}`)
     .join(', ') || 'No especificado';
@@ -378,10 +380,10 @@ if (expediente) {
     html: `<div style='text-align:left;'>
       ${caratula ? `<p><strong>Carátula:</strong> ${evento.expediente!.caratula}</p>` : ''}
      <!--  <p><strong>Caratula:</strong> ${caratula}</p> -->
-      <p><strong>Fecha:</strong> ${fecha.toLocaleDateString('es-AR')}</p>
-      <p><strong>Hora:</strong> ${hora}</p>
-      <p><strong>Estado:</strong> ${estado}</p>
-      <p><strong>Asistirán:</strong> ${clientes}</p>
+      <p><strong>Fecha:</strong> ${fecha.toLocaleDateString('es-AR') || 'no hay'}</p>
+      <p><strong>Hora:</strong> ${hora || 'No hay'}</p>
+      <p><strong>Estado:</strong> ${estado || 'No hay'}</p>
+      <p><strong>Asistirán:</strong> ${clientes || 'No hay'}</p>
       ${ubicacionHTML}
       ${linkHTML}
     </div>`,

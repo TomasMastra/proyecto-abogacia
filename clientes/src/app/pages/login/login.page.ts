@@ -46,7 +46,7 @@ export class LoginPage implements OnInit {
   }
 
 login() {
-this.http.post('http://192.168.1.36:3000/login', {
+this.http.post('http://192.168.1.36:3001/login', {
       email: this.email,
       contraseña: this.password
     }).subscribe({

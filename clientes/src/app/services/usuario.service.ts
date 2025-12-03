@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { catchError, tap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +18,7 @@ export class UsuarioService {
   };
 
   // private apiUrl = 'http://localhost:3000/usuario';
-  private apiUrl = 'http://192.168.1.36:3000/usuario';
+      private apiUrl = `${environment.apiBase}/usuario`;
 
   private logeadoSubject = new BehaviorSubject<boolean>(false);
   logeado$ = this.logeadoSubject.asObservable();

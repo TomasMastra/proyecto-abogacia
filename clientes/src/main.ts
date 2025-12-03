@@ -41,7 +41,7 @@ bootstrapApplication(AppComponent, {
     provideIonicAngular(),
     provideHttpClient(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
-    provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
+    //provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
     //provideFirebaseApp(() => initializeApp(environment.firebaseConfigBkp)), 

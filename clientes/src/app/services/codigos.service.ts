@@ -3,11 +3,13 @@ import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { catchError, map, tap } from 'rxjs/operators';
 import { CodigoModel } from 'src/app/models/codigo/codigo.component'; // <-- asegurate que apunte a un .model.ts
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class CodigosService {
 
-  private apiUrl = 'http://192.168.1.36:3000/codigos';
+  //private apiUrl = 'http://192.168.1.36:3000/codigos';
+  private apiUrl = `${environment.apiBase}/codigos`;
 
   private httpOptions = {
     headers: new HttpHeaders({

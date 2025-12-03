@@ -5,13 +5,15 @@ import { switchMap, map, catchError } from 'rxjs/operators';
 import { OficioModel } from '../models/oficio/oficio.component';
 import { ExpedientesService } from './expedientes.service';
 import { DemandadosService } from './demandado.service';
+import { environment } from '../../environments/environment';
 
 
 @Injectable({
   providedIn: 'root'
 })
 export class OficiosService {
-  private apiUrl = 'http://192.168.1.36:3000/oficios';
+  //private apiUrl = 'http://192.168.1.36:3000/oficios';
+    private apiUrl = `${environment.apiBase}/oficios`;
 
 constructor(
   private http: HttpClient,

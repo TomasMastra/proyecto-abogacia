@@ -5,12 +5,14 @@ import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 import { ExpedienteModel } from '../models/expediente/expediente.component';
 import { ClienteExpedienteModel } from '../models/cliente-expediente/cliente-expediente.component';
 import { Observable, throwError, of } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ClientesExpedientesService {
-  private apiUrl = 'http://192.168.1.36:3000/clientes-expedientes';
+  //private apiUrl = 'http://192.168.1.36:3000/clientes-expedientes';
+  private apiUrl = `${environment.apiBase}/clientes-expedientes`;
 
   //private apiUrl = 'http://localhost:3000/clientes-expedientes';  
   private expedientesSubject = new BehaviorSubject<ClienteExpedienteModel[]>([]); // Emite un arreglo vacío inicialmente

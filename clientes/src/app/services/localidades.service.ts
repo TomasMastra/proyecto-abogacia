@@ -4,6 +4,7 @@ import { LocalidadModel } from 'src/app/models/localidad/localidad.component';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 
 @Injectable({
@@ -19,7 +20,7 @@ export class LocalidadesService {
   };
 
   //private apiUrl = 'http://localhost:3000/localidades';  
-  private apiUrl = 'http://192.168.1.36:3000/localidades';
+    private apiUrl = `${environment.apiBase}/localidades`;
 
   private localidadesSubject = new BehaviorSubject<LocalidadModel[]>([]); 
   localidades$ = this.localidadesSubject.asObservable();  

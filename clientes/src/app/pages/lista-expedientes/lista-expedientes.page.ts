@@ -116,7 +116,7 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
     );
   }
  
-
+/*
         abrirModificar(expediente: ExpedienteModel) {
           const dialogRef = this.dialog.open(DialogExpedienteModificarComponent, {
             width: '500px',
@@ -127,7 +127,6 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
         
           dialogRef.afterClosed().subscribe((expedienteModificado: ExpedienteModel) => {
             if (expedienteModificado) {
-            /* */
               this.expedienteService.deleteClienteExpedientePorId(expediente.id).subscribe(response => {
                 console.log('Respuesta del servidor:', response);
               }, error => {
@@ -169,7 +168,69 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
             }
           });
         }
-        
+  */
+ 
+  abrirModificar(expediente: ExpedienteModel) {
+  const dialogRef = this.dialog.open(DialogExpedienteModificarComponent, {
+    width: '900px',
+    disableClose: true,
+    data: { id: expediente.id }   // 🔹 SOLO LE PASÁS EL ID
+  });
+
+  dialogRef.afterClosed().subscribe((expedienteModificado: ExpedienteModel) => {
+    if (expedienteModificado) {
+
+      this.expedienteService
+        .deleteClienteExpedientePorId(expedienteModificado.id)
+        .subscribe({
+          next: (response) => {
+            console.log('Respuesta del servidor (delete cliente-expediente):', response);
+          },
+          error: (error) => {
+            console.error('Error al eliminar clientes:', error);
+          }
+        });
+
+      this.expedienteService
+        .actualizarExpediente(expedienteModificado.id, expedienteModificado)
+        .subscribe({
+          next: (response) => {
+            console.log('Expediente actualizado:', response);
+
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: 'Expediente modificado exitosamente',
+              showConfirmButton: false,
+              timer: 1500
+            });
+
+            // Actualizás en la lista local
+            this.expedientes = this.expedientes.map(exp =>
+              exp.id === expedienteModificado.id ? expedienteModificado : exp
+            );
+
+            // Y si querés, recargás todo de la API
+            this.cargarExpedientes();
+          },
+          error: (error) => {
+            console.error('Error al actualizar expediente:', error);
+
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'error',
+              title: 'Error al actualizar expediente',
+              showConfirmButton: false,
+              timer: 1500
+            });
+          }
+        });
+    }
+  });
+}
+
 
   goTo(path: string){
     this.router.navigate([path]); // Navega a la ruta deseada
