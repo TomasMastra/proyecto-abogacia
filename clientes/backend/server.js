@@ -1,112 +1,76 @@
 const express = require("express");
 const sql = require("mssql");
 const cors = require("cors");
-const argon2 = require("argon2"); // <-- usamos Argon2
+const argon2 = require("argon2");
+const { actualizarIpFirewallAzure } = require("./azureFirewallUpdater");
+
+require("dotenv").config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// =======================================================
+//              FUNCIÓN PRINCIPAL DEL SERVIDOR
+// =======================================================
 
+async function iniciarServidor() {
+  console.log("=====================================");
+  console.log("   Iniciando backend de ABOGACIA...");
+  console.log("=====================================");
 
-// Configuración de la conexión a SQL Server con autenticación SQL
-/*
-const dbConfig = {
-    user: 'userMastrapasquaABOGACIA',         // Usuario de SQL Server
-    password: '1503',  // Contraseña de SQL Server
-    server: 'DESKTOP-Q9JTH4D', // Nombre del servidor
-    database: 'ABOGACIA',      // Nombre de la base de datos
-    options: {
-        encrypt: true,          // Necesario para conexiones seguras
-        trustServerCertificate: true  // Evita problemas con certificados SSL
-    }
-};*/
-
-const dbConfig = {
-  user: 'sqladmin',                 // ej: 'userMastrapasquaABOGACIA'
-  password: 'Lam@ceta2025!',            // la que creaste en Azure, NO la local
-  server: 'servidormastrapasqua.database.windows.net', // ej: 'abogacia-sqlserver.database.windows.net'
-  database: 'abogacia',                   // el nombre de la base en Azure
-  options: {
-    encrypt: true,                        // en Azure tiene que ir en true
-    trustServerCertificate: false         // en Azure lo normal es false
-  }
-};
-
-const pool = new sql.ConnectionPool(dbConfig);
-const poolConnect = pool.connect();
-// Conectar a SQL Server
-sql.connect(dbConfig)
-    .then(pool => {
-        // Ruta de prueba para ver si la API funciona
-        app.get("/", (req, res) => {
-            res.send("API funcionando correctamente.");
-        });
-
-        // Ruta para obtener todos los usuarios
-        app.get("/usuario", (req, res) => {
-            pool.request()
-                .query("SELECT * FROM usuario")  // Consulta SQL
-                .then(result => {
-                    res.json(result.recordset);  // Devuelve los resultados
-                })
-                .catch(err => {
-                    res.status(500).send(err);  // En caso de error, devuelve 500
-                });
-        });
-
-                app.get("/uma", (req, res) => {
-            pool.request()
-                .query("SELECT * FROM uma ORDER BY fecha_resolucion DESC")  // Consulta SQL
-                .then(result => {
-                    res.json(result.recordset);  // Devuelve los resultados
-                })
-                .catch(err => {
-                    res.status(500).send(err);  // En caso de error, devuelve 500
-                });
-        });
-/*
-  app.post('/login', async (req, res) => {
-  const { email, contraseña } = req.body;
-
+  // 1) Actualizamos IP en Azure SQL Firewall
   try {
-    const result = await pool.request()
-      .input('email', sql.NVarChar, email)
-      .input('contraseña', sql.NVarChar, contraseña)
-      .query(`
-        SELECT * FROM usuario 
-        WHERE email = @email 
-          AND contraseña = @contraseña
-          AND estado = 'activo'
-      `);
+    console.log("🔄 Actualizando IP en Azure SQL Firewall...");
+    const ip = await actualizarIpFirewallAzure();
+    console.log(`✔ IP actualizada correctamente: ${ip}`);
+  } catch (err) {
+    console.error("❌ Error actualizando IP:", err.message);
+    console.log("⚠ Se intentará conectar igual...");
+  }
 
-    if (result.recordset.length === 0) {
-      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+  // 2) Configuración de conexión a Azure SQL
+  const dbConfig = {
+    user: 'sqladmin',
+    password: 'Lam@ceta2025!',
+    server: 'servidormastrapasqua.database.windows.net',
+    database: 'abogacia',
+    options: {
+      encrypt: true,
+      trustServerCertificate: false
     }
+  };
 
-    const usuario = result.recordset[0];
-
-    // Podés devolver solo lo que necesites (sin contraseña)
-    res.status(200).json({
-      message: 'Login exitoso',
-      usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        email: usuario.email,
-        rol: usuario.rol,
-        estado: usuario.estado,
-        fecha_creacion: usuario.fecha_creacion
-      }
+  // 3) Conectar a SQL Server
+  sql.connect(dbConfig)
+    .then(pool => {
+      console.log("✔ Conectado a Azure SQL correctamente.");
+      app.get("/", (req, res) => {
+        res.send("API funcionando correctamente.");
+      });
+    // Ruta para obtener todos los usuarios
+    app.get("/usuario", (req, res) => {
+        pool.request()
+            .query("SELECT * FROM usuario")  // Consulta SQL
+            .then(result => {
+                res.json(result.recordset);  // Devuelve los resultados
+            })
+            .catch(err => {
+                res.status(500).send(err);  // En caso de error, devuelve 500
+            });
     });
 
+            app.get("/uma", (req, res) => {
+        pool.request()
+            .query("SELECT * FROM uma ORDER BY fecha_resolucion DESC")  // Consulta SQL
+            .then(result => {
+                res.json(result.recordset);  // Devuelve los resultados
+            })
+            .catch(err => {
+                res.status(500).send(err);  // En caso de error, devuelve 500
+            });
+    });
 
-
-
-  } catch (error) {
-    console.error('Error al iniciar sesión:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});*/
 
 
 app.post('/login', async (req, res) => {
@@ -4578,3 +4542,7 @@ async function generarNuevoId(pool, tabla, columna = 'id') {
     .catch(err => {
         console.error("Error conectando a SQL Server:", err);  
     });
+  }
+
+  iniciarServidor();
+
