@@ -43,17 +43,17 @@ sql.connect(dbConfig)
             res.send("API funcionando correctamente.");
         });
 
-        // Ruta para obtener todos los usuarios
-        app.get("/usuario", (req, res) => {
-            pool.request()
-                .query("SELECT * FROM usuario")  // Consulta SQL
-                .then(result => {
-                    res.json(result.recordset);  // Devuelve los resultados
-                })
-                .catch(err => {
-                    res.status(500).send(err);  // En caso de error, devuelve 500
-                });
-        });
+    // Ruta para obtener todos los usuarios
+    app.get("/usuario", (req, res) => {
+        pool.request()
+            .query("SELECT * FROM usuario")  // Consulta SQL
+            .then(result => {
+                res.json(result.recordset);  // Devuelve los resultados
+            })
+            .catch(err => {
+                res.status(500).send(err);  // En caso de error, devuelve 500
+            });
+    });
 
                 app.get("/uma", (req, res) => {
             pool.request()
