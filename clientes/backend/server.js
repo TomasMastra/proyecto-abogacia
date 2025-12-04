@@ -19,70 +19,7 @@ async function iniciarServidor() {
   console.log("   Iniciando backend de ABOGACIA...");
   console.log("=====================================");
 
-<<<<<<< HEAD
   // 1) Actualizamos IP en Azure SQL Firewall
-=======
-// Configuración de la conexión a SQL Server con autenticación SQL
-/*
-const dbConfig = {
-    user: 'userMastrapasquaABOGACIA',         // Usuario de SQL Server
-    password: '1503',  // Contraseña de SQL Server
-    server: 'DESKTOP-Q9JTH4D', // Nombre del servidor
-    database: 'ABOGACIA',      // Nombre de la base de datos
-    options: {
-        encrypt: true,          // Necesario para conexiones seguras
-        trustServerCertificate: true  // Evita problemas con certificados SSL
-    }
-};*/
-
-const dbConfig = {
-  user: 'sqladmin',                 // ej: 'userMastrapasquaABOGACIA'
-  password: 'Lam@ceta2025!',            // la que creaste en Azure, NO la local
-  server: 'servidormastrapasqua.database.windows.net', // ej: 'abogacia-sqlserver.database.windows.net'
-  database: 'abogacia',                   // el nombre de la base en Azure
-  options: {
-    encrypt: true,                        // en Azure tiene que ir en true
-    trustServerCertificate: false         // en Azure lo normal es false
-  }
-};
-
-const pool = new sql.ConnectionPool(dbConfig);
-const poolConnect = pool.connect();
-// Conectar a SQL Server
-sql.connect(dbConfig)
-    .then(pool => {
-        // Ruta de prueba para ver si la API funciona
-        app.get("/", (req, res) => {
-            res.send("API funcionando correctamente.");
-        });
-
-    // Ruta para obtener todos los usuarios
-    app.get("/usuario", (req, res) => {
-        pool.request()
-            .query("SELECT * FROM usuario")  // Consulta SQL
-            .then(result => {
-                res.json(result.recordset);  // Devuelve los resultados
-            })
-            .catch(err => {
-                res.status(500).send(err);  // En caso de error, devuelve 500
-            });
-    });
-
-                app.get("/uma", (req, res) => {
-            pool.request()
-                .query("SELECT * FROM uma ORDER BY fecha_resolucion DESC")  // Consulta SQL
-                .then(result => {
-                    res.json(result.recordset);  // Devuelve los resultados
-                })
-                .catch(err => {
-                    res.status(500).send(err);  // En caso de error, devuelve 500
-                });
-        });
-/*
-  app.post('/login', async (req, res) => {
-  const { email, contraseña } = req.body;
-
->>>>>>> af4a6c07c2c62cc6edbb6e82a96c8a23820a9297
   try {
     console.log("🔄 Actualizando IP en Azure SQL Firewall...");
     const ip = await actualizarIpFirewallAzure();
