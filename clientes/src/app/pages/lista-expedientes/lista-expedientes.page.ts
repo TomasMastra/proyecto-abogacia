@@ -295,7 +295,7 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
             });
           }
 
-      buscar() {
+      /*buscar() {
         const texto = this.busqueda.trim();
       
         // ✅ Si está vacío, restaurar todos los expedientes
@@ -315,7 +315,7 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
             console.error('Error al obtener expedientes:', error);
           }
         );
-      }
+      }*/
           
           
           
@@ -416,6 +416,26 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
 trackByExpedientes(index: number, expediente: ExpedienteModel): string {
   return expediente.id;
 }
-   
+
+filtrar() {
+  const texto = this.busqueda.trim().toLowerCase();
+
+  // 🔄 Si no hay texto, restauro la lista original
+  if (!texto) {
+    this.expedientes = [...this.expedientesOriginales];
+    this.hayExpedientes = this.expedientes.length > 0;
+    return;
+  }
+
+  // 🔎 Filtro en memoria
+  this.expedientes = this.expedientesOriginales.filter((exp) => {
+    // Pasamos todo el objeto a string para buscar en cualquier campo simple
+    const expStr = JSON.stringify(exp).toLowerCase();
+    return expStr.includes(texto);
+  });
+
+  this.hayExpedientes = this.expedientes.length > 0;
+}
+
 
 }

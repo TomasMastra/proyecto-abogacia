@@ -7,16 +7,16 @@
         placeholder="Buscar"
         class="input-busqueda"
         [(ngModel)]="busqueda"
-        (keyup.enter)="buscar()">
+        (keyup.enter)="filtrar()">
       </ion-input>
     
       <!-- Mostrar solo si hay texto -->
-      <button *ngIf="busqueda" mat-button class="list-button" (click)="busqueda = ''; buscar()">
+      <button *ngIf="busqueda" mat-button class="list-button" (click)="busqueda = ''; filtrar()">
         <mat-icon style="color:#ffffff">close</mat-icon>
       </button>
     
       <!-- Buscar -->
-      <button mat-button class="list-button" (click)="buscar()">
+      <button mat-button class="list-button" (click)="filtrar()">
         <mat-icon style="color:#ffffff">search</mat-icon>
       </button>
     
