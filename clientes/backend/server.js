@@ -157,14 +157,13 @@ async function verifyPassword(storedHash, plainPassword) {
     return false;
   }
 }
-        // Ruta para obtener clientes
+// Ruta para obtener clientes
 app.get("/clientes", (req, res) => {
   const usuario_id = parseInt(req.query.usuario_id);
   const rol = req.query.rol;
 
   let query = "SELECT * FROM clientes WHERE estado != 'eliminado'";
   
-  // Solo filtra por usuario si no es admin
   if (rol !== 'admin') {
     query += " AND usuario_id = @usuario_id";
   }
@@ -185,8 +184,8 @@ app.get("/clientes", (req, res) => {
     });
 });
 
-        // Ruta para obtener expedientes
-app.get("/expedientes", async (req, res) => {
+// Ruta para obtener expedientes
+/*app.get("/expedientes", async (req, res) => {
   const usuario_id = parseInt(req.query.usuario_id);
   const rol = req.query.rol;
 
@@ -205,7 +204,65 @@ app.get("/expedientes", async (req, res) => {
     console.error("Error al obtener expedientes:", err);
     res.status(500).send(err);
   }
+});*/
+
+app.get("/expedientes", async (req, res) => {
+  const usuario_id = parseInt(req.query.usuario_id);
+  const rol = req.query.rol;
+
+  try {
+    const request = pool.request();
+
+    if (rol !== 'admin') {
+      request.input('usuario_id', sql.Int, usuario_id);
+    }
+
+    const query = `
+      SELECT 
+        e.*,
+        ISNULL((
+          SELECT STRING_AGG(LTRIM(RTRIM(p.nombre_completo)), ' | ')
+          FROM (
+            -- Actora (clientes de clientes_expedientes)
+            SELECT 
+              LTRIM(RTRIM(c.nombre + ' ' + c.apellido)) AS nombre_completo
+            FROM clientes_expedientes ce
+            JOIN clientes c ON c.id = ce.id_cliente
+            WHERE ce.id_expediente = e.id
+
+            UNION ALL
+
+            -- Demandada empresa (demandados)
+            SELECT 
+              LTRIM(RTRIM(d.nombre)) AS nombre_completo
+            FROM expedientes_demandados ed
+            JOIN demandados d ON d.id = ed.id_demandado
+            WHERE ed.id_expediente = e.id
+
+            UNION ALL
+
+            -- Demandada persona (clientes como demandados)
+            SELECT 
+              LTRIM(RTRIM(c2.nombre + ' ' + c2.apellido)) AS nombre_completo
+            FROM expedientes_demandados ed2
+            JOIN clientes c2 ON c2.id = ed2.id_cliente
+            WHERE ed2.id_expediente = e.id
+          ) AS p
+        ), '') AS busqueda
+      FROM expedientes e
+      WHERE e.estado != 'eliminado'
+        ${rol !== 'admin' ? ' AND e.usuario_id = @usuario_id' : ''}
+      ORDER BY e.id DESC;
+    `;
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error al obtener expedientes:", err);
+    res.status(500).send(err);
+  }
 });
+
 
 
         // Ruta para buscar clientes

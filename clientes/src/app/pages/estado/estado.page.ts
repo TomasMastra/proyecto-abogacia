@@ -408,7 +408,7 @@ cambioTipoHonorarioExtra(valores: string[]) {
   }
 
   //busca un expediente por los campos solicitados (numero, año y tipo de juzgado)
-  buscar() {
+/*  buscar() {
   const tipo = this.form.value.tipo;
 
   if (!this.numero || !this.anio || !tipo) {
@@ -474,7 +474,81 @@ cambioTipoHonorarioExtra(valores: string[]) {
       });
     }
   );
+}*/
+
+//busca un expediente por los campos solicitados (numero, año y tipo de juzgado)
+buscar() {
+  const tipo = this.form.value.tipo;
+
+  if (!this.numero || !this.anio || !tipo) {
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "error",
+      title: "Complete todos los campos",
+      showConfirmButton: false,
+      timer: 1500
+    });
+    return;
+  }
+
+  const inicio = performance.now();  // ⏱️
+
+  this.expedienteService.getClientePorNumeroYAnio(this.numero, this.anio, tipo).subscribe(
+    (expedientes) => {
+      const fin = performance.now();
+      console.log('⏱️ Tiempo búsqueda front (ms):', fin - inicio);
+
+      if (!expedientes || expedientes.length === 0) {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "error",
+          title: "No se encontró un expediente",
+          showConfirmButton: false,
+          timer: 1500
+        });
+        return;
+      }
+
+      this.expediente = expedientes[0]; 
+      
+      this.juzgadosService.getJuzgadoPorId(this.expediente.juzgado_id).subscribe(juzgado => {
+        this.expediente.juzgadoModel = juzgado;
+      });
+
+      this.menu = '2';
+      this.estadoSeleccionado = this.expediente.estado;
+      this.llenarFormularioConExpediente(this.expediente);
+      this.asignarDatos();
+      this.calcularMontoUMA();
+
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Expediente encontrado",
+        showConfirmButton: false,
+        timer: 1500
+      });
+    },
+    (error) => {
+      const fin = performance.now();
+      console.log('⏱️ Tiempo búsqueda front con error (ms):', fin - inicio);
+
+      console.error("Error en la búsqueda:", error);
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "error",
+        title: "Error en la búsqueda",
+        showConfirmButton: false,
+        timer: 1500
+      });
+    }
+  );
 }
+
 
   //Cambia de menu cuando el usuario encuentra un expediente para los datos ingresados
   cambiarMenu(menu: string){

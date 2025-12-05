@@ -99,7 +99,7 @@ export interface ExpedienteModel {
 
     codigo_id: number;
 
-
+    busqueda?: string;
 
   }
   
