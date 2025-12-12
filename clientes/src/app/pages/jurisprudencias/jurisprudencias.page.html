@@ -1,26 +1,20 @@
-
-
-
-
 <div class="content mat-elevation-z8">
 
   <ion-list class="lista-clientes">
-
     <div class="toolbar">
-      <ion-input 
-        placeholder="Buscar por nombre o apellido" 
+      <ion-input
+        placeholder="Buscar por numero/año"
         class="input-busqueda"
         [(ngModel)]="busqueda"
         (ngModelChange)="buscar()">
-
       </ion-input>
 
       <button mat-button class="list-button" (click)="agregarJurisprudencias()">
-        <mat-icon style="color: #ffffff">cases</mat-icon>
-        <span style="color: #ffffff">Agregar codigos</span>
+        <mat-icon style="color: #ffffff">add_location</mat-icon>
+        <span style="color: #ffffff">Agregar jurisprudencia</span>
       </button>
 
-      <button mat-button class="list-button" >
+      <button mat-button class="list-button">
         <mat-icon style="color: #ffffff">download</mat-icon>
       </button>
 
@@ -29,15 +23,12 @@
       </button>
     </div>
 
-    <div> 
-      <ion-item-sliding *ngFor="let j of jurisprudencias" class="jurisprudencias">
-        <ion-item class="cliente-item" *ngIf="hayJurisprudencias && codigos.length > 0">
-
-      <!--     <ion-label>
-            <h2 style="color: #ffffff"><strong>{{ j.tipo | titlecase }}</strong> — {{ j.codigo }}</h2>
-            <p style="white-space: pre-line; color: #ffffff">{{ j.descripcion }}</p>
-          </ion-label> -->
-          <ion-label><h2>{{j.expedienteModel!.caratula}}</h2></ion-label>
+    <div>
+      <ion-item-sliding *ngFor="let j of jurisprudencias" class="cliente">
+        <ion-item class="cliente" *ngIf="hayJurisprudencias && jurisprudencias.length > 0">
+          <ion-label>
+            <h1>{{ j.expedienteModel?.caratula }}</h1>
+          </ion-label>
 
           <button mat-button class="list-button" (click)="eliminarJurisprudencia(j)">
             <mat-icon style="color: #ffffff">delete</mat-icon>
@@ -49,7 +40,7 @@
         </ion-item>
       </ion-item-sliding>
 
-      <ion-item *ngIf="!hayJurisprudencias && codigos.length <= 0" class="jurisprudencias">
+      <ion-item *ngIf="!hayJurisprudencias && jurisprudencias.length <= 0" class="cliente">
         <ion-label text-center>{{ texto }}</ion-label>
       </ion-item>
     </div>

@@ -354,7 +354,6 @@ if (expediente) {
   const fecha = new Date(evento.fecha_evento);
   const hora = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
-  console.log(expediente!.caratula);
   const clientes = (evento.clientes?.length ? evento.clientes : evento.expediente?.clientes || [])
     .map(c => `${c.nombre} ${c.apellido}`)
     .join(', ') || 'No especificado';

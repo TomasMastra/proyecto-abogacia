@@ -47,19 +47,22 @@
       </div>
     </div>
 
-    <div *ngIf="expandido === cliente.id" class="detalles-cliente">
-      <h3>Expedientes vinculados:</h3>
-      <div *ngIf="expedientesPorCliente[cliente.id]!.length > 0; else sinExpedientes">
-        <ul>
-          <li *ngFor="let exp of expedientesPorCliente[cliente.id]">
-            Nº {{ exp.numero }}/{{ exp.anio }} ({{ exp.juzgadoModel?.nombre }})
-          </li>
-        </ul>
-      </div>
-      <ng-template #sinExpedientes>
-        <p>Este cliente no tiene expedientes vinculados.</p>
-      </ng-template>
-    </div>
+<div *ngIf="expandido === cliente.id" class="detalles-cliente">
+  <h3>Expedientes vinculados:</h3>
+
+  <div *ngIf="(expedientesPorCliente[cliente.id]?.length ?? 0) > 0; else sinExpedientes">
+    <ul>
+      <li *ngFor="let exp of expedientesPorCliente[cliente.id]">
+        Nº {{ exp.numero }}/{{ exp.anio }} ({{ exp.juzgadoModel?.nombre }})
+      </li>
+    </ul>
+  </div>
+
+  <ng-template #sinExpedientes>
+    <p>Este cliente no tiene expedientes vinculados.</p>
+  </ng-template>
+</div>
+
 
   </div>
 </cdk-virtual-scroll-viewport>

@@ -3,6 +3,8 @@ const sql = require("mssql");
 const cors = require("cors");
 const argon2 = require("argon2");
 const { actualizarIpFirewallAzure } = require("./azureFirewallUpdater");
+const Archiver = require("archiver");
+const router = express.Router();
 
 require("dotenv").config();
 
@@ -42,12 +44,18 @@ async function iniciarServidor() {
   };
 
   // 3) Conectar a SQL Server
-  sql.connect(dbConfig)
-    .then(pool => {
-      console.log("✔ Conectado a Azure SQL correctamente.");
-      app.get("/", (req, res) => {
-        res.send("API funcionando correctamente.");
-      });
+const pool = new sql.ConnectionPool(dbConfig);
+const poolConnect = pool.connect();
+
+poolConnect
+  .then(() => {
+    console.log("✔ Conectado a Azure SQL correctamente.");
+
+    app.get("/", (req, res) => {
+      res.send("API funcionando correctamente.");
+    });
+
+
     // Ruta para obtener todos los usuarios
     app.get("/usuario", (req, res) => {
         pool.request()
@@ -2762,9 +2770,12 @@ app.get("/juzgados/BuscarPorTipo", async (req, res) => {
 });
 
 
-
+/*
 app.get("/clientes/expedientesPorCliente", async (req, res) => {
   const { id } = req.query;
+    console.log('id:', id, 'tipo:', typeof id);
+
+  if (!Number.isInteger(id)) return res.status(400).json({ error: "id inválido" });
 
   try {
     const result = await pool.request()
@@ -2783,7 +2794,35 @@ app.get("/clientes/expedientesPorCliente", async (req, res) => {
     console.error("Error al obtener expedientes del cliente:", err);
     res.status(500).send("Error al obtener los expedientes.");
   }
+});*/
+
+app.get("/clientes/expedientesPorCliente", async (req, res) => {
+  const raw = req.query.id;
+
+  const id = Number(String(raw ?? "").trim());
+  console.log("raw:", raw, "typeof:", typeof raw, "id:", id);
+
+  if (!Number.isFinite(id) || !Number.isInteger(id)) {
+    return res.status(400).json({ error: "id inválido", raw });
+  }
+
+  try {
+    const result = await pool.request()
+      .input("id_cliente", sql.Int, id)
+      .query(`
+        SELECT e.id, e.numero, e.anio, e.estado, e.fecha_creacion, e.monto, e.juzgado_id
+        FROM clientes_expedientes ce
+        JOIN expedientes e ON ce.id_expediente = e.id
+        WHERE ce.id_cliente = @id_cliente AND e.estado != 'eliminado'
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error al obtener expedientes del cliente:", err);
+    res.status(500).send("Error al obtener los expedientes.");
+  }
 });
+
 
 
 
@@ -4481,8 +4520,10 @@ app.post('/jurisprudencias', async (req, res) => {
     if (!FUEROS.includes(String(fuero).toUpperCase())) {
       return res.status(400).json({ error: 'Fuero inválido. Use: CCF, COM, CIV o CC.' });
     }
+        const id = await generarNuevoId(pool, 'jurisprudencias', 'id');
 
     const reqIns = pool.request()
+      .input('id', sql.Int, Number(id))
       .input('expediente_id', sql.Int, Number(expediente_id))
       .input('fuero',        sql.NVarChar, String(fuero).toUpperCase())
       .input('demandado_id', sql.Int, Number(demandado_id))
@@ -4494,6 +4535,7 @@ app.post('/jurisprudencias', async (req, res) => {
 
     const rs = await reqIns.query(`
       INSERT INTO jurisprudencias (
+        id, 
         expediente_id,
         fuero,
         demandado_id,
@@ -4504,6 +4546,7 @@ app.post('/jurisprudencias', async (req, res) => {
         codigo_id
       )
       VALUES (
+        @id, 
         @expediente_id,
         @fuero,
         @demandado_id,
@@ -4590,16 +4633,66 @@ async function generarNuevoId(pool, tabla, columna = 'id') {
 }
 
 
-             // Iniciar el servidor
-      app.listen(3001, () => {
-      console.log("Servidor corriendo en http://localhost:3001");
-      });     
+async function getAllTables(pool) {
+  const result = await pool.request().query(`
+    SELECT TABLE_NAME 
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_TYPE = 'BASE TABLE'
+  `);
+  return result.recordset.map(row => row.TABLE_NAME);
+}
 
-    })
-    .catch(err => {
-        console.error("Error conectando a SQL Server:", err);  
-    });
+// GET /backup - genera ZIP con JSON de TODAS las tablas
+app.get('/backup', async (req, res) => {
+  try {
+    // Conexión (igual que en /pagos)
+    let pool = await sql.connect(dbConfig);
+
+    // 1) Traer nombres de todas las tablas base
+    const tablasResult = await pool.request().query(`
+      SELECT TABLE_NAME
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_TYPE = 'BASE TABLE'
+    `);
+
+    const tablas = tablasResult.recordset.map(r => r.TABLE_NAME);
+
+    // 2) Armar objeto con datos de cada tabla
+    let backupData = {};
+
+    for (const nombreTabla of tablas) {
+      const result = await pool.request().query(`SELECT * FROM [${nombreTabla}]`);
+      backupData[nombreTabla] = result.recordset;
+    }
+
+    // 3) Preparar headers para ZIP
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename=backup-${Date.now()}.zip`);
+
+    // 4) Crear ZIP y agregar el JSON adentro
+    const archive = Archiver('zip', { zlib: { level: 9 } });
+    archive.pipe(res);
+
+    archive.append(JSON.stringify(backupData, null, 2), { name: 'backup.json' });
+
+    await archive.finalize();
+  } catch (err) {
+    console.error('Error en GET /backup:', err);
+    res.status(500).json({ error: 'Error generando backup' });
   }
+});
+
+
+module.exports = router;
+
+    app.listen(3001, () => {
+      console.log("Servidor corriendo en http://localhost:3001");
+    });
+  })
+  .catch(err => {
+    console.error("❌ Error conectando a SQL Server:", err);
+  });
+}
 
   iniciarServidor();
 

@@ -2,7 +2,8 @@ import { Component, OnInit, ViewChild, OnDestroy  } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';  // Necesario para usar firstValueFrom
+import { firstValueFrom, of, forkJoin } from 'rxjs';  // Necesario para usar firstValueFrom
+import { map, catchError } from 'rxjs/operators';
 
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonImg, IonCard, IonCardContent, IonText, IonItem, IonItemOption, IonItemOptions, IonLabel, IonItemSliding, IonList, IonIcon, IonButton, IonButtons, IonInput } from '@ionic/angular/standalone';
 import { ClientesService } from 'src/app/services/clientes.service';
@@ -39,9 +40,6 @@ import { DialogClienteModificarComponent } from '../../components/dialog-cliente
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import Swal from 'sweetalert2'
-
-import { forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
 // src\app\components\dialog-cliente\dialog-cliente.component.ts
 @Component({
   selector: 'app-lista-clientes',
@@ -412,34 +410,60 @@ trackByCliente(index: number, cliente: ClienteModel): string {
             });
           }
 
-
 toggleExpandirCliente(cliente: ClienteModel) {
+  console.log('cliente.id:', cliente.id, 'tipo:', typeof cliente.id);
+
   if (this.expandido === cliente.id) {
     this.expandido = null;
-  } else {
-    this.expandido = cliente.id;
-
-    if (!this.expedientesPorCliente[cliente.id]) {
-      this.clienteService.ObtenerExpedientesPorCliente(cliente.id).subscribe(expedientes => {
-        const requests = expedientes.map(exp =>
-          this.juzgadoService.getJuzgadoPorId(exp.juzgado_id).pipe(
-            map(juzgado => {
-              exp.juzgadoModel = juzgado;
-              return exp;
-            })
-          )
-        );
-
-        forkJoin(requests).subscribe(expedientesConJuzgado => {
-          this.expedientesPorCliente[cliente.id] = expedientesConJuzgado;
-        });
-
-      }, error => {
-        console.error('Error al obtener expedientes del cliente:', error);
-      });
-    }
+    return;
   }
+
+  this.expandido = cliente.id;
+
+  // Placeholder para que NUNCA quede undefined (y puedas mostrar "Cargando..." si querés)
+  if (!this.expedientesPorCliente[cliente.id]) {
+    this.expedientesPorCliente[cliente.id] = [];
+  }
+
+  // Si ya cargaste (o ya intentaste), no repitas request
+  // Si querés permitir reintentar, sacá este return y manejalo con un flag "cargando"
+  if (this.expedientesPorCliente[cliente.id].length > 0) return;
+
+  this.clienteService.ObtenerExpedientesPorCliente(cliente.id).subscribe({
+    next: (expedientes) => {
+      // si backend devuelve null/obj raro, lo normalizamos
+      const exps = Array.isArray(expedientes) ? expedientes : [];
+
+      if (exps.length === 0) {
+        this.expedientesPorCliente[cliente.id] = [];
+        return;
+      }
+
+      const requests = exps.map(exp =>
+        this.juzgadoService.getJuzgadoPorId(exp.juzgado_id).pipe(
+          map(juzgado => ({ ...exp, juzgadoModel: juzgado })),
+          catchError(err => {
+            console.error('Error juzgado id', exp.juzgado_id, err);
+            return of({ ...exp, juzgadoModel: null });
+          })
+        )
+      );
+
+      forkJoin(requests).subscribe({
+        next: (expedientesConJuzgado) => {
+          this.expedientesPorCliente[cliente.id] = expedientesConJuzgado;
+        },
+        error: (err) => {
+          console.error('Error en forkJoin:', err);
+          this.expedientesPorCliente[cliente.id] = exps; // al menos mostrás expedientes sin juzgado
+        }
+      });
+    },
+    error: (error) => {
+      console.error('Error al obtener expedientes del cliente:', error);
+      this.expedientesPorCliente[cliente.id] = [];
+    }
+  });
 }
-      
 
 }

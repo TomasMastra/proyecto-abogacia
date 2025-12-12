@@ -125,53 +125,40 @@ export class JurisprudenciasPage implements OnInit {
     }
   }
 
-  cargarJurisprudencias() {
-    this.jurisprudenciasService.getJurisprudencias().subscribe(
-      (jurisprudencias) => {
-        this.jurisprudencias = jurisprudencias;
-        this.jurisprudenciasOriginales = [...jurisprudencias];
-        this.hayJurisprudencias = this.jurisprudencias.length > 0;
-      },
-      (error) => {
-        console.error('Error al obtener jurisprudencias:', error);
-      },
-      () => {
-        this.timeoutId = setTimeout(() => {
-          this.cargarJurisprudencias();
+cargarJurisprudencias() {
+  this.jurisprudenciasService.getJurisprudencias().subscribe(
+    (jurisprudencias) => {
+      this.jurisprudencias = jurisprudencias ?? [];
+      this.jurisprudenciasOriginales = [...this.jurisprudencias];
+      this.hayJurisprudencias = this.jurisprudencias.length > 0;
+    },
+    (error) => {
+      console.error('Error al obtener jurisprudencias:', error);
+      this.jurisprudencias = [];
+      this.jurisprudenciasOriginales = [];
+      this.hayJurisprudencias = false;
+    }
+  );
+}
 
-        }, 5000);
-      }
-    );
-  }
 
 
   goTo(path: string) {
     this.router.navigate([path]);
   }
 
-  obteneJurisprudencias() {
-    this.getJurisprudencias$ = this.jurisprudenciasService.getJurisprudencias().subscribe(
-      (jurisprudencias) => {
-        this.jurisprudencias = jurisprudencias;
-        this.jurisprudenciasOriginales = [...jurisprudencias]; 
-        this.hayJurisprudencias = this.jurisprudencias.length > 0;
-      },
-      (error) => {
-        console.error('Error al obtener codigos:', error);
-      }
-    );
+
+
+
+  buscar() {
+    const q = this.normalizar(this.busqueda);
+    if (!q) { this.jurisprudencias = [...this.jurisprudenciasOriginales]; return; }
+
+    this.jurisprudencias = this.jurisprudenciasOriginales.filter(j => {
+      const jurisprudencias   = this.normalizar(j.demandadoModel?.nombre || '');
+      return jurisprudencias.includes(q);
+    });
   }
-
-
-buscar() {
-  const q = this.normalizar(this.busqueda);
-  if (!q) { this.jurisprudencias = [...this.jurisprudenciasOriginales]; return; }
-
-  this.jurisprudencias = this.jurisprudenciasOriginales.filter(j => {
-    const jurisprudencias   = this.normalizar(j.demandadoModel?.nombre || '');
-    return jurisprudencias.includes(q);
-  });
-}
 
 
 async eliminarJurisprudencia(j: JurisprudenciaModel) {

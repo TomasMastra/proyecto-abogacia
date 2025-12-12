@@ -84,16 +84,7 @@ mat-toolbar {
     border-collapse: collapse;
   }
   
-  th, td {
-    border: 1px solid #ebd248;
-    padding: 8px;
-    text-align: left;
-    background-color: #030303;
-  }
-  
-  th {
-    background-color: #030303;
-  }
+
   
   .icon-back {
     margin-right: 10px;
@@ -101,10 +92,7 @@ mat-toolbar {
     width: 40px;
   }
   
-  ion-content {
-    --background: none;
-    background-color: #000000;
-  }
+
   
   .contenedor-imagen {
     display: flex;
@@ -159,16 +147,7 @@ mat-toolbar {
     //padding: 20px;
   }
   
-  
-  
-  /* Estilo general del contenido */
-  ion-content {
-    padding-top: 0; /* Asegura que no haya padding extra en la parte superior */
-    padding-right: 100%;
-  }
-  
-  
-  
+
   
   .button-icon {
     width: 24px;
@@ -177,7 +156,11 @@ mat-toolbar {
     vertical-align: middle;
   }
   
-  
+  ion-content {
+  --background: #002b5c;
+  background-color: #002b5c;
+}
+
   
   
   
@@ -263,12 +246,7 @@ mat-toolbar {
   /// 
   
   
-  .titulo-expediente {
-    font-size: 1.4rem;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 5px;
-  }
+
   
   .clientes-container {
     padding: 5px;
@@ -316,9 +294,7 @@ mat-toolbar {
   color: #ffffff; /* Asegurarse de que el color del texto no cambie */
   }
   
-  ion-item.cliente h6 {
-  color: #666;
-  }
+
   
   .lista-clientes {
   --background: #002b5c;

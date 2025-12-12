@@ -18,6 +18,7 @@ import { RouterOutlet } from '@angular/router';
 import { Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { UsuarioService } from 'src/app/services/usuario.service';
+import { BackupService } from 'src/app/services/backup.service';
 
 @Component({
   selector: 'app-root',
@@ -35,7 +36,8 @@ export class AppComponent {
 
   activeRoute: string = '';
 
-  constructor(private router: Router, usuarioService: UsuarioService) {
+  constructor(private router: Router, usuarioService: UsuarioService,
+              private backupService: BackupService) {
           this.usuarioService = usuarioService;    
           this.usuarioService.logeado$.subscribe(valor => {
           this.logeado = valor;
@@ -57,5 +59,20 @@ export class AppComponent {
 
   isActive(route: string): boolean {
     return this.activeRoute.includes(route);
+  }
+
+    descargar() {
+    this.backupService.descargarBackup().subscribe((data: Blob) => {
+
+      const blob = new Blob([data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-${Date.now()}.zip`;
+      a.click();
+
+      window.URL.revokeObjectURL(url);
+    });
   }
 }

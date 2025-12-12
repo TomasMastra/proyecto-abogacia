@@ -105,11 +105,10 @@ searchClientes(texto: string): Observable<ClienteModel[]> {
   }
   
   ObtenerExpedientesPorCliente(clienteId: string) {
-    //const url = `http://192.168.1.36:3000/clientes/expedientesPorCliente?id=${clienteId}`;
-    //const url = `${environment.apiBase}/expedientesPorCliente?id=${clienteId}`
-    const url = `${environment.apiBase}/expedientesPorCliente?id=${clienteId}`;
+    console.log('cliente.id:', clienteId, 'tipo:', typeof clienteId);
 
-    return this.http.get<any[]>(url);
+  const url = `${this.apiUrl}/expedientesPorCliente?id=${clienteId}`;
+  return this.http.get<any[]>(url);
   }
   
 }
