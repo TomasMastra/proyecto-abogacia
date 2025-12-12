@@ -225,43 +225,42 @@ app.get("/expedientes", async (req, res) => {
       request.input('usuario_id', sql.Int, usuario_id);
     }
 
-    const query = `
-      SELECT 
-        e.*,
-        ISNULL((
-          SELECT STRING_AGG(LTRIM(RTRIM(p.nombre_completo)), ' | ')
-          FROM (
-            -- Actora (clientes de clientes_expedientes)
-            SELECT 
-              LTRIM(RTRIM(c.nombre + ' ' + c.apellido)) AS nombre_completo
-            FROM clientes_expedientes ce
-            JOIN clientes c ON c.id = ce.id_cliente
-            WHERE ce.id_expediente = e.id
+const query = `
+  SELECT 
+    e.id,
+    e.numero,
+    e.anio,
+    e.caratula,
+    e.estado,
+    e.juzgado_id,
+    e.usuario_id,
+    ISNULL((
+      SELECT STRING_AGG(LTRIM(RTRIM(p.nombre_completo)), ' | ')
+      FROM (
+        SELECT LTRIM(RTRIM(c.nombre + ' ' + c.apellido)) AS nombre_completo
+        FROM clientes_expedientes ce
+        JOIN clientes c ON c.id = ce.id_cliente
+        WHERE ce.id_expediente = e.id
 
-            UNION ALL
+        UNION ALL
+        SELECT LTRIM(RTRIM(d.nombre)) AS nombre_completo
+        FROM expedientes_demandados ed
+        JOIN demandados d ON d.id = ed.id_demandado
+        WHERE ed.id_expediente = e.id
 
-            -- Demandada empresa (demandados)
-            SELECT 
-              LTRIM(RTRIM(d.nombre)) AS nombre_completo
-            FROM expedientes_demandados ed
-            JOIN demandados d ON d.id = ed.id_demandado
-            WHERE ed.id_expediente = e.id
+        UNION ALL
+        SELECT LTRIM(RTRIM(c2.nombre + ' ' + c2.apellido)) AS nombre_completo
+        FROM expedientes_demandados ed2
+        JOIN clientes c2 ON c2.id = ed2.id_cliente
+        WHERE ed2.id_expediente = e.id
+      ) p
+    ), '') AS busqueda
+  FROM expedientes e
+  WHERE e.estado != 'eliminado'
+    ${rol !== 'admin' ? ' AND e.usuario_id = @usuario_id' : ''}
+  ORDER BY e.id DESC;
+`;
 
-            UNION ALL
-
-            -- Demandada persona (clientes como demandados)
-            SELECT 
-              LTRIM(RTRIM(c2.nombre + ' ' + c2.apellido)) AS nombre_completo
-            FROM expedientes_demandados ed2
-            JOIN clientes c2 ON c2.id = ed2.id_cliente
-            WHERE ed2.id_expediente = e.id
-          ) AS p
-        ), '') AS busqueda
-      FROM expedientes e
-      WHERE e.estado != 'eliminado'
-        ${rol !== 'admin' ? ' AND e.usuario_id = @usuario_id' : ''}
-      ORDER BY e.id DESC;
-    `;
 
     const result = await request.query(query);
     res.json(result.recordset);

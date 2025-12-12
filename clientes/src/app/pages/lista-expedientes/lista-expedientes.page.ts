@@ -68,7 +68,7 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
     private router: Router
   ) {
 
-    this.cargarExpedientes();
+    //this.cargarExpedientes();
   }
 
   ngOnInit() {
