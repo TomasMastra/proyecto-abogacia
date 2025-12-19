@@ -3358,73 +3358,93 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
       .input("inicio", sql.Date, new Date(inicio.toISOString().slice(0,10)))
       .input("fin",    sql.Date, new Date(fin.toISOString().slice(0,10)))
       .query(`
-        WITH U AS (
-          SELECT id,
-                 COALESCE(porcentajeHonorarios, porcentaje, 0) AS porc
-          FROM (
-            SELECT id, porcentajeHonorarios, porcentaje,
-                   ROW_NUMBER() OVER (PARTITION BY id ORDER BY id) AS rn
-            FROM usuario
-          ) x
-          WHERE rn = 1
-        ),
-        movimientos AS (
-          -- CAPITAL: sin prorrateo (usa capitalPagoParcial del mes)
-          SELECT 'capital' AS concepto, ISNULL(e.capitalPagoParcial, 0) AS monto
-          FROM expedientes e
-          WHERE e.estado <> 'eliminado'
-            AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
-            AND CAST(e.fecha_cobro_capital AS DATE) <  @fin
+  WITH U AS (
+    SELECT id,
+           COALESCE(porcentajeHonorarios, porcentaje, 0) AS porc
+    FROM (
+      SELECT id, porcentajeHonorarios, porcentaje,
+             ROW_NUMBER() OVER (PARTITION BY id ORDER BY id) AS rn
+      FROM usuario
+    ) x
+    WHERE rn = 1
+  ),
+  movimientos AS (
 
-          UNION ALL
-          -- HONORARIOS: prorrateado por % del abogado
-          SELECT 'honorarios',
-                 ISNULL(e.montoLiquidacionHonorarios, 0) * (100 - ISNULL(u.porc, 0)) / 100.0
-          FROM expedientes e
-          LEFT JOIN U u ON u.id = e.usuario_id
-          WHERE e.estado <> 'eliminado'
-            AND CAST(e.fecha_cobro AS DATE) >= @inicio
-            AND CAST(e.fecha_cobro AS DATE) <  @fin
+    -- CAPITAL (NO PARCIAL) + (viejos con flag=1 pero sin movimientos)
+    SELECT 'capital' AS concepto, ISNULL(e.capitalPagoParcial, 0) AS monto
+    FROM expedientes e
+    WHERE e.estado <> 'eliminado'
+      AND (
+        ISNULL(e.esPagoParcial, 0) = 0
+        OR NOT EXISTS (SELECT 1 FROM dbo.pagos_capital pc WHERE pc.expediente_id = e.id)
+      )
+      AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
+      AND CAST(e.fecha_cobro_capital AS DATE) <  @fin
 
-          UNION ALL
-          -- ALZADA: prorrateado por % del abogado (alineado a detalle-por-mes)
-          SELECT 'alzada',
-                 ISNULL(e.montoAcuerdo_alzada, 0) * (100 - ISNULL(u.porc, 0)) / 100.0
-          FROM expedientes e
-          LEFT JOIN U u ON u.id = e.usuario_id
-          WHERE e.estado <> 'eliminado'
-            AND CAST(e.fechaCobroAlzada AS DATE) >= @inicio
-            AND CAST(e.fechaCobroAlzada AS DATE) <  @fin
+    UNION ALL
 
-          UNION ALL
-          -- EJECUCIÓN: prorrateado por % del abogado
-          SELECT 'ejecucion',
-                 ISNULL(e.montoHonorariosEjecucion, 0) * (100 - ISNULL(u.porc, 0)) / 100.0
-          FROM expedientes e
-          LEFT JOIN U u ON u.id = e.usuario_id
-          WHERE e.estado <> 'eliminado'
-            AND CAST(e.fechaCobroEjecucion AS DATE) >= @inicio
-            AND CAST(e.fechaCobroEjecucion AS DATE) <  @fin
+    -- CAPITAL (PARCIAL REAL): suma pagos del mes desde dbo.pagos_capital
+    SELECT 'capital' AS concepto, SUM(ISNULL(pc.monto, 0)) AS monto
+    FROM expedientes e
+    JOIN dbo.pagos_capital pc ON pc.expediente_id = e.id
+    WHERE e.estado <> 'eliminado'
+      AND ISNULL(e.esPagoParcial, 0) = 1
+      AND pc.fecha_pago >= @inicio
+      AND pc.fecha_pago <  @fin
 
-          UNION ALL
-          -- DIFERENCIA: prorrateado por % del abogado
-          SELECT 'diferencia',
-                 ISNULL(e.montoHonorariosDiferencia, 0) * (100 - ISNULL(u.porc, 0)) / 100.0
-          FROM expedientes e
-          LEFT JOIN U u ON u.id = e.usuario_id
-          WHERE e.estado <> 'eliminado'
-            AND CAST(e.fechaCobroDiferencia AS DATE) >= @inicio
-            AND CAST(e.fechaCobroDiferencia AS DATE) <  @fin
-        )
-        SELECT
-          SUM(CASE WHEN concepto = 'capital'    THEN monto ELSE 0 END) AS totalCapital,
-          SUM(CASE WHEN concepto = 'honorarios' THEN monto ELSE 0 END) AS totalHonorarios,
-          SUM(CASE WHEN concepto = 'alzada'     THEN monto ELSE 0 END) AS totalAlzada,
-          SUM(CASE WHEN concepto = 'ejecucion'  THEN monto ELSE 0 END) AS totalEjecucion,
-          SUM(CASE WHEN concepto = 'diferencia' THEN monto ELSE 0 END) AS totalDiferencia,
-          SUM(monto) AS totalGeneral
-        FROM movimientos;
-      `);
+    UNION ALL
+
+    -- HONORARIOS: prorrateado por % del abogado
+    SELECT 'honorarios' AS concepto,
+           ISNULL(e.montoLiquidacionHonorarios, 0) * (100 - ISNULL(u.porc, 0)) / 100.0 AS monto
+    FROM expedientes e
+    LEFT JOIN U u ON u.id = e.usuario_id
+    WHERE e.estado <> 'eliminado'
+      AND CAST(e.fecha_cobro AS DATE) >= @inicio
+      AND CAST(e.fecha_cobro AS DATE) <  @fin
+
+    UNION ALL
+
+    -- ALZADA
+    SELECT 'alzada' AS concepto,
+           ISNULL(e.montoAcuerdo_alzada, 0) * (100 - ISNULL(u.porc, 0)) / 100.0 AS monto
+    FROM expedientes e
+    LEFT JOIN U u ON u.id = e.usuario_id
+    WHERE e.estado <> 'eliminado'
+      AND CAST(e.fechaCobroAlzada AS DATE) >= @inicio
+      AND CAST(e.fechaCobroAlzada AS DATE) <  @fin
+
+    UNION ALL
+
+    -- EJECUCIÓN
+    SELECT 'ejecucion' AS concepto,
+           ISNULL(e.montoHonorariosEjecucion, 0) * (100 - ISNULL(u.porc, 0)) / 100.0 AS monto
+    FROM expedientes e
+    LEFT JOIN U u ON u.id = e.usuario_id
+    WHERE e.estado <> 'eliminado'
+      AND CAST(e.fechaCobroEjecucion AS DATE) >= @inicio
+      AND CAST(e.fechaCobroEjecucion AS DATE) <  @fin
+
+    UNION ALL
+
+    -- DIFERENCIA
+    SELECT 'diferencia' AS concepto,
+           ISNULL(e.montoHonorariosDiferencia, 0) * (100 - ISNULL(u.porc, 0)) / 100.0 AS monto
+    FROM expedientes e
+    LEFT JOIN U u ON u.id = e.usuario_id
+    WHERE e.estado <> 'eliminado'
+      AND CAST(e.fechaCobroDiferencia AS DATE) >= @inicio
+      AND CAST(e.fechaCobroDiferencia AS DATE) <  @fin
+  )
+  SELECT
+    SUM(CASE WHEN concepto = 'capital'    THEN monto ELSE 0 END) AS totalCapital,
+    SUM(CASE WHEN concepto = 'honorarios' THEN monto ELSE 0 END) AS totalHonorarios,
+    SUM(CASE WHEN concepto = 'alzada'     THEN monto ELSE 0 END) AS totalAlzada,
+    SUM(CASE WHEN concepto = 'ejecucion'  THEN monto ELSE 0 END) AS totalEjecucion,
+    SUM(CASE WHEN concepto = 'diferencia' THEN monto ELSE 0 END) AS totalDiferencia,
+    SUM(monto) AS totalGeneral
+  FROM movimientos;
+`)
 
     res.json(result.recordset?.[0] ?? {
       totalCapital: 0,
@@ -3459,95 +3479,122 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
       .input("inicio", sql.Date, new Date(inicio.toISOString().slice(0,10)))
       .input("fin",    sql.Date, new Date(fin.toISOString().slice(0,10)))
       .query(`
-        WITH movimientos AS (
-          SELECT e.id AS expediente_id, e.numero, e.anio AS anio_expediente, e.caratula,
-                'capital' AS concepto, ISNULL(e.capitalPagoParcial, 0) AS monto
-          FROM expedientes e
-          WHERE e.estado != 'eliminado'
-            AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
-            AND CAST(e.fecha_cobro_capital AS DATE) < @fin
+WITH movimientos AS (
+  -- CAPITAL (NO PARCIAL): incluye también los "viejos" con flag=1 pero sin movimientos
+  SELECT e.id AS expediente_id, e.numero, e.anio AS anio_expediente, e.caratula,
+         'capital' AS concepto, ISNULL(e.capitalPagoParcial, 0) AS monto
+  FROM expedientes e
+  WHERE e.estado != 'eliminado'
+    AND (
+      ISNULL(e.esPagoParcial, 0) = 0
+      OR NOT EXISTS (SELECT 1 FROM dbo.pagos_capital pc WHERE pc.expediente_id = e.id)
+    )
+    AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
+    AND CAST(e.fecha_cobro_capital AS DATE) <  @fin
 
-          UNION ALL
-          SELECT e.id, e.numero, e.anio, e.caratula,
-                'honorarios',
-                ISNULL(e.montoLiquidacionHonorarios, 0) *
-                (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
-          FROM expedientes e
-          LEFT JOIN usuario u ON u.id = e.usuario_id
-          WHERE e.estado != 'eliminado'
-            AND CAST(e.fecha_cobro AS DATE) >= @inicio
-            AND CAST(e.fecha_cobro AS DATE) < @fin
+  UNION ALL
 
-          UNION ALL
-          SELECT e.id, e.numero, e.anio, e.caratula,
-                'alzada',
-                ISNULL(e.montoAcuerdo_alzada, 0) *
-                (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
-          FROM expedientes e
-          LEFT JOIN usuario u ON u.id = e.usuario_id
-          WHERE e.estado != 'eliminado'
-            AND CAST(e.fechaCobroAlzada AS DATE) >= @inicio
-            AND CAST(e.fechaCobroAlzada AS DATE) < @fin
+  -- CAPITAL (PARCIAL REAL): flag=1 y con movimientos
+  SELECT e.id AS expediente_id, e.numero, e.anio AS anio_expediente, e.caratula,
+         'capital' AS concepto, SUM(ISNULL(pc.monto, 0)) AS monto
+  FROM expedientes e
+  JOIN dbo.pagos_capital pc ON pc.expediente_id = e.id
+  WHERE e.estado != 'eliminado'
+    AND ISNULL(e.esPagoParcial, 0) = 1
+    AND pc.fecha_pago >= @inicio
+    AND pc.fecha_pago <  @fin
+  GROUP BY e.id, e.numero, e.anio, e.caratula
 
-          UNION ALL
-          SELECT e.id, e.numero, e.anio, e.caratula,
-                'ejecucion',
-                ISNULL(e.montoHonorariosEjecucion, 0) *
-                (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
-          FROM expedientes e
-          LEFT JOIN usuario u ON u.id = e.usuario_id
-          WHERE e.estado != 'eliminado'
-            AND CAST(e.fechaCobroEjecucion AS DATE) >= @inicio
-            AND CAST(e.fechaCobroEjecucion AS DATE) < @fin
+  UNION ALL
 
-          UNION ALL
-          SELECT e.id, e.numero, e.anio, e.caratula,
-                'diferencia',
-                ISNULL(e.montoHonorariosDiferencia, 0) *
-                (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0
-          FROM expedientes e
-          LEFT JOIN usuario u ON u.id = e.usuario_id
-          WHERE e.estado != 'eliminado'
-            AND CAST(e.fechaCobroDiferencia AS DATE) >= @inicio
-            AND CAST(e.fechaCobroDiferencia AS DATE) < @fin
-        ),
-        detalle AS (
-          SELECT
-            m.expediente_id,
-            m.numero,
-            m.anio_expediente,
-            m.caratula,
-            SUM(CASE WHEN m.concepto = 'capital'    THEN m.monto ELSE 0 END) AS Capital,
-            SUM(CASE WHEN m.concepto = 'honorarios' THEN m.monto ELSE 0 END) AS Honorarios,
-            SUM(CASE WHEN m.concepto = 'alzada'     THEN m.monto ELSE 0 END) AS Alzada,
-            SUM(CASE WHEN m.concepto = 'ejecucion'  THEN m.monto ELSE 0 END) AS Ejecucion,
-            SUM(CASE WHEN m.concepto = 'diferencia' THEN m.monto ELSE 0 END) AS Diferencia,
-            SUM(m.monto) AS TotalExpediente
-          FROM movimientos m
-          GROUP BY m.expediente_id, m.numero, m.anio_expediente, m.caratula
-        )
-        SELECT * FROM (
-          SELECT 
-            expediente_id,
-            CAST(numero AS NVARCHAR(100)) AS numero,
-            anio_expediente,
-            caratula,
-            Capital, Honorarios, Alzada, Ejecucion, Diferencia, TotalExpediente,
-            0 AS orden
-          FROM detalle
+  -- HONORARIOS
+  SELECT e.id, e.numero, e.anio, e.caratula,
+         'honorarios' AS concepto,
+         ISNULL(e.montoLiquidacionHonorarios, 0) *
+         (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0 AS monto
+  FROM expedientes e
+  LEFT JOIN usuario u ON u.id = e.usuario_id
+  WHERE e.estado != 'eliminado'
+    AND CAST(e.fecha_cobro AS DATE) >= @inicio
+    AND CAST(e.fecha_cobro AS DATE) < @fin
 
-          UNION ALL
+  UNION ALL
 
-          SELECT 
-            NULL,
-            CAST('TOTAL GENERAL' AS NVARCHAR(100)),
-            NULL,
-            NULL,
-            SUM(Capital), SUM(Honorarios), SUM(Alzada), SUM(Ejecucion), SUM(Diferencia), SUM(TotalExpediente),
-            1
-          FROM detalle
-        ) X
-        ORDER BY X.orden, X.numero;
+  -- ALZADA
+  SELECT e.id, e.numero, e.anio, e.caratula,
+         'alzada' AS concepto,
+         ISNULL(e.montoAcuerdo_alzada, 0) *
+         (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0 AS monto
+  FROM expedientes e
+  LEFT JOIN usuario u ON u.id = e.usuario_id
+  WHERE e.estado != 'eliminado'
+    AND CAST(e.fechaCobroAlzada AS DATE) >= @inicio
+    AND CAST(e.fechaCobroAlzada AS DATE) < @fin
+
+  UNION ALL
+
+  -- EJECUCION
+  SELECT e.id, e.numero, e.anio, e.caratula,
+         'ejecucion' AS concepto,
+         ISNULL(e.montoHonorariosEjecucion, 0) *
+         (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0 AS monto
+  FROM expedientes e
+  LEFT JOIN usuario u ON u.id = e.usuario_id
+  WHERE e.estado != 'eliminado'
+    AND CAST(e.fechaCobroEjecucion AS DATE) >= @inicio
+    AND CAST(e.fechaCobroEjecucion AS DATE) < @fin
+
+  UNION ALL
+
+  -- DIFERENCIA
+  SELECT e.id, e.numero, e.anio, e.caratula,
+         'diferencia' AS concepto,
+         ISNULL(e.montoHonorariosDiferencia, 0) *
+         (100 - COALESCE(u.porcentajeHonorarios, u.porcentaje, 0)) / 100.0 AS monto
+  FROM expedientes e
+  LEFT JOIN usuario u ON u.id = e.usuario_id
+  WHERE e.estado != 'eliminado'
+    AND CAST(e.fechaCobroDiferencia AS DATE) >= @inicio
+    AND CAST(e.fechaCobroDiferencia AS DATE) < @fin
+),
+detalle AS (
+  SELECT
+    m.expediente_id,
+    m.numero,
+    m.anio_expediente,
+    m.caratula,
+    SUM(CASE WHEN m.concepto = 'capital'    THEN m.monto ELSE 0 END) AS Capital,
+    SUM(CASE WHEN m.concepto = 'honorarios' THEN m.monto ELSE 0 END) AS Honorarios,
+    SUM(CASE WHEN m.concepto = 'alzada'     THEN m.monto ELSE 0 END) AS Alzada,
+    SUM(CASE WHEN m.concepto = 'ejecucion'  THEN m.monto ELSE 0 END) AS Ejecucion,
+    SUM(CASE WHEN m.concepto = 'diferencia' THEN m.monto ELSE 0 END) AS Diferencia,
+    SUM(m.monto) AS TotalExpediente
+  FROM movimientos m
+  GROUP BY m.expediente_id, m.numero, m.anio_expediente, m.caratula
+)
+SELECT * FROM (
+  SELECT 
+    expediente_id,
+    CAST(numero AS NVARCHAR(100)) AS numero,
+    anio_expediente,
+    caratula,
+    Capital, Honorarios, Alzada, Ejecucion, Diferencia, TotalExpediente,
+    0 AS orden
+  FROM detalle
+
+  UNION ALL
+
+  SELECT 
+    NULL,
+    CAST('TOTAL GENERAL' AS NVARCHAR(100)),
+    NULL,
+    NULL,
+    SUM(Capital), SUM(Honorarios), SUM(Alzada), SUM(Ejecucion), SUM(Diferencia), SUM(TotalExpediente),
+    1
+  FROM detalle
+) X
+ORDER BY X.orden, X.numero;
+
       `);
 
     res.json(result.recordset ?? []);
@@ -4682,11 +4729,52 @@ app.get('/backup', async (req, res) => {
   }
 });
 
+  app.post("/pagos-capital/agregar", async (req, res) => {
+    try {
+      const { expediente_id, monto, fecha_pago } = req.body;
+
+      if (expediente_id == null || monto == null || !fecha_pago) {
+        return res.status(400).send("Faltan campos: expediente_id, monto, fecha_pago");
+      }
+
+      const expedienteIdNum = Number(expediente_id);
+      const montoNum = Number(monto);
+
+      if (!Number.isFinite(expedienteIdNum) || expedienteIdNum <= 0) {
+        return res.status(400).send("expediente_id inválido");
+      }
+      if (!Number.isFinite(montoNum) || montoNum <= 0) {
+        return res.status(400).send("monto inválido (debe ser > 0)");
+      }
+
+      // fecha_pago esperado: 'YYYY-MM-DD'
+      const fechaStr = String(fecha_pago).slice(0, 10);
+      const fechaDate = new Date(fechaStr + "T00:00:00.000Z");
+      if (Number.isNaN(fechaDate.getTime())) {
+        return res.status(400).send("fecha_pago inválida (usar YYYY-MM-DD)");
+      }
+
+      const request = pool.request()
+        .input("expediente_id", sql.Int, expedienteIdNum)
+        .input("monto", sql.Decimal(18, 2), montoNum)
+        .input("fecha_pago", sql.Date, new Date(fechaStr)); // Date sin hora
+
+      await request.query(`
+        INSERT INTO dbo.pagos_capital (expediente_id, monto, fecha_pago)
+        VALUES (@expediente_id, @monto, @fecha_pago);
+      `);
+
+      return res.json({ ok: true });
+    } catch (error) {
+      console.error("Error al insertar pago parcial (capital):", error);
+      return res.status(500).send("Error en el servidor");
+    }
+  });
 
 module.exports = router;
 
-    app.listen(3001, () => {
-      console.log("Servidor corriendo en http://localhost:3001");
+    app.listen(3003, () => {
+      console.log("Servidor corriendo en http://localhost:3003");
     });
   })
   .catch(err => {

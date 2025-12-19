@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntil } from 'rxjs/operators';
-import { Subscription, Observable, forkJoin, Subject } from 'rxjs';
+import { Subscription, Observable, forkJoin, Subject, of } from 'rxjs';
 
 
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -28,6 +28,10 @@ import { JuzgadoModel } from 'src/app/models/juzgado/juzgado.component';
 
 import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
+// pagosCapitalService
+import { PagoCapitalModel } from 'src/app/models/pago-capital/pago-capital.component';
+
+import { PagosCapitalService } from 'src/app/services/pagos-parciales.service';
 
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
 import { UsuarioService } from 'src/app/services/usuario.service';
@@ -100,6 +104,8 @@ estadosHonorarios: string[] = [
     private expedienteService: ExpedientesService,
     private juzgadoService: JuzgadosService,
     private usuarioService: UsuarioService,
+    private pagosCapitalService: PagosCapitalService,
+
     private router: Router
   ) {}
 
@@ -293,14 +299,13 @@ async cobrar(
 
   const fechaSeleccionada = dateResult.value;
 
+  // ================== CAPITAL ==================
   if (tipo === 'capital') {
     const totalCapital = expediente.montoLiquidacionCapital ?? 0;
     const yaPagado = Number(expediente.capitalPagoParcial) || 0;
 
-    // Si ya hubo parcial (o hay algo pagado), bloqueamos TOTAL
     const yaEsParcial = !!(expediente as any)?.esPagoParcial || yaPagado > 0;
 
-    // Elegir modalidad solo si NO hubo parcial aún
     let esParcial = true;
     if (!yaEsParcial) {
       const modalidadResult = await Swal.fire({
@@ -349,31 +354,15 @@ async cobrar(
       return;
     }
 
-    /*
-    const montoTotal = totalCapital;
-    if (montoAbonado > montoTotal) {
-      await Swal.fire({
-        icon: 'error',
-        title: 'Monto inválido',
-        text: `El monto ingresado no puede superar los $${montoTotal.toLocaleString()}`,
-        confirmButtonText: 'Aceptar'
-      });
-      return;
-    }*/
-
     if (esParcial) {
-      // PARCIAL: acumular
       expediente.capitalPagoParcial = yaPagado + montoAbonado;
 
-      // Si hay total definido, cerrar auto si alcanzó/superó
       if (totalCapital > 0) {
-        expediente.capitalCobrado = expediente.capitalPagoParcial >= totalCapital;
+        expediente.capitalCobrado = (expediente.capitalPagoParcial ?? 0) >= totalCapital;
       }
 
-      // Marcar que quedó en modo parcial (sin vuelta atrás)
       (expediente as any).esPagoParcial = true;
 
-      // ⚑ STOP MANUAL: permitir cortar acá y dar por cobrado
       if (!expediente.capitalCobrado) {
         const stop = await Swal.fire({
           title: '¿Detenemos aquí los pagos parciales?',
@@ -388,7 +377,6 @@ async cobrar(
         }
       }
     } else {
-      // Si ya hubo parcial, no permitir TOTAL
       if (yaEsParcial) {
         await Swal.fire({
           icon: 'info',
@@ -398,20 +386,46 @@ async cobrar(
         });
         return;
       }
-      // TOTAL: respetar tu lógica original
+
       expediente.capitalPagoParcial = montoAbonado;
       expediente.capitalCobrado = true;
       (expediente as any).esPagoParcial = false;
-      //expediente.montoLiquidacionCapital = montoAbonado;
     }
 
     expediente.fecha_cobro_capital = fechaSeleccionada;
 
+    // ✅ Si es CAPITAL PARCIAL: insertamos una fila en pagos_capital y luego actualizamos expediente
+    if ((expediente as any).esPagoParcial === true) {
+      const pago: PagoCapitalModel = {
+        expediente_id: Number(expediente.id),
+        monto: montoAbonado,
+        fecha_pago: fechaSeleccionada
+      };
+
+      this.pagosCapitalService.agregarPago(pago).subscribe({
+        next: () => this.finalizarCobro(expediente, tipo, tipoTexto),
+        error: (err) => {
+          console.error('Error al insertar pago parcial:', err);
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "error",
+            title: "Error al registrar el pago parcial.",
+            showConfirmButton: false,
+            timer: 3000
+          });
+        }
+      });
+
+      return;
+    }
+
+    // Capital TOTAL: flujo normal
     this.finalizarCobro(expediente, tipo, tipoTexto);
     return;
   }
 
-  // Casos honorarios normales
+  // ================== OTROS RUBROS ==================
   expediente.recalcular_caratula = false;
   switch (tipo) {
     case 'honorario':
@@ -435,20 +449,17 @@ async cobrar(
   this.finalizarCobro(expediente, tipo, tipoTexto);
 }
 
+
 getCapitalParcial(item: ExpedienteModel) {
   const pagado = Number(item.capitalPagoParcial ?? 0);
   const total  = Number(item.montoLiquidacionCapital ?? 0);
   const completo = total > 0 ? pagado >= total : !!item.capitalCobrado;
   return { pagado, total, completo };
 }
-
 finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
   const montoCapital = expediente.montoLiquidacionCapital ?? 0;
   const capitalPagado = expediente.capitalPagoParcial ?? 0;
   expediente.recalcular_caratula = false;
-
-  // No forzamos acá capitalCobrado
-  //expediente.capitalCobrado = capitalPagado == montoCapital;
 
   const capitalListo = expediente.capitalCobrado;
   const honorarioListo = expediente.honorarioCobrado;
@@ -457,9 +468,8 @@ finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
   const diferenciaListo = expediente.honorarioDiferenciaCobrado || expediente.montoHonorariosDiferencia == null;
 
   const todosCobrados = capitalListo && honorarioListo && alzadaListo && ejecucionListo && diferenciaListo;
-
   if (todosCobrados) expediente.estado = 'Cobrado';
-/**/ 
+
   this.expedienteService.actualizarExpediente(expediente.id, expediente).subscribe({
     next: () => {
       this.cargarPorEstado('sentencia');
@@ -491,7 +501,6 @@ finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
       if (tipo === 'capital') {
         expediente.capitalCobrado = false;
         expediente.fecha_cobro_capital = null;
-        expediente.capitalPagoParcial = null;
       }
       Swal.fire({
         toast: true,
@@ -504,6 +513,7 @@ finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
     }
   });
 }
+
 
 
 
