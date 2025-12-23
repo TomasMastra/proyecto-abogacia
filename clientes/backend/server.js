@@ -3339,9 +3339,7 @@ app.put('/oficios/modificar/:id', async (req, res) => {
     console.error("Error al obtener total de cobranzas por mes:", error);
     res.status(500).send("Error en el servidor");
   }
-});*/
-
-app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
+});*/app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const { anio, mes } = req.query;
   if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
 
@@ -3376,7 +3374,7 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
     WHERE e.estado <> 'eliminado'
       AND (
         ISNULL(e.esPagoParcial, 0) = 0
-        OR NOT EXISTS (SELECT 1 FROM dbo.pagos_capital pc WHERE pc.expediente_id = e.id)
+        OR NOT EXISTS (SELECT 1 FROM dbo.pagos pc WHERE pc.expediente_id = e.id)
       )
       AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
       AND CAST(e.fecha_cobro_capital AS DATE) <  @fin
@@ -3386,11 +3384,11 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
     -- CAPITAL (PARCIAL REAL): suma pagos del mes desde dbo.pagos_capital
     SELECT 'capital' AS concepto, SUM(ISNULL(pc.monto, 0)) AS monto
     FROM expedientes e
-    JOIN dbo.pagos_capital pc ON pc.expediente_id = e.id
+    JOIN dbo.pagos pc ON pc.expediente_id = e.id
     WHERE e.estado <> 'eliminado'
       AND ISNULL(e.esPagoParcial, 0) = 1
-      AND pc.fecha_pago >= @inicio
-      AND pc.fecha_pago <  @fin
+      AND pc.fecha >= @inicio
+      AND pc.fecha <  @fin
 
     UNION ALL
 
@@ -3459,7 +3457,6 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
     res.status(500).send("Error en el servidor");
   }
 });
-
 // ==========================================================
 // GET /expedientes/cobranzas-detalle-por-mes?anio=YYYY&mes=MM
 // ==========================================================
@@ -3487,7 +3484,7 @@ WITH movimientos AS (
   WHERE e.estado != 'eliminado'
     AND (
       ISNULL(e.esPagoParcial, 0) = 0
-      OR NOT EXISTS (SELECT 1 FROM dbo.pagos_capital pc WHERE pc.expediente_id = e.id)
+      OR NOT EXISTS (SELECT 1 FROM dbo.pagos pc WHERE pc.expediente_id = e.id)
     )
     AND CAST(e.fecha_cobro_capital AS DATE) >= @inicio
     AND CAST(e.fecha_cobro_capital AS DATE) <  @fin
@@ -3498,11 +3495,11 @@ WITH movimientos AS (
   SELECT e.id AS expediente_id, e.numero, e.anio AS anio_expediente, e.caratula,
          'capital' AS concepto, SUM(ISNULL(pc.monto, 0)) AS monto
   FROM expedientes e
-  JOIN dbo.pagos_capital pc ON pc.expediente_id = e.id
+  JOIN dbo.pagos pc ON pc.expediente_id = e.id
   WHERE e.estado != 'eliminado'
     AND ISNULL(e.esPagoParcial, 0) = 1
-    AND pc.fecha_pago >= @inicio
-    AND pc.fecha_pago <  @fin
+    AND pc.fecha >= @inicio
+    AND pc.fecha <  @fin
   GROUP BY e.id, e.numero, e.anio, e.caratula
 
   UNION ALL
@@ -4175,7 +4172,18 @@ app.get('/expedientes/caratula/:id', async (req, res) => {
 app.get('/pagos', async (req, res) => {
   try {
     let pool = await sql.connect(dbConfig);
-    let result = await pool.request().query('SELECT * FROM pagos ORDER BY fecha DESC');
+    let result = await pool.request().query(`
+      SELECT *
+      FROM pagos
+      WHERE tipo_pago NOT IN (
+        'capital',
+        'honorario',
+        'alzada',
+        'ejecucion',
+        'diferencia'
+      )
+      ORDER BY fecha DESC
+    `);
     res.json(result.recordset);
   } catch (err) {
     console.error('Error en GET /pagos:', err);
@@ -4184,9 +4192,9 @@ app.get('/pagos', async (req, res) => {
 });
 
 app.post('/pagos', async (req, res) => {
-  const { fecha, monto, tipo_pago } = req.body;
+  const { fecha, monto, tipo_pago, expediente_id } = req.body;
 
-  const tiposPermitidos = ['carta documento', 'consulta', 'otro'];
+  const tiposPermitidos = ['carta documento', 'consulta', 'otro', 'capital', 'honorario', 'alzada', 'diferencia', 'ejecucion'];
   if (!fecha || !monto) {
     return res.status(400).json({ error: 'La fecha y el monto son obligatorios' });
   }
@@ -4203,9 +4211,10 @@ app.post('/pagos', async (req, res) => {
       .input('fecha', sql.Date, fecha)
       .input('monto', sql.Decimal(12,2), monto)
       .input('tipo_pago', sql.VarChar(30), tipo_pago)
+      .input('expediente_id', sql.Int, expediente_id)
       .query(`
-        INSERT INTO pagos (id, fecha, monto, tipo_pago)
-        VALUES (@id, @fecha, @monto, @tipo_pago);
+        INSERT INTO pagos (id, fecha, monto, tipo_pago, expediente_id)
+        VALUES (@id, @fecha, @monto, @tipo_pago, @expediente_id);
         SELECT SCOPE_IDENTITY() as id;
       `);
 

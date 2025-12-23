@@ -29,9 +29,8 @@ import { JuzgadoModel } from 'src/app/models/juzgado/juzgado.component';
 import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
 // pagosCapitalService
-import { PagoCapitalModel } from 'src/app/models/pago-capital/pago-capital.component';
-
-import { PagosCapitalService } from 'src/app/services/pagos-parciales.service';
+import { Pago } from 'src/app/models/pago/pago.component';
+import { PagosService } from 'src/app/services/pagos.service';
 
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
 import { UsuarioService } from 'src/app/services/usuario.service';
@@ -104,7 +103,7 @@ estadosHonorarios: string[] = [
     private expedienteService: ExpedientesService,
     private juzgadoService: JuzgadosService,
     private usuarioService: UsuarioService,
-    private pagosCapitalService: PagosCapitalService,
+    private pagosService: PagosService,
 
     private router: Router
   ) {}
@@ -269,9 +268,7 @@ case 'caratula':
     default:
       return '';
   }
-}
-
-async cobrar(
+}async cobrar(
   tipo: 'capital' | 'honorario' | 'alzada' | 'ejecucion' | 'diferencia',
   expediente: ExpedienteModel
 ) {
@@ -394,15 +391,16 @@ async cobrar(
 
     expediente.fecha_cobro_capital = fechaSeleccionada;
 
-    // ✅ Si es CAPITAL PARCIAL: insertamos una fila en pagos_capital y luego actualizamos expediente
+    // ✅ CAMBIO ÚNICO: antes iba a pagos_capital, ahora va a pagos
     if ((expediente as any).esPagoParcial === true) {
-      const pago: PagoCapitalModel = {
+      const pago: Pago = {
         expediente_id: Number(expediente.id),
         monto: montoAbonado,
-        fecha_pago: fechaSeleccionada
+        fecha: fechaSeleccionada,
+        tipo_pago: 'capital'
       };
 
-      this.pagosCapitalService.agregarPago(pago).subscribe({
+      this.pagosService.cargarPago(pago).subscribe({
         next: () => this.finalizarCobro(expediente, tipo, tipoTexto),
         error: (err) => {
           console.error('Error al insertar pago parcial:', err);
@@ -420,7 +418,7 @@ async cobrar(
       return;
     }
 
-    // Capital TOTAL: flujo normal
+    // Capital TOTAL: flujo normal (queda igual que tu código)
     this.finalizarCobro(expediente, tipo, tipoTexto);
     return;
   }
@@ -448,6 +446,8 @@ async cobrar(
 
   this.finalizarCobro(expediente, tipo, tipoTexto);
 }
+
+
 
 
 getCapitalParcial(item: ExpedienteModel) {
@@ -513,6 +513,8 @@ finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
     }
   });
 }
+
+
 
 
 
