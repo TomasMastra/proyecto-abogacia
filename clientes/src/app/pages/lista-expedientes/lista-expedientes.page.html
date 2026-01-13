@@ -1,0 +1,75 @@
+<div class="content mat-elevation-z8">
+
+  <ion-list class="lista-clientes">
+
+    <div class="toolbar">
+      <ion-input 
+        placeholder="Buscar"
+        class="input-busqueda"
+        [(ngModel)]="busqueda"
+        (keyup.enter)="filtrar()">
+      </ion-input>
+    
+      <!-- Mostrar solo si hay texto -->
+      <button *ngIf="busqueda" mat-button class="list-button" (click)="busqueda = ''; filtrar()">
+        <mat-icon style="color:#ffffff">close</mat-icon>
+      </button>
+    
+      <!-- Buscar -->
+      <button mat-button class="list-button" (click)="filtrar()">
+        <mat-icon style="color:#ffffff">search</mat-icon>
+      </button>
+    
+      <!-- Resto de botones -->
+      <button mat-button class="list-button" (click)="abrirDialog()">
+        <mat-icon style="color: #ffffff">person_add</mat-icon>
+      </button>
+    
+      <button mat-button class="list-button">
+        <mat-icon style="color: #ffffff">download</mat-icon>
+      </button>
+    
+      <button mat-button class="list-button">
+        <mat-icon style="color: #ffffff" >more_vert</mat-icon>
+      </button>
+    </div>
+   
+    <div>
+       <!-- FUERA de ion-list (no es compatible) -->
+<cdk-virtual-scroll-viewport itemSize="100" class="scroll-viewport" *ngIf="expedientes && expedientes.length > 0">
+  <div *cdkVirtualFor="let expediente of expedientes; trackBy: trackByExpedientes" class="expediente-container">
+    
+    <div class="expediente-header">
+  <h2 *ngIf=" expediente.caratula">
+    {{expediente.numero}}/{{expediente.anio}} {{ expediente.caratula }}
+  </h2>
+
+  
+
+      <div class="acciones">
+        <button mat-icon-button class="list-button" (click)="eliminarExpediente(expediente); $event.stopPropagation()">
+          <mat-icon style="color: #ffffff">delete</mat-icon>
+        </button>
+
+        <button mat-icon-button class="list-button" (click)="abrirModificar(expediente); $event.stopPropagation()">
+          <mat-icon style="color: #ffffff">edit</mat-icon>
+        </button>
+      </div>
+    </div>
+
+
+
+  </div>
+</cdk-virtual-scroll-viewport>
+
+
+
+<ion-item *ngIf="expedientes && expedientes.length === 0">
+  <ion-label text-center>{{ texto || 'No hay expedientes disponibles' }}</ion-label>
+</ion-item>
+
+    </div>
+
+  </ion-list>
+
+</div>

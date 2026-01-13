@@ -1,0 +1,80 @@
+<div class="content mat-elevation-z8">
+
+
+
+  <ion-list class="lista-clientes">
+<!-- SPINNER CENTRAL CUANDO CARGAN LOS CLIENTES -->
+
+
+    <div class="toolbar">
+      <ion-input 
+        placeholder="Buscar por nombre, apellido o dirección de correo electrónico" 
+        class="input-busqueda"
+        [(ngModel)]="busqueda"
+        (ngModelChange)="buscar()">
+      </ion-input>
+
+      <button mat-button class="list-button" (click)="abrirDialog()">
+        <mat-icon style="color: #ffffff">person</mat-icon>
+        <span style="color: #ffffff">Agregar cliente</span>
+      </button>
+
+      <button mat-icon-button class="list-button" (click)="buscar()" matTooltip="descargar">
+        <mat-icon style="color: #ffffff">download</mat-icon>
+      </button>
+
+      <button mat-button class="list-button">
+        <mat-icon style="color: #ffffff">more_vert</mat-icon>
+      </button>
+    </div>
+
+    <div>
+       <!-- FUERA de ion-list (no es compatible) -->
+<cdk-virtual-scroll-viewport itemSize="90" class="scroll-viewport" *ngIf="clientes && clientes.length > 0">
+  <div *cdkVirtualFor="let cliente of clientes; trackBy: trackByCliente" class="cliente-container" (click)="toggleExpandirCliente(cliente)">
+    
+    <div class="cliente-header">
+      <h2>{{ cliente.nombre }} {{ cliente.apellido }}</h2>
+
+      <div class="acciones">
+        <button mat-icon-button class="list-button" (click)="eliminarCliente(cliente); $event.stopPropagation()">
+          <mat-icon style="color: #ffffff">delete</mat-icon>
+        </button>
+
+        <button mat-icon-button class="list-button" (click)="abrirModificar(cliente); $event.stopPropagation()">
+          <mat-icon style="color: #ffffff">edit</mat-icon>
+        </button>
+      </div>
+    </div>
+
+<div *ngIf="expandido === cliente.id" class="detalles-cliente">
+  <h3>Expedientes vinculados:</h3>
+
+  <div *ngIf="(expedientesPorCliente[cliente.id]?.length ?? 0) > 0; else sinExpedientes">
+    <ul>
+      <li *ngFor="let exp of expedientesPorCliente[cliente.id]">
+        Nº {{ exp.numero }}/{{ exp.anio }} ({{ exp.juzgadoModel?.nombre }})
+      </li>
+    </ul>
+  </div>
+
+  <ng-template #sinExpedientes>
+    <p>Este cliente no tiene expedientes vinculados.</p>
+  </ng-template>
+</div>
+
+
+  </div>
+</cdk-virtual-scroll-viewport>
+
+
+
+<ion-item *ngIf="clientes && clientes.length === 0">
+  <ion-label text-center>{{ texto || 'No hay clientes disponibles' }}</ion-label>
+</ion-item>
+
+    </div>
+
+  </ion-list>
+
+</div>

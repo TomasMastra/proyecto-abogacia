@@ -1,0 +1,266 @@
+.calendario-avanzado {
+  padding: 1rem;
+
+  .encabezado {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    gap: 1rem;
+    margin-bottom: 10px;
+  }
+
+  .dias-semana, .dias-mes {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    color: white;
+  }
+
+  .dia-semana {
+    text-align: center;
+    font-weight: bold;
+    color: #b0d0ff;
+  }
+
+  .dia {
+    height: 40px;
+    text-align: center;
+    padding: 5px;
+    background-color: #0e3d75;
+    border-radius: 5px;
+    color: white;
+  }
+
+  .dia.evento {
+    background-color: #2e8ef7; // Color de evento
+    font-weight: bold;
+  }
+}
+
+.evento-seleccionado {
+  width: 80%;
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  font-size: 14px;
+  padding: 4px 8px;
+  margin-top: 5px;
+  border-radius: 6px;
+  text-align: center;
+
+&.mediacion {
+  color: #ffffff;
+  background: rgb(47, 0, 255);
+}
+
+&.audienciaVirtual {
+  color: #ffffff;
+  background: rgba(76, 175, 80);
+}
+
+&.audienciaPersonal {
+  color: #ffffff;
+  background: rgb(151, 41, 33);
+}
+
+&.notificacion {
+  color: #ffffff;
+  background: rgba(156, 39, 176);
+}
+
+&.vencimiento {
+  color: #ffffff;
+  background: rgba(33, 150, 243);
+}
+
+&.otro {
+  color: #ffffff;
+  background: rgb(0, 56, 9);
+}
+
+}
+
+
+.evento-item-horario {
+  display: flex;
+  gap: 1rem;               // 🔹 Espacio entre hora y contenido
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: white;
+}
+
+.hora-evento {
+  font-weight: bold;
+  color: #ffffff;
+  min-width: 60px;
+  text-align: right;
+  padding-top: 2px; // 🔹 opcional si querés bajarlo un pelín
+}
+
+.detalle-evento {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.titulo-evento {
+  font-weight: 500;
+}
+
+.rango-horario {
+  font-size: 12px;
+  color: #ccc;
+  display: flex;
+  align-items: flex-start;
+
+}
+
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+}
+
+
+
+.linea-vertical {
+  width: 3px;
+  height: 40px;
+  background-color: rgba(255, 255, 255, 0.3); // o el color que prefieras
+  margin: 0 8px;
+}
+
+.calendario-container {
+  padding: 32px 40px 24px 280px; // margen izquierdo mayor para separarse del sidenav
+  color: white;
+  background-color: #1976d2; // fondo para separar visualmente del lateral
+  min-height: 100vh; // asegura el alto total
+}
+
+.titulo {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.titulo-icono {
+  font-size: 2rem;
+  color: #ffeb3b;
+}
+
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.calendar-card {
+  margin-bottom: 20px;
+  background-color: #002b5c;
+  color: white;
+}
+
+.formulario-evento {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eventos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.evento-card {
+  background-color: #004a9f;
+  color: white;
+  width: 300px;
+}
+
+.formulario-container {
+  display: flex;
+  justify-content: center;
+  //margin-bottom: 32px;
+}
+
+.calendar-card {
+  background-color: #002b5c;
+  color: white;
+  width: 500%;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+}
+
+
+
+
+
+/* Cambios */
+
+.dia-container {
+  position: relative;
+  text-align: center;
+}
+
+.indicadores-evento {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.indicador {
+  width: 25%;
+  height: 3px;
+  border-radius: 10%;
+}
+
+.indicador.mediacion {
+  background-color: #ff9800;
+}
+.indicador.audienciaVirtual {
+  background-color: #4caf50;
+}
+.indicador.audienciaPersonal {
+  background-color: #9c27b0;
+}
+.indicador.otro {
+  background-color: #ffffff;
+}
+
+
+// Para los días del calendario (ya tengan evento o no)
+.dias-mes .dia {
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.4); // efecto visual suave al pasar
+  }
+}
+
+// Para los eventos listados debajo del calendario
+.evento-item-horario {
+  cursor: pointer;
+
+
+}
+
+
+
+
+
+
+
+

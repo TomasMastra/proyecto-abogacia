@@ -1,0 +1,96 @@
+<div class="content mat-elevation-z8" [class.blur-content]="cargando">
+  <div class="toolbar">
+    <ion-input placeholder="Buscar por expediente" class="input-busqueda" [(ngModel)]="busqueda" (ngModelChange)="filtrar()"></ion-input>
+
+    <label class="custom-select">
+      <select [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
+        <option value="todos">Todos los estados</option>
+        <option *ngFor="let est of estados" [value]="est">{{ est }}</option>
+      </select>
+    </label>
+
+    <label class="custom-select">
+      <select [(ngModel)]="parteSeleccionada" (change)="filtrar()">
+        <option value="">Todas las partes</option>
+        <option *ngFor="let p of partes" [value]="p">{{ p }}</option>
+      </select>
+    </label>
+
+    <label class="custom-select">
+      <select [(ngModel)]="demandadoSeleccionado" (change)="filtrar()">
+        <option value="">Todos los demandados</option>
+        <option *ngFor="let d of demandados" [value]="d.id">{{ d.nombre }}</option>
+      </select>
+    </label>
+  </div>
+
+  <div *ngIf="cargando" class="fullscreen-loader">
+    <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
+  </div>
+
+  <div class="table-container" *ngIf="!cargando">
+    <table>
+      <thead>
+        <tr>
+          <th (click)="ordenarPor('numero')">Expediente</th>
+          <th>Oficiada</th>
+          <th>Parte</th>
+          <th (click)="ordenarPor('estado')">Estado</th>
+          <th>Fecha diligenciado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let oficio of oficiosOrdenados">
+        <td>
+       <!--   {{ oficio.expedienteModel!.numero }}/{{ oficio.expedienteModel!.anio }}
+          {{ oficio.expedienteModel!.clientes.length > 1 
+              ? oficio.expedienteModel!.clientes[0].nombre + ' ' + oficio.expedienteModel!.clientes[0].apellido + ' y otros' 
+              : oficio.expedienteModel!.clientes.length === 1 
+                ? oficio.expedienteModel!.clientes[0].nombre + ' ' + oficio.expedienteModel!.clientes[0].apellido 
+                : '(sin actora)' 
+          }}
+          contra
+          {{ oficio.expedienteModel!.demandados.length > 1 
+              ? oficio.expedienteModel!.demandados[0].nombre + ' y otros' 
+              : oficio.expedienteModel!.demandados.length === 1 
+                ? oficio.expedienteModel!.demandados[0].nombre 
+                : '(sin demandado)' 
+          }} -->
+
+          {{oficio.expedienteModel?.caratula}}
+        </td>
+
+          <td>{{ oficio.demandadoModel?.nombre }}</td>
+          <td>{{ oficio.parte }}</td>
+          <td>{{ oficio.estado }}</td>
+          <td>{{ oficio.fecha_diligenciado ? (oficio.fecha_diligenciado | date:'dd/MM/yyyy') : '-' }}</td>
+          <td>
+            <button *ngIf="oficio.tipo === 'oficio'" 
+                      mat-button class="list-button" 
+                      (click)="modificarOficio(oficio)">
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
+
+              <!-- Botón para testimoniales -->
+              <button *ngIf="oficio.tipo === 'testimonial'" 
+                      mat-button class="list-button" 
+                      (click)="modificarTestimonial(oficio)">
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
+
+              <!-- Botón para pericias -->
+              <button *ngIf="oficio.tipo === 'pericia'" 
+                      mat-button class="list-button" 
+                      (click)="modificarPericia(oficio)">
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
+            <button mat-icon-button color="warn" (click)="eliminarOficio(oficio)">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

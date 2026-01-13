@@ -1,0 +1,50 @@
+<div class="content mat-elevation-z8">
+
+  <ion-list class="lista-clientes">
+    <div class="toolbar">
+      <ion-input
+        placeholder="Buscar localidad"
+        class="input-busqueda"
+        [(ngModel)]="busqueda"
+        (ngModelChange)="buscar()">
+      </ion-input>
+
+      <button mat-button class="list-button" (click)="abrirDialog()">
+        <mat-icon style="color: #ffffff">add_location</mat-icon>
+        <span style="color: #ffffff">Agregar localidad</span>
+      </button>
+
+      <button mat-button class="list-button">
+        <mat-icon style="color: #ffffff">download</mat-icon>
+      </button>
+
+      <button mat-button class="list-button">
+        <mat-icon style="color: #ffffff">more_vert</mat-icon>
+      </button>
+    </div>
+
+    <div>
+      <ion-item-sliding *ngFor="let localidad of localidades" class="cliente">
+        <ion-item class="cliente" *ngIf="hayLocalidades && localidades.length > 0">
+          <ion-label>
+            <h1>{{ localidad.localidad }}</h1>
+          </ion-label>
+
+          <button mat-button class="list-button" (click)="eliminarLocalidad(localidad)">
+            <mat-icon style="color: #ffffff">delete</mat-icon>
+          </button>
+
+          <button mat-button class="list-button" (click)="abrirModificar(localidad)">
+            <mat-icon style="color: #ffffff">edit</mat-icon>
+          </button>
+        </ion-item>
+      </ion-item-sliding>
+
+      <ion-item *ngIf="!hayLocalidades && localidades.length <= 0" class="cliente">
+        <ion-label text-center>{{ texto }}</ion-label>
+      </ion-item>
+    </div>
+
+  </ion-list>
+
+</div>

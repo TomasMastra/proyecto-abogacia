@@ -1,0 +1,62 @@
+<div class="form-alta" style="background-color: #002b5c;" *ngIf="menu == 1"> 
+  <mat-dialog-content>
+    <h1 style="color: #ffffff;">FORMULARIO DE LOCALIDAD</h1>
+    <form [formGroup]="form">
+
+      <div class="form-row">
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="Localidad" name="localidad" id='localidad' formControlName="localidad"/>
+          <label for="localidad" class="form__label">Nombre</label>
+          <mat-error *ngIf="form.controls?.['localidad']?.invalid && (form.controls?.['localidad']?.dirty || form.controls?.['localidad']?.touched)">
+            <span style="color: red;">La localidad es requerida</span>
+          </mat-error>
+        </div>
+<!--
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="Partido" name="partido" id='partido' formControlName="partido"/>
+          <label for="partido" class="form__label">Partido</label>
+          <div class="error" *ngIf="form.controls?.['partido']?.invalid && (form.controls?.['partido']?.dirty || form.controls?.['partido']?.touched)">
+            <div *ngIf="form.controls?.['partido']?.errors?.['required']">El partido es requerido</div>
+          </div>
+        </div> -->
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label style="color: white">Partido</mat-label>
+            <mat-select formControlName="partido" style="color: rgb(255, 255, 255)">
+              <mat-option *ngFor="let partido of partidos" [value]="partido">
+                {{ partido.nombre }}
+              </mat-option>
+            </mat-select>
+        
+            <mat-error *ngIf="form.controls?.['partido']?.invalid && (form.controls?.['partido']?.dirty || form.controls?.['partido']?.touched)">
+              <span style="color: red;">El partido es requerido</span>
+            </mat-error>
+          </mat-form-field>
+        </div>
+        
+
+      </div> 
+
+<!-- 
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label style="color: white">Provincia</mat-label>
+          <mat-select formControlName="provincia">
+            <mat-option *ngFor="let provincia of provincias" [value]="provincia">
+              {{ provincia }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+    -->
+      
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-button (click)="closeDialog()">Cancelar</button>
+    <button mat-button color="primary" (click)="acceptDialog()">Siguiente</button>
+  </mat-dialog-actions>
+</div>
+

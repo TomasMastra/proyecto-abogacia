@@ -1,0 +1,362 @@
+mat-toolbar {
+    background: #004a9f;
+    color: white;
+  }
+  
+  mat-sidenav {
+    margin: 16px;
+    width: 200px;
+    border-right: none;
+    background: #002b5c;
+    color: white;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  
+  .content {
+    height: calc(100vh - 98px);
+    border-radius: 10px;
+    margin: 16px;
+    margin-left: 32px;
+  
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  
+    font-size: 2rem;
+    color: lightgray;
+  }
+  
+  mat-sidenav-container {
+    height: calc(100vh - 65px);
+  }
+  
+  
+  
+  .menu-button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 1rem;
+  
+    mat-icon {
+      margin-right: 8px;
+    }
+  }
+  
+  .avatar {
+    margin-top: 16px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+  }
+  
+  .name {
+    margin-top: 8px;
+    font-weight: normal;
+  }
+  
+  .designation {
+    margin-top: 2px;
+    font-size: 0.7rem;
+    color: lightgrey;
+  }
+  
+  mat-divider {
+    margin-top: 16px;
+    margin-bottom: 16px;
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+  
+  
+  /////////
+  /// 
+  /// 
+  /// 
+  /// 
+  
+  
+  /* Estilos generales */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border: 1px solid #ebd248;
+    padding: 8px;
+    text-align: left;
+    background-color: #030303;
+  }
+  
+  th {
+    background-color: #030303;
+  }
+  
+  .icon-back {
+    margin-right: 10px;
+    margin-left: 10px;
+    width: 40px;
+  }
+  
+  ion-content {
+    --background: none;
+    background-color: #000000;
+  }
+  
+  .contenedor-imagen {
+    display: flex;
+    justify-content: center; /* Centra horizontalmente */
+    align-items: center; /* Centra verticalmente */
+    height: 100vh; /* Ocupa el 100% del alto de la pantalla */
+  }
+  
+  .contenedor-imagen img {
+    max-width: 100%; /* Ajusta el tamaño máximo de la imagen */
+    max-height: 100%; /* Ajusta el tamaño máximo de la imagen */
+  }
+  
+  
+  .contenedor-card {
+    display: flex;
+    justify-content: center; /* Centra el ion-card horizontalmente */
+    width: 100%;
+  }
+  
+  ion-card-content {
+    padding: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+    overflow: hidden; /* Oculta el contenido que se desborda */
+    white-space: nowrap; /* Evita que el texto haga saltos de línea */
+    text-overflow: ellipsis; /* Agrega "..." al final del texto si es muy largo */
+    max-width: 100%; /* Evita que el contenido supere el ancho del card */
+  
+  
+  }
+  
+  .btn-eliminar {
+    background-size: 20px;
+    padding-left: 30px; /* Espacio para el icono */
+  }
+  
+  
+  .lista-clientes {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    width: calc(100% - 270px); /* 250px del menú lateral y 20px de margen */
+    height: 80vh;
+    //margin: 20px 20px 0 270px; /* Margen izquierdo para separar del menú y margen derecho */
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(221, 99, 99, 0.1);
+    overflow: hidden;
+    background-color: #002b5c;
+    //padding: 20px;
+  }
+  
+  
+  
+  /* Estilo general del contenido */
+  ion-content {
+    padding-top: 0; /* Asegura que no haya padding extra en la parte superior */
+    padding-right: 100%;
+  }
+  
+  
+  
+  
+  .button-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  
+  
+  
+  
+  
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Distribuye los elementos uniformemente */
+    gap: 10px; /* Espaciado entre los elementos */
+    margin-bottom: 10px; /* Espacio debajo de la barra */
+  }
+  
+  .toolbar ion-text {
+    flex-grow: 1; /* Hace que el texto ocupe el espacio disponible */
+    text-align: left;
+  }
+  
+  .toolbar ion-button {
+    white-space: nowrap; /* Evita que los botones se partan en varias líneas */
+  }
+  
+  .menu-button {
+    white-space: nowrap; /* Evita que los botones se partan en varias líneas */
+  
+  }
+  
+  
+  ////////////////
+  /// 
+  /// 
+  /// 
+  
+  /* Contenedor de la barra de herramientas */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Alinea los elementos a los extremos */
+    gap: 10px; /* Espacio entre los elementos */
+    margin-bottom: 10px;
+  }
+  
+  /* Entrada de búsqueda */
+  .input-busqueda {
+    flex-grow: 1; /* Hace que ocupe todo el espacio disponible */
+    margin-right: 10px; /* Espacio entre la búsqueda y los botones */
+    margin-left: 10px; /* Mueve el input hacia la derecha */
+    --padding-start: 15px; /* Asegura que el texto no esté tan pegado al borde izquierdo */
+    background-color: #015dbb;
+    border-radius: 15px;
+  }
+  
+  
+  
+  
+  /* Botones */
+  .list-button {
+    width: auto; /* Ajusta el tamaño de los botones */
+    padding: 8px 16px; /* Tamaño más pequeño */
+    font-size: 1rem; /* Ajusta el tamaño del texto */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    font-weight: bold;
+    cursor: pointer;
+    height: auto; /* Ajusta la altura del botón */
+  }
+  
+  /* Alineación a la derecha para los botones */
+  .toolbar button {
+    margin-left: auto; /* Mueve los botones hacia la derecha */
+  }
+  
+  
+  ion-item {
+    background-color: blue;
+    
+  }
+  
+  
+  /////
+  /// 
+  /// 
+  /// 
+  
+  
+  .titulo-expediente {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+  }
+  
+  .clientes-container {
+    padding: 5px;
+    border-left: 3px solid #4CAF50;
+    margin-left: 10px;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .cliente-nombre {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #4CAF50;
+    margin: 3px 0;
+    opacity: 0.9;
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .cliente-nombre:hover {
+    transform: translateX(5px);
+    color: #388E3C;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  .cliente-item {
+    background-color: #ff0000; /* Color de fondo deseado */
+  }
+  
+  
+  /* Asegúrate de que esta clase sea lo más específica posible */
+  ion-item.cliente {
+  background-color: #f0f0f0 !important; /* Usar !important para forzar el estilo */
+  }
+  
+  ion-item.cliente h1 {
+  color: #ffffff; /* Asegurarse de que el color del texto no cambie */
+  }
+  
+  ion-item.cliente h6 {
+  color: #666;
+  }
+  
+  .lista-clientes {
+  --background: #002b5c;
+  background-color: var(--background);
+  }
+  
+  .cliente {
+  --ion-item-background: #002b5c;
+  margin-bottom: 8px;
+  
+  }
+  
+  
+  .lista-clientes {
+  //max-height: 400px; /* Ajusta la altura máxima según lo necesites */
+  overflow-y: auto; /* Permite la barra de desplazamiento vertical cuando sea necesario */
+  }
+  
+  
+  .lista-clientes-container {
+  max-height: 400px; /* Ajusta la altura máxima según lo necesites */
+  overflow-y: auto;  /* Permite la barra de desplazamiento vertical cuando sea necesario */
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  

@@ -1,0 +1,573 @@
+<div> 
+    <mat-sidenav-content>
+      <div class="content mat-elevation-z8">
+        <ion-list class="lista-clientes">
+          <!-- Sección 1: Búsqueda de expediente -->
+          <div *ngIf="menu == '1'">
+
+            <div class="toolbar">
+              <ion-input 
+                placeholder="Número" 
+                class="input-busqueda"
+                (keypress)="validateNumber($event)"
+                [(ngModel)]="numero">
+              </ion-input>
+      
+              <ion-input 
+                placeholder="Año" 
+                class="input-busqueda"
+                (keypress)="validateNumber($event)"
+                [(ngModel)]="anio">
+              </ion-input>
+
+              <form [formGroup]="form">
+                <mat-form-field appearance="outline" class="full-width" style="width: 100%">
+                  <mat-label style="color: white">Seleccionar tipo de juzgado</mat-label>
+                  <mat-select style="color: white" formControlName="tipo">
+                    <mat-option *ngFor="let tipo of tipos" [value]="tipo">
+                      {{ tipo }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </form>
+              
+
+            </div>
+
+            <button mat-button class="menu-button" (click)="buscar()">
+              <mat-icon style="color: #ffffff">search</mat-icon>
+              <span style="color: #ffffff">Buscar expediente</span>
+            </button>
+          </div>
+
+          <!-- Sección 2: Información del expediente -->
+          <div *ngIf="menu == '2'">
+
+
+            
+          <button mat-button class="menu-button" (click)="cambiarMenu('1')">
+            <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+            <span style="color: #ffffff">Regresar</span>
+          </button>
+
+
+          @if(expediente.estado != 'Cobrado')
+          {   
+          <div
+            class="flex"
+            style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 16px;">
+            <h5>{{expediente?.numero}}/{{expediente.anio}} ({{expediente.juzgadoModel.nombre}})</h5>
+            <h2>{{expediente?.numero}}/{{expediente.anio}} ({{expediente!.caratula}})</h2>
+
+         <!-- <h2>{{ obtenerResumenExpediente(expediente) }}</h2> -->
+
+
+              <span style="color: rgb(255, 0, 0); font-weight: bold;">{{ expediente?.juicio }}</span>
+
+            <mat-form-field appearance="outline" style="width: 250px;">
+              <mat-label style="color: white">Estado del expediente</mat-label>
+              <mat-select style="color: white" [(ngModel)]="estadoSeleccionado">
+                <mat-option *ngFor="let estado of estados" [value]="estado">
+                  {{ estado }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+
+          
+            <div style="padding: 16px;">              
+              <form [formGroup]="form">
+              <div class="divider-container">
+
+                <mat-divider class="white-divider"></mat-divider>
+                <span class="divider-text">Ultimo movimiento</span>
+                <mat-divider class="white-divider"></mat-divider>
+              </div>
+              <ion-input
+              placeholder="Ultimo movimiento"
+              type="date"
+              class="input-busqueda"
+              formControlName="ultimo_movimiento"
+              name="ultimo_movimiento"
+              id="ultimo_movimiento">
+            </ion-input>
+
+      <div  class="divider-container" style="margin-top: 10px;">
+        <mat-divider class="white-divider"></mat-divider>
+        <span class="divider-text">Fecha atención</span>
+        <mat-divider class="white-divider"></mat-divider>
+
+        <ion-input
+          placeholder="Fecha atención"
+          type="date"
+          class="input-busqueda"
+          formControlName="fecha_atencion"
+          name="fecha_atencion"
+          id="fecha_atencion">
+        </ion-input>
+
+      </div>
+
+
+
+              </form>
+              
+              <!-- Formulario reactivo -->
+              <form [formGroup]="form" *ngIf="estadoSeleccionado=='Sentencia'">
+
+
+
+                <div class="divider-container">
+                  <mat-divider class="white-divider"></mat-divider>
+                  <span class="divider-text">Detalles de la sentencia</span>
+                  <mat-divider class="white-divider"></mat-divider>
+                </div>
+
+                <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="32px">
+                  <mat-form-field appearance="outline" class="half-width">
+                    <mat-label style="color: white">Honorario</mat-label>
+                    <mat-select style="color: white"     formControlName="honorario" [(ngModel)]="honorarioSeleccionado" (selectionChange)="actualizarMonto($event.value); actualizarValidacionesCondicionales(); actualizarHonorario()">
+                      <mat-option *ngFor="let honorario of honorarios" [value]="honorario">
+                        {{ honorario }}
+                      </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="form.controls?.['honorario']?.invalid && (form.controls?.['honorario']?.dirty || form.controls?.['honorario']?.touched)">
+                      <span *ngIf="form.controls?.['honorario']?.errors?.['required']" style="color:red">El honorario es requerido</span>
+                    </mat-error>
+                  </mat-form-field>
+                
+                  <mat-form-field appearance="outline" class="half-width">
+                    <mat-label style="color: white">Jueces</mat-label>
+                    <mat-select style="color: white" formControlName="juez" [(ngModel)]="juezSeleccionado">
+                      <mat-option *ngFor="let juez of jueces" [value]="juez">
+                        {{ juez.nombre }} {{juez.apellido}}
+                      </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="form.controls?.['juez']?.invalid && (form.controls?.['juez']?.dirty || form.controls?.['juez']?.touched)">
+                      <span *ngIf="form.controls?.['juez']?.errors?.['required']" style="color:red">El juez es requerido</span>
+                    </mat-error>
+                  </mat-form-field>
+                </div>
+                
+                
+
+                <div class="toolbar">
+                <!-- MONTO -->
+             <!--      <ion-input
+                  placeholder="monto"
+                  (keypress)="validateNumber($event)"
+                  type="number"
+                  class="input-busqueda"
+                  formControlName="monto"
+                  name="monto"
+                  id="monto">
+                </ion-input> -->
+
+                <ion-input *ngIf="expediente.honorarioCobrado == 0 && umaSeleccionado != 'acuerdo'"
+                placeholder="Cantidad de UMA" 
+                formControlName="cantidadUMA"
+                class="input-busqueda"
+                type="number"
+                [(ngModel)]="cantidadUMA"
+                (ngModelChange)="calcularMontoUMA()">
+              </ion-input>
+
+            <mat-form-field appearance="outline" *ngIf="expediente.honorarioCobrado == 0">
+              <mat-label style="color: white">Seleccioná UMA</mat-label>
+              <mat-select
+                formControlName="umaSeleccionado"
+                [compareWith]="compararUMA"
+                (selectionChange)="calcularMontoUMA()">
+              <mat-option value="acuerdo">Acuerdo</mat-option>
+                <mat-option *ngFor="let umas of uma" [value]="umas">
+                  {{ umas.valor }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+              <ion-input *ngIf="umaSeleccionado == 'acuerdo' && expediente.honorarioCobrado == 0"
+                placeholder="Monto" 
+                formControlName="montoAcuerdo"
+                class="input-busqueda"
+                type="number"
+                [(ngModel)]="montoUMA">
+              </ion-input>
+
+
+
+
+            
+            
+              <!-- Monto calculado -->
+               <h2 >
+                MONTO HONORARIO: ${{ montoUMA | number:'1.0-0' }}
+              </h2> 
+        
+        <!-- Campo de fecha de sentencia -->
+        <ion-input
+          placeholder="Fecha de sentencia"
+          type="date"
+          class="input-busqueda"
+          formControlName="fecha_sentencia"
+          name="fecha_sentencia"
+          id="fecha_sentencia">
+        </ion-input>
+
+          </div>
+                
+      <form [formGroup]="form" >
+
+<!-- Para CCF: I, II, III -->
+<mat-form-field *ngIf="expediente.juzgadoModel.tipo === 'CCF'" appearance="outline" style="flex: 1;">
+  <mat-label style="color: white">Sala</mat-label>
+  <mat-select
+    style="color: white"
+    formControlName="sala"               
+    [(ngModel)]="sala"                    
+    name="sala"
+  >
+    <mat-option *ngFor="let s of ['Sin asignar','I','II','III']" [value]="s">
+      {{ s }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+
+<!-- Para COM: A, B, C, D, E, F -->
+<mat-form-field *ngIf="expediente.juzgadoModel.tipo === 'COM'" appearance="outline" style="flex: 1;">
+  <mat-label style="color: white">Sala</mat-label>
+  <mat-select
+    style="color: white"
+    formControlName="sala"
+    [(ngModel)]="sala"
+    name="sala"
+  >
+    <mat-option *ngFor="let s of ['Sin asignar','A','B','C','D','E','F']" [value]="s">
+      {{ s }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+
+                
+<!-- 📌 CAPITAL -->
+<div class="divider-container">
+  <mat-divider class="white-divider"></mat-divider>
+  <span class="divider-text">Detalles del Capital</span>
+  <mat-divider class="white-divider"></mat-divider>
+</div>
+
+<!-- Contenedor general -->
+<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.capitalCobrado != 1">
+
+  <!-- Fila de selectores -->
+  <div style="display: flex; gap: 16px;">
+
+    <!-- Estado del Capital -->
+    <mat-form-field appearance="outline" style="flex: 1;">
+      <mat-label style="color: white">Estado del Capital</mat-label>
+      <mat-select style="color: white" [(ngModel)]="estadoCapitalSeleccionado" name="estadoCapitalSeleccionado" (selectionChange)="actualizarValidacionesCondicionales(); cambiarEstado('capital')">
+        <mat-option value="apelado">Apelado</mat-option>
+        <mat-option value="firme">Firme</mat-option>
+        <mat-option value="pendiente">Pendiente</mat-option>
+
+      </mat-select>
+    </mat-form-field>
+
+    <!-- Subestado o Estado de liquidación -->
+    <mat-form-field *ngIf="estadoCapitalSeleccionado == 'apelado'" appearance="outline" style="flex: 1;">
+      <mat-label style="color: white">Subestado del Capital</mat-label>
+      <mat-select style="color: white" [(ngModel)]="subEstadoCapitalSeleccionado" name="subEstadoCapitalSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
+        <mat-option value="concede en relacion">Concede en relación</mat-option>
+        <mat-option value="pendiente de elevacion">Pendiente de elevación</mat-option>
+        <mat-option value="solicita se eleve">Solicita se eleve</mat-option>
+        <mat-option value="en sala">En sala</mat-option>
+        <mat-option value="resolucion sala">A resolver</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="estadoCapitalSeleccionado == 'pendiente'" appearance="outline" style="flex: 1;">
+      <mat-label style="color: white">Subestado del Capital</mat-label>
+      <mat-select style="color: white" [(ngModel)]="subEstadoCapitalSeleccionado" name="subEstadoCapitalSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
+        <mat-option value="sentencia">Sentencia</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+<mat-form-field *ngIf="estadoCapitalSeleccionado == 'firme'" appearance="outline" style="flex: 1;">
+  <mat-label style="color: white">Estado de liquidación Capital</mat-label>
+  <mat-select
+    style="color: white"
+    [(ngModel)]="subEstadoCapitalSeleccionado"
+    name="subEstadoCapitalSeleccionado"
+    (selectionChange)="actualizarValidacionesCondicionales()">
+    <mat-option value="esperar a que baje de sala">Esperar a que baje de sala</mat-option>
+    <mat-option value="liquidacion pendiente">Liquidación pendiente</mat-option>
+    <mat-option value="liquidacion practicada">Liquidación practicada</mat-option>
+    <mat-option value="liquidacion traslado - cedula">Liquidación traslado - cédula</mat-option>
+
+    <!-- IMPUGNACION -->
+    <mat-option value="liquidacion impugnada">Liquidación impugnada</mat-option>
+      <mat-option value="liquidacion contesta impugnacion">Contesta impugnación</mat-option>
+      <mat-option value="liquidacion se resuelve impugnacion">Se resuelve impugnación</mat-option>
+
+    <!-- APROBACION -->
+    <mat-option value="liquidacion - se apruebe">Liquidación - se apruebe</mat-option>
+    <mat-option value="liquidacion aprobada - se intime">Liquidación aprobada - se intima</mat-option>
+    <mat-option value="liquidacion aprobada - cedula">Liquidación aprobada - cédula</mat-option>
+
+    <!-- EMBARGO -->
+    <mat-option value="embargo solicita">Embargo solicita</mat-option>
+      <mat-option value="embarga deox">Embargo se ordena DEOX</mat-option>
+      <mat-option value="embargo deox librado">Embargo DEOX librado</mat-option>
+      <mat-option value="embargo ejecutado">Embargo ejecutado</mat-option>
+      <mat-option value="embargo citese de venta">Embargo cítese de venta</mat-option>
+
+    <!-- GESTIONES POSTERIORES -->
+    <mat-option value="da en pago total">Da en pago total</mat-option>
+    <mat-option value="da en pago parcial">Da en pago parcial</mat-option>
+    <mat-option value="CBU peniente">cbu pendiente</mat-option>
+
+    <!-- GIROS -->
+    <mat-option value="giro - solicita">Giro - solicita</mat-option>
+    <mat-option value="giro - previo">Giro - previo</mat-option>
+    <mat-option value="giro - consentido">Giro - consentido</mat-option>
+     <mat-option value="giro rechazado">Giro rechazado</mat-option>
+    <mat-option value="giro">Giro</mat-option>
+  </mat-select>
+</mat-form-field>
+
+
+
+  </div>
+
+  <!-- Fila de inputs -->
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+
+    <!-- Input fecha -->
+    <ion-input 
+      *ngIf="estadoCapitalSeleccionado == 'apelado'"
+      type="date"
+      class="input-busqueda"
+      [(ngModel)]="fechaCapitalSubestado"
+      name="fechaCapitalSubestado">
+    </ion-input>
+
+    <ion-input 
+    *ngIf="estadoCapitalSeleccionado == 'pendiente'"
+    type="date"
+    class="input-busqueda"
+    [(ngModel)]="fechaCapitalSubestado"
+    name="fechaCapitalSubestado">
+  </ion-input>
+
+    <ion-input 
+      *ngIf="estadoCapitalSeleccionado == 'firme'"
+      type="date"
+      class="input-busqueda"
+      [(ngModel)]="fechaCapitalSubestado"
+      name="fechaCapitalSubestado">
+    </ion-input>
+
+    <!-- Input monto -->
+<ion-input
+  *ngIf="mostrarMontoCapital(subEstadoCapitalSeleccionado!)"
+  placeholder="Monto Capital"
+  type="number"
+  class="input-busqueda"
+  [(ngModel)]="montoLiquidacionCapital"
+  name="montoLiquidacionCapital">
+</ion-input>
+
+
+  </div>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.capitalCobrado != 0">
+  CAPITAL COBRADO.
+</div>
+
+<!-- 📌 HONORARIOS -->
+<div class="divider-container">
+  <mat-divider class="white-divider"></mat-divider>
+  <span class="divider-text">Detalles del Honorario</span>
+  <mat-divider class="white-divider"></mat-divider>
+</div>
+
+<!-- Contenedor general -->
+<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.honorarioCobrado!= 1">
+
+  <!-- Fila de selectores -->
+  <div style="display: flex; gap: 16px;">
+
+    <!-- Estado de Honorarios -->
+
+    <!-- CASO REGULACION Y COSTAS POR SU ORDEN-->
+    <mat-form-field appearance="outline" style="flex: 1;" *ngIf="honorarioSeleccionado != 'Difiere regulacion 1º instancia'">
+      <mat-label style="color: white">Estado de Honorarios</mat-label>
+      <mat-select style="color: white" [(ngModel)]="estadoHonorariosSeleccionado" name="estadoHonorariosSeleccionado" (selectionChange)="actualizarValidacionesCondicionales(); cambiarEstado('honorario')">
+        <mat-option [value]="'apelado'" [disabled]="deshabilitarApeladoOFirme">Apelado</mat-option>
+        <mat-option [value]="'firme'" [disabled]="deshabilitarApeladoOFirme">Firme</mat-option>
+        <mat-option [value]="'pendiente'" [disabled]="deshabilitarApeladoOFirme">Pendiente</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <!-- CASO DIFIERE REGLACION-->
+    <mat-form-field appearance="outline" style="flex: 1;" *ngIf="honorarioSeleccionado == 'Difiere regulacion 1º instancia'">
+      <mat-label style="color: white">Estado de Honorarios</mat-label>
+      <mat-select style="color: white" [(ngModel)]="estadoHonorariosSeleccionado" name="estadoHonorariosSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
+        <mat-option [value]="'diferido'">Diferido</mat-option>
+      </mat-select>
+    </mat-form-field>
+    
+
+    <!-- Subestado o Estado de liquidación -->
+    <mat-form-field *ngIf="estadoHonorariosSeleccionado === 'apelado'" appearance="outline" style="flex: 1;">
+      <mat-label style="color: white">Subestado de Honorarios</mat-label>
+      <mat-select style="color: white" [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
+          <mat-option value="prorrateo - se resuelve">Prorrateo- Se resuelve</mat-option>
+          <mat-option value="prorrateo - a resolver">Prorrateo - A resolver</mat-option>
+
+        <mat-option value="pendiente de elevacion" [disabled]="deshabilitarApeladoOFirme">Pendiente de elevación</mat-option>
+        <mat-option value="solicita se eleve">Solicita se eleve</mat-option>
+        <mat-option value="en sala" [disabled]="deshabilitarApeladoOFirme">En sala</mat-option>
+        <mat-option value="resolucion sala - confirma" [disabled]="deshabilitarApeladoOFirme">Resolución sala - Confirma</mat-option>
+        <mat-option value="resolucion sala - se elevan" [disabled]="deshabilitarApeladoOFirme">Resolución sala - Se elevan</mat-option>
+        <mat-option value="resolucion sala - se reducen" [disabled]="deshabilitarApeladoOFirme">Resolución sala - Se reducen</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="estadoHonorariosSeleccionado === 'pendiente'" appearance="outline" style="flex: 1;">
+      <mat-label style="color: white">Subestado de Honorarios</mat-label>
+      <mat-select style="color: white" [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
+        <mat-option value="sentencia" [disabled]="deshabilitarApeladoOFirme">Sentencia</mat-option>
+        <mat-option value="solicita se regulan" [disabled]="deshabilitarApeladoOFirme">Solicita se regulan</mat-option>
+
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="estadoHonorariosSeleccionado === 'diferido'" appearance="outline" style="flex: 1;">
+      <mat-label style="color: white">Subestado de Honorarios</mat-label>
+      <mat-select style="color: white" [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado" (selectionChange)="actualizarValidacionesCondicionales()">
+        <mat-option value="diferido">Diferido</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="estadoHonorariosSeleccionado === 'firme'" appearance="outline" style="flex: 1;">
+      <mat-label style="color: white">Estado de liquidación Honorarios</mat-label>
+      <mat-select
+      style="color: white"
+      [(ngModel)]="subEstadoHonorariosSeleccionado"
+      name="subEstadoHonorariosSeleccionado"
+      (selectionChange)="actualizarValidacionesCondicionales()">
+
+      <mat-option value="espera que vuelva">Espera que vuelva</mat-option>
+      <mat-option value="intimacion pendiente">Intimacion pendiente</mat-option>
+
+      <mat-option value="honorario se intima">Honorario se intima</mat-option>
+      <mat-option value="honorario cedula">honorario cedula</mat-option>
+
+      <mat-option value="honorario solicita embargo">Honorario solicita embargo</mat-option>
+      <mat-option value="honorario embargo">Honorario embargo</mat-option>
+
+      <mat-option value="da en pago parcial">Da en pago parcial</mat-option>
+      <mat-option value="da en pago total">Da en pago total</mat-option>
+
+      <mat-option value="giro - solicita">Giro - solicita</mat-option>
+      <mat-option value="giro - previo">Giro - previo</mat-option>
+      <mat-option value="giro - consiente">Giro - consiente</mat-option>
+      <mat-option value="giro rechazado">Giro rechazado</mat-option>
+
+      <mat-option value="giro">Giro</mat-option>
+    
+    </mat-select>
+    
+    </mat-form-field>
+
+  </div>
+
+  <!-- Fila de inputs -->
+  <div style="display: flex; flex-direction: column; gap: 16px;">
+
+    <!-- Input fecha -->
+    <ion-input 
+      *ngIf="estadoHonorariosSeleccionado === 'apelado'"
+      type="date"
+      class="input-busqueda"
+      [(ngModel)]="fechaHonorariosSubestado"
+      name="fechaHonorariosSubestado">
+    </ion-input>
+
+    <ion-input 
+    *ngIf="estadoHonorariosSeleccionado === 'pendiente'"
+    type="date"
+    class="input-busqueda"
+    [(ngModel)]="fechaHonorariosSubestado"
+    name="fechaHonorariosSubestado">
+  </ion-input>
+
+    <ion-input 
+    *ngIf="estadoHonorariosSeleccionado === 'diferido'"
+    type="date"
+    class="input-busqueda"
+    [(ngModel)]="fechaHonorariosSubestado"
+    name="fechaHonorariosSubestado">
+  </ion-input>
+
+    <ion-input 
+      *ngIf="estadoHonorariosSeleccionado === 'firme'"
+      type="date"
+      class="input-busqueda"
+      [(ngModel)]="fechaHonorariosSubestado"
+      name="fechaHonorariosSubestado">
+    </ion-input>
+
+
+
+  </div>
+
+
+<!-- 
+<button mat-button (click)="abrirModalHonorarioDiferencia()">
+  {{ expediente.estadoHonorariosDiferenciaSeleccionado ? 'Editar Diferencia' : 'Agregar Diferencia' }}
+</button> -->
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.honorarioCobrado!= 0">
+  HONORARIO COBRADO.
+</div>
+
+    <button mat-button (click)="abrirModalAlzada()">
+      {{ expediente.estadoHonorariosAlzadaSeleccionado ? 'Editar Alzada' : 'Agregar Alzada' }}
+    </button>
+
+<button mat-button (click)="abrirModalEjecucion()">
+  {{ expediente.estadoHonorariosEjecucionSeleccionado ? 'Editar Ejecución' : 'Agregar Ejecución' }}
+</button>
+
+<button mat-button (click)="abrirModalDiferencia()">
+  {{ expediente.estadoHonorariosDiferenciaSeleccionado ? 'Editar Diferencia' : 'Agregar Diferencia' }}
+</button>
+                </form>
+              </form>
+
+              <button mat-button class="menu-estado" style="background-color:#015dbb" (click)="actualizarEstado()">
+                <span style="color: #ffffff">Actualizar estado</span>
+              </button>
+
+            </div>
+          }
+
+          @if(expediente.estado == 'Cobrado'){
+            <h1>EXPEDIENTE COBRADO</h1>
+          }
+          </div>
+
+        </ion-list>
+      </div>
+    </mat-sidenav-content>
+</div>
+
+<div *ngIf="cargando" class="loader-container">
+  <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner> 
+</div>

@@ -1,0 +1,59 @@
+<div class="form-alta" style="background-color: #002b5c;" *ngIf="menu == 1"> 
+  <mat-dialog-content>
+    <h1 style="color: #ffffff;">FORMULARIO DE JUZGADOS</h1>
+    <form [formGroup]="form">
+
+      <div class="form-row">
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="Nombre" name="nombre" id='nombre' formControlName="nombre"/>
+          <label for="nombre" class="form__label">Nombre</label>
+          <div class="error" *ngIf="form.controls?.['nombre']?.invalid && (form.controls?.['nombre']?.dirty || form.controls?.['nombre']?.touched)">
+            <div *ngIf="form.controls?.['nombre']?.errors?.['required']" style="color: red;">El nombre es requerido</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label style="color: white">Localidades</mat-label>
+            <mat-select style="color: white" formControlName="localidad" [(ngModel)]="localidadElegida">
+              <mat-option *ngFor="let localidad of localidades" [value]="localidad">
+                {{ localidad.localidad }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width" style="width: 100%">
+            <mat-label style="color: white">Seleccionar tipo de juzgado</mat-label>
+            <mat-select style="color: white" formControlName="tipo">
+              <mat-option *ngFor="let tipo of tipos" [value]="tipo">
+                {{ tipo }}
+              </mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.controls?.['tipo']?.touched && form.controls?.['tipo']?.hasError('required')">
+              El tipo es requerido
+            </mat-error>
+          </mat-form-field>
+        </div>
+
+
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="direccion" name="ddireccion" id='ddireccion' formControlName="direccion"/>
+          <label for="ddireccion" class="form__label">Direccion (opcional)</label>
+        </div>
+      </div>
+
+
+
+      
+      
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-button (click)="closeDialog()">Cancelar</button>
+    <button mat-button color="primary" (click)="acceptDialog()">Siguiente</button>
+  </mat-dialog-actions>
+</div>
+

@@ -1,0 +1,79 @@
+<div class="form-alta" style="background-color: #002b5c;" *ngIf="menu == 1"> 
+  <mat-dialog-content>
+    <h1 style="color: #ffffff;">FORMULARIO DE CLIENTE</h1>
+    <form [formGroup]="form">
+
+      <div class="form-row">
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="Nombre" name="nombre" id='nombre' formControlName="nombre"/>
+          <label for="nombre" class="form__label">Nombre</label>
+          <div class="error" *ngIf="form.controls?.['nombre']?.invalid && (form.controls?.['nombre']?.dirty || form.controls?.['nombre']?.touched)">
+            <div *ngIf="form.controls?.['nombre']?.errors?.['required']" style="color:red">El nombre es requerido</div>
+            <div *ngIf="form.controls?.['nombre']?.errors?.['pattern']" style="color:red">Únicamente letras y espacios</div>
+          </div>
+        </div>
+
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="Apellido" name="apellido" id='apellido' formControlName="apellido"/>
+          <label for="apellido" class="form__label">Apellido</label>
+          <div class="error" *ngIf="form.controls?.['apellido']?.invalid && (form.controls?.['apellido']?.dirty || form.controls?.['apellido']?.touched)">
+            <div *ngIf="form.controls?.['apellido']?.errors?.['required']" style="color:red">El apellido es requerido</div>
+            <div *ngIf="form.controls?.['apellido']?.errors?.['pattern']" style="color:red">Únicamente letras y espacios</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="DNI" name="dni" id='dni' formControlName="dni"/>
+          <label for="dni" class="form__label">DNI</label>
+          <div class="error" *ngIf="form.controls?.['dni']?.invalid && (form.controls?.['dni']?.dirty || form.controls?.['dni']?.touched)">
+            <div *ngIf="form.controls?.['dni']?.errors?.['required']" style="color:red">El DNI es requerido</div>
+            <div *ngIf="form.controls?.['dni']?.errors?.['minlength']" style="color:red">El DNI debe tener mínimo 6 dígitos</div>
+            <div *ngIf="form.controls?.['dni']?.errors?.['maxlength']" style="color:red">El DNI debe tener máximo 8 dígitos</div>
+            <div *ngIf="form.controls?.['dni']?.errors?.['pattern']" style="color:red">El DNI solo puede contener números</div>
+          </div>
+        </div>
+        <div class="form__group field">
+          <input type="date" class="form__field" placeholder="Fecha de nacimiento" name="fecha_nacimiento" id='fecha_nacimiento' formControlName="fechaNacimiento"/>
+          <label for="fecha_nacimiento" class="form__label">Fecha de nacimiento</label>
+<div class="error" *ngIf="form.controls?.['fechaNacimiento']?.errors?.['fechaInvalida']">
+  <div style="color:red">La fecha de nacimiento no puede ser futura.</div>
+</div>
+
+
+        </div>
+
+           </div>
+
+
+
+      <div class="form-row">
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="Direccion" name="direccion" id='direccion' formControlName="direccion"/>
+          <label for="direccion" class="form__label">Direccion</label>
+          <div class="error" *ngIf="form.controls?.['direccion']?.invalid && (form.controls?.['dierccion']?.dirty || form.controls?.['direccion']?.touched)">
+            <div *ngIf="form.controls?.['direccion']?.errors?.['required']" style="color:red">La direccion es requerida</div>
+          </div>
+        </div>
+        <div class="form__group field">
+          <input type="input" class="form__field" placeholder="Telefono" name="telefono" id='telefono' formControlName="telefono"/>
+          <label for="telefono" class="form__label">Telefono</label>
+          <div class="error" *ngIf="form.controls?.['telefono']?.invalid && (form.controls?.['telefono']?.dirty || form.controls?.['telefono']?.touched)">
+            <div *ngIf="form.controls?.['telefono']?.errors?.['required']" style="color:red">El telefono es requerido</div>
+            <div *ngIf="form.controls?.['telefono']?.errors?.['pattern']" style="color:red">Únicamente numeros</div>
+          </div>
+        </div>
+          
+        
+      </div>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions>
+    <button mat-button (click)="closeDialog()">Cancelar</button>
+    <button mat-button color="primary" (click)="acceptDialog()">Siguiente</button>
+  </mat-dialog-actions>
+</div>
+
+

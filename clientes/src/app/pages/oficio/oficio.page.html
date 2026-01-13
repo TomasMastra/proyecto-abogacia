@@ -1,0 +1,299 @@
+<div class="content mat-elevation-z8">
+
+
+  <!-- Menú principal -->
+<!-- MENÚ PRINCIPAL DE PRUEBAS -->
+<div *ngIf="menu === 0" class="menu-pruebas">
+  <!-- Oficios -->
+  <button class="card-btn" (click)="cambiarMenu(1)" aria-label="Oficios">
+    <div class="card-img">
+      <img src="../../../assets/botones/oficios.png" alt="Oficios" />
+      <span class="card-title">Oficios</span>
+    </div>
+  </button>
+  <!-- Testimoniales -->
+  <button class="card-btn" (click)="cambiarMenu(2)" aria-label="Testimoniales">
+    <div class="card-img">
+      <img src="../../../assets/botones/testimoniales.png" alt="Testimoniales" />
+      <span class="card-title">Testimoniales</span>
+    </div>
+  </button>
+
+  <!-- Pericias -->
+  <button class="card-btn" (click)="cambiarMenu(3)" aria-label="Pericias">
+    <div class="card-img">
+      <img src="../../../assets/botones/pericias.png" alt="Pericias" />
+      <span class="card-title">Pericias</span>
+    </div>
+  </button>
+</div>
+
+
+<!-- Oficios -->
+<div *ngIf="menu === 1">
+  <form [formGroup]="form" class="form-container">
+
+    <div class="section">
+      <h2 class="titulo-seccion">Formulario de Oficio</h2>
+
+
+<mat-form-field appearance="outline" class="full-width">
+<input
+    type="text"
+    matInput
+    [formControl]="expedienteCtrl"
+    [matAutocomplete]="autoExp"
+    placeholder="Buscar por número, año o cliente"
+    style="color: rgb(0, 0, 0);" />
+
+    <button mat-icon-button *ngIf="expedienteCtrl.value" matSuffix (click)="limpiarBusqueda()">
+  <mat-icon>close</mat-icon>
+</button>
+
+  <mat-autocomplete 
+    #autoExp="matAutocomplete" 
+    [displayWith]="displayExpediente"
+    (optionSelected)="seleccionarExpediente($event.option.value)">
+    
+   <!--  <mat-option *ngFor="let expediente of filteredExpedientes | async" [value]="expediente">
+      {{ expediente.numero }}/{{ expediente.anio }}
+      {{ expediente.clientes.length > 1 
+          ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido + ' y otros' 
+          : expediente.clientes.length === 1 
+            ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido 
+            : '(sin actora)' 
+      }}
+      contra
+      {{ expediente.demandados.length > 1 
+          ? expediente.demandados[0].nombre + ' y otros'
+          : expediente.demandados.length === 1 
+            ? expediente.demandados[0].nombre 
+            : '(sin demandado)' 
+      }}
+    </mat-option> -->
+    <mat-option *ngFor="let expediente of filteredExpedientes | async" [value]="expediente">{{expediente.numero}}/{{expediente.anio}} - {{ expediente.caratula }}
+    </mat-option>
+  </mat-autocomplete>
+</mat-form-field>
+
+  
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Oficiada</mat-label>
+        <mat-select formControlName="oficiada">
+          <mat-option *ngFor="let o of demandados" [value]="o">{{ o.nombre }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Parte -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Parte</mat-label>
+        <mat-select formControlName="parte">
+          <mat-option *ngFor="let p of partes" [value]="p">{{ p }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Estado -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Estado del oficio</mat-label>
+        <mat-select formControlName="estado" (selectionChange)="onEstadoChange($event.value)">
+          <mat-option *ngFor="let est of estadosOficio" [value]="est">{{ est }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Fecha diligenciado -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label style="color: black;">Fecha diligenciado</mat-label>
+    <input matInput [matDatepicker]="picker" formControlName="fecha_diligenciado" style="color: black; background-color: white;" />
+    <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+    <mat-datepicker #picker></mat-datepicker>
+  </mat-form-field>
+
+    </div>
+
+    <div class="botones">
+      
+      <button mat-button color="primary" class="boton-guardar" (click)="guardarPrueba()" [disabled]="cargando">
+        <mat-icon>save</mat-icon>
+        Guardar oficio
+      </button>
+    </div>
+
+<!--     <div *ngIf="cargando" class="loader-container">
+      <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
+    </div> -->
+
+  </form>
+</div>
+
+<div *ngIf="menu === 2">
+  <h2>Formulario Testimoniales</h2>
+
+  <!-- Testimoniales -->
+<div *ngIf="menu === 2">
+  <form [formGroup]="form" class="form-container">
+    <div class="section">
+      <h2 class="titulo-seccion">Formulario de Testimonial</h2>
+
+      <!-- Expediente (igual que en oficios) -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0);">Expediente</mat-label>
+        <input type="text" matInput [formControl]="expedienteCtrl" [matAutocomplete]="autoExp"
+               placeholder="Buscar por número, año o cliente" style="color: rgb(0, 0, 0);" />
+        <button mat-icon-button *ngIf="expedienteCtrl.value" matSuffix (click)="limpiarBusqueda()">
+          <mat-icon>close</mat-icon>
+        </button>
+
+        <mat-autocomplete #autoExp="matAutocomplete" [displayWith]="displayExpediente"
+                          (optionSelected)="seleccionarExpediente($event.option.value)">
+          <mat-option *ngFor="let expediente of filteredExpedientes | async" [value]="expediente">
+            {{expediente.numero}}/{{expediente.anio}} - {{ expediente.caratula }}
+
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+
+      <!-- Testigo (reusamos el control 'oficiada' como nombre del testigo) -->
+<!-- Nombre del testigo -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label style="color: rgb(0, 0, 0)">Nombre del testigo</mat-label>
+      <input matInput formControlName="testigo" placeholder="Ej: Juan Pérez"
+            style="color: black; background: white;">
+    </mat-form-field>
+
+
+      <!-- Supletoria (solo testimonial) -->
+<!-- Supletoria (fecha opcional) -->
+<mat-form-field appearance="outline" class="full-width">
+  <mat-label style="color: rgb(0,0,0)">Supletoria</mat-label>
+  <input matInput [matDatepicker]="pickerSuple"
+         formControlName="supletoria"
+         style="color:black; background:white;">
+  <mat-datepicker-toggle matSuffix [for]="pickerSuple"></mat-datepicker-toggle>
+  <mat-datepicker #pickerSuple></mat-datepicker>
+</mat-form-field>
+
+
+
+      <!-- Parte (igual) -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Parte</mat-label>
+        <mat-select formControlName="parte">
+          <mat-option *ngFor="let p of partes" [value]="p">{{ p }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Estado (usa estadosTestimonial) -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Estado</mat-label>
+        <mat-select formControlName="estado" (selectionChange)="onEstadoChange($event.value)">
+          <mat-option *ngFor="let est of estadosTestimonial" [value]="est">{{ est }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Fecha (reusamos 'fecha_diligenciado' como fecha de testimonial) -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: black;">Fecha</mat-label>
+        <input matInput [matDatepicker]="pickerT" formControlName="fecha_diligenciado"
+               style="color: black; background-color: white;" />
+        <mat-datepicker-toggle matSuffix [for]="pickerT"></mat-datepicker-toggle>
+        <mat-datepicker #pickerT></mat-datepicker>
+      </mat-form-field>
+    </div>
+
+    <div class="botones">
+      <button mat-button color="primary" class="boton-guardar" (click)="guardarPrueba()" [disabled]="cargando">
+        <mat-icon>save</mat-icon>
+        Guardar testimonial
+      </button>
+    </div>
+  </form>
+</div>
+
+</div>
+
+<!-- Pericias -->
+<div *ngIf="menu === 3">
+  <form [formGroup]="form" class="form-container">
+    <div class="section">
+      <h2 class="titulo-seccion">Formulario de Pericia</h2>
+
+      <!-- Expediente (igual que en oficios/testimoniales) -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0);">Expediente</mat-label>
+        <input
+          type="text"
+          matInput
+          [formControl]="expedienteCtrl"
+          [matAutocomplete]="autoExp"
+          placeholder="Buscar por número, año o cliente"
+          style="color: rgb(0, 0, 0);" />
+
+        <button mat-icon-button *ngIf="expedienteCtrl.value" matSuffix (click)="limpiarBusqueda()">
+          <mat-icon>close</mat-icon>
+        </button>
+
+        <mat-autocomplete
+          #autoExp="matAutocomplete"
+          [displayWith]="displayExpediente"
+          (optionSelected)="seleccionarExpediente($event.option.value)">
+          <mat-option *ngFor="let expediente of filteredExpedientes | async" [value]="expediente">
+            {{expediente.numero}}/{{expediente.anio}} - {{ expediente.caratula }}
+
+          </mat-option>
+        </mat-autocomplete>
+      </mat-form-field>
+
+      <!-- Perito (reusamos 'oficiada' como input texto) -->
+      <!-- Perito -->
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label style="color: rgb(0, 0, 0)">Perito</mat-label>
+      <input matInput formControlName="perito" placeholder="Nombre del perito"
+            style="color: black; background: white;">
+    </mat-form-field>
+
+
+      <!-- Parte -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Parte</mat-label>
+        <mat-select formControlName="parte">
+          <mat-option *ngFor="let p of partes" [value]="p">{{ p }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Estado -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: rgb(0, 0, 0)">Estado</mat-label>
+        <mat-select formControlName="estado" (selectionChange)="onEstadoChange($event.value)">
+          <mat-option *ngFor="let est of estadosPericia" [value]="est">{{ est }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+      <mat-label style="color: rgb(0, 0, 0)">Tipo de pericia</mat-label>
+      <mat-select formControlName="tipo_pericia">
+        <mat-option *ngFor="let t of tiposPericia" [value]="t">{{ t }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+      <!-- Fecha de la pericia (usamos 'fecha_diligenciado') -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label style="color: black;">Fecha</mat-label>
+        <input matInput [matDatepicker]="pickerP" formControlName="fecha_diligenciado"
+               style="color: black; background-color: white;" />
+        <mat-datepicker-toggle matSuffix [for]="pickerP"></mat-datepicker-toggle>
+        <mat-datepicker #pickerP></mat-datepicker>
+      </mat-form-field>
+    </div>
+
+    <div class="botones">
+      <button mat-button color="primary" class="boton-guardar" (click)="guardarPrueba()" [disabled]="cargando">
+        <mat-icon>save</mat-icon>
+        Guardar pericia
+      </button>
+    </div>
+  </form>
+</div>
+
+
+</div>

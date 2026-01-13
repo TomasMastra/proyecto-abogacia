@@ -1,0 +1,138 @@
+<div *ngIf="logeado">
+  <mat-toolbar color="primary">
+    <button mat-icon-button (click)="sidenav.toggle()">
+      <mat-icon style="color: #ffffff">menu</mat-icon>
+    </button>
+    <span style="color: #ffffff">ABOGACIA PRUEBA</span> <!-- Opcional: hacerlo dinámico -->
+  </mat-toolbar>
+
+  <mat-sidenav-container class="sidenav-container" style="background-color: #1976d2">
+    <mat-sidenav #sidenav mode="side" opened>
+      <div class="sidebar-content">
+        <img class="avatar mat-elevation-z8" src="../../../assets/botones/user.png" />
+        <h4 class="name">Andres Mastrapasqua</h4>
+        <p class="designation">Abogado</p>
+
+        <mat-divider></mat-divider>
+
+        <button mat-button class="menu-button" [class.active-route]="isActive('home')" (click)="goTo('home')">
+          <mat-icon style="color: #ffffff">home</mat-icon>
+          <span style="color: #ffffff">Menú</span>
+        </button>
+        
+        <button mat-button class="menu-button" [class.active-route]="isActive('lista-clientes')" (click)="goTo('lista-clientes')">
+          <mat-icon style="color: #ffffff">person</mat-icon>
+          <span style="color: #ffffff">Clientes</span>
+        </button>
+        
+        <button mat-button class="menu-button" [matMenuTriggerFor]="expedienteMenu">
+          <mat-icon style="color: #ffffff">folder_open</mat-icon>
+          <span style="color: #ffffff">Expedientes</span>
+        </button>
+        
+        <mat-menu #expedienteMenu="matMenu">
+          <button mat-menu-item [class.active-route]="isActive('lista-expedientes')" (click)="goTo('lista-expedientes')">
+            <mat-icon>gavel</mat-icon>
+            <span>ABM</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('estado')" (click)="goTo('estado')">
+            <mat-icon>location_on</mat-icon>
+            <span>Estados</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('honorario-diferido')" (click)="goTo('honorario-diferido')">
+            <mat-icon>paid</mat-icon>
+            <span>Honorarios</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('consultas')" (click)="goTo('consultas')">
+            <mat-icon>upcoming</mat-icon>
+            <span>Consultas expediente</span>
+          </button>
+            <button mat-menu-item [class.active-route]="isActive('consultas-oficio')" (click)="goTo('consultas-oficio')">
+            <mat-icon>upcoming</mat-icon>
+            <span>Consultas pruebas</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('requeridos')" (click)="goTo('requeridos')">
+            <mat-icon>exclamation</mat-icon>
+            <span>Requieren Atención</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('oficio')" (click)="goTo('oficio')">
+            <mat-icon>exclamation</mat-icon>
+            <span>Pruebas</span>
+          </button>
+
+          <button mat-menu-item [class.active-route]="isActive('cobranzas')" (click)="goTo('cobranzas')">
+            <mat-icon>exclamation</mat-icon>
+            <span>Cobranzas</span>
+          </button>
+
+          <button mat-menu-item [class.active-route]="isActive('datos-importantes')" (click)="goTo('datos-importantes')">
+            <mat-icon>exclamation</mat-icon>
+            <span>Datos importantes</span>
+          </button>
+
+          <button mat-menu-item [class.active-route]="isActive('jurisprudencias')" (click)="goTo('jurisprudencias')">
+            <mat-icon>pin</mat-icon>
+            <span>jurisprudencias</span>
+          </button>
+        </mat-menu>
+        
+        <!-- General -->
+        <button mat-button class="menu-button" [matMenuTriggerFor]="generalMenu">
+          <mat-icon style="color: #ffffff">apps</mat-icon>
+          <span style="color: #ffffff">General</span>
+        </button>
+        
+        <mat-menu #generalMenu="matMenu">
+          <button mat-menu-item [class.active-route]="isActive('juzgados')" (click)="goTo('juzgados')">
+            <mat-icon>account_balance</mat-icon>
+            <span>Juzgados</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('localidades')" (click)="goTo('localidades')">
+            <mat-icon>location_on</mat-icon>
+            <span>Localidades</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('demandado')" (click)="goTo('demandado')">
+            <mat-icon>gavel</mat-icon>
+            <span>Demandados</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('jueces')" (click)="goTo('jueces')">
+            <mat-icon>balance</mat-icon>
+            <span>Jueces</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('codigos')" (click)="goTo('codigos')">
+            <mat-icon>pin</mat-icon>
+            <span>Codigos</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('graficos')" (click)="goTo('graficos')">
+            <mat-icon>insert_chart</mat-icon>
+            <span>Estadisticas</span>
+          </button>
+        </mat-menu>
+        
+
+        <mat-divider></mat-divider>
+
+        <button mat-button class="menu-button">
+          <mat-icon style="color: #ffffff">settings</mat-icon>
+          <span style="color: #ffffff">Ajustes</span>
+        </button>
+
+        <button mat-button class="menu-button" (click)="descargar()">
+          <mat-icon style="color: #ffffff">download</mat-icon>
+          <span style="color: #ffffff">Descargar</span>
+        </button>
+
+
+      </div>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <router-outlet></router-outlet>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>
+
+
+<div *ngIf="!logeado">
+  <router-outlet></router-outlet>
+</div>

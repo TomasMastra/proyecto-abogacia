@@ -1,0 +1,177 @@
+<div class="content mat-elevation-z8" [class.blur-content]="cargando">
+
+  <div *ngIf="cargando" class="fullscreen-loader">
+    <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
+  </div>
+
+    <!-- Barra de botones -->
+<div *ngIf="vista === 'menu'" class="menu-pruebas">
+  <!-- Oficios -->
+  <button class="card-btn" (click)="cambiarMenu(1)" aria-label="Oficios">
+    <div class="card-img">
+      <img class="card-logo" src="../../../assets/botones/cobranza.png" alt="Oficios" />
+      <span class="card-title">Cobranzas</span>
+    </div>
+  </button>
+  <!-- Testimoniales -->
+  <button class="card-btn" (click)="cambiarMenu(2)" aria-label="Testimoniales">
+    <div class="card-img">
+      <img src="../../../assets/botones/pagos.png" alt="Testimoniales" />
+      <span class="card-title">Pagos mensuales</span>
+    </div>
+  </button>
+
+  <!-- Pericias -->
+  <button class="card-btn" (click)="cambiarMenu(3)" aria-label="Pericias">
+    <div class="card-img">
+      <img src="../../../assets/botones/historial.png" alt="Pericias" />
+      <span class="card-title">Historial de pagos</span>
+    </div>
+  </button>
+</div>
+
+  <div class="table-container" *ngIf="vista === 'cobranzas'">
+
+      <button mat-button class="menu-button" (click)="cambiarMenu(4)">
+            <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+            <span style="color: #ffffff">Regresar</span>
+        </button>
+    <table>
+      <thead>
+        <tr>
+          <th>Mes / Año</th>
+          <th><strong>Total</strong></th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let mes of mesesDisponibles">
+<tr *ngIf="cobrosPorMes[mes]!.total! > 0" (click)="verDetalleMes(mes)" style="cursor:pointer">
+
+            <td>{{ convertirMes(mes) }} / {{ mes.split('-')[0] }}</td>
+            <td><strong>${{ cobrosPorMes[mes].total | number:'1.0-0' }}</strong></td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+
+   <!-- 2) PAGOS POR MES -->
+<div class="table-container" *ngIf="vista === 'pagosPorMes'">
+        <button mat-button class="menu-button" (click)="cambiarMenu(4)">
+            <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+            <span style="color: #ffffff">Regresar</span>
+        </button>
+  <div class="header-with-btn">
+    <h3>Pagos por Mes</h3>
+    <button mat-raised-button color="primary" (click)="cargarPagoDialog()">
+      + Cargar pago
+    </button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Mes / Año</th>
+        <th>Cantidad</th>
+        <th><strong>Total</strong></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let mes of mesesPagosOrdenados">
+        <td>{{ convertirMes(mes) }} / {{ mes.split('-')[0] }}</td>
+        <td>{{ pagosPorMes[mes]!.cantidad || 0 }}</td>
+        <td><strong>${{ pagosPorMes[mes]!.total || 0 | number:'1.2-2' }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 3) HISTORIAL DE PAGOS -->
+<div class="table-container" *ngIf="vista === 'historial'">
+        <button mat-button class="menu-button" (click)="cambiarMenu(4)">
+            <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+            <span style="color: #ffffff">Regresar</span>
+        </button>
+  <div class="header-with-btn">
+    <h3>Historial de Pagos</h3>
+    <button mat-raised-button color="accent" (click)="cargarPagoDialog()">
+      + Cargar pago
+    </button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th><strong>Monto</strong></th>
+        <th><strong>Tipo</strong></th>
+        <th><strong>Accion</strong></th>
+
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let p of pagos">
+        <td>{{ p.fecha | date:'yyyy-MM-dd' }}</td>
+        <td><strong>${{ p.monto | number:'1.2-2' }}</strong></td>
+        <td><strong>{{ p.tipo_pago }}</strong></td>
+        <td style="text-align:center;">
+          <button mat-icon-button color="warn" aria-label="Eliminar pago" (click)="eliminarPago(p)">
+            <mat-icon style="color:beige">delete</mat-icon>
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 4) DETALLE DEL MES (tu vista, con un mini ajuste) -->
+<div class="table-container" *ngIf="vista === 'detalleMes'">
+  <button mat-button class="menu-button" (click)="vista = 'cobranzas'">
+    <mat-icon style="color: #ffffff">arrow_back_ios</mat-icon>
+    <span style="color: #ffffff">Regresar</span>
+  </button>
+
+  <div class="header-with-btn">
+    <h3>Detalle {{ detalleMesTitulo }}</h3>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="text-align:left">Expediente</th>
+        <th>Capital</th>
+        <th>Honorarios</th>
+        <th>Alzada</th>
+        <th>Ejecución</th>
+        <th>Diferencia</th>
+        <th><strong>Total</strong></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of detalleMesFilas">
+        <td style="text-align:left">{{ r.numero }}/{{ r.anio_expediente || '' }} {{r.caratula}}</td>
+        <td>${{ (r.Capital || 0)     | number:'1.2-2' }}</td>
+        <td>${{ (r.Honorarios || 0)  | number:'1.2-2' }}</td>
+        <td>${{ (r.Alzada || 0)      | number:'1.2-2' }}</td>
+        <td>${{ (r.Ejecucion || 0)   | number:'1.2-2' }}</td>
+        <td>${{ (r.Diferencia || 0)  | number:'1.2-2' }}</td>
+        <td><b>${{ (r.TotalExpediente || 0) | number:'1.2-2' }}</b></td>
+      </tr>
+
+      <tr *ngIf="detalleMesTotal" style="border-top:2px solid #ccc">
+        <td style="text-align:left"><b>TOTAL GENERAL</b></td>
+        <td><b>${{ (detalleMesTotal?.Capital || 0)      | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.Honorarios || 0)   | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.Alzada || 0)       | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.Ejecucion || 0)    | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.Diferencia || 0)   | number:'1.2-2' }}</b></td>
+        <td><b>${{ (detalleMesTotal?.TotalExpediente
+                     ?? detalleMesTotal?.totalGeneral
+                     ?? detalleMesTotal?.total
+                     ?? 0) | number:'1.2-2' }}</b></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+
+</div>

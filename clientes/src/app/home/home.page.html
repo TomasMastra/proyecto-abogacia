@@ -1,0 +1,66 @@
+<div class="home-container">
+
+    <!-- Título principal -->
+    <h1 class="home-title">Bienvenido al Sistema de Gestión Legal {{usuarioService.usuarioLogeado?.nombre}}</h1>
+    <p class="home-subtitle">Seleccione una acción rápida o consulte el estado general del sistema.</p>
+  
+    <!-- Acciones rápidas -->
+    <div class="quick-actions">
+      <button mat-raised-button color="primary" (click)="goTo('lista-clientes')">
+        <mat-icon>person</mat-icon> Clientes
+      </button>
+  
+      <button mat-raised-button color="accent" (click)="goTo('lista-expedientes')">
+        <mat-icon>folder_open</mat-icon> Expedientes
+      </button>
+  
+      <button mat-raised-button color="warn" (click)="goTo('estados')">
+        <mat-icon>location_on</mat-icon> Estados.
+      </button>
+  
+      <button mat-raised-button color="primary" (click)="goTo('honorario-diferido')">
+        <mat-icon>paid</mat-icon> Honorarios
+      </button>
+
+      <button mat-raised-button color="primary" (click)="goTo('calendario')">
+        <mat-icon>date_range</mat-icon> Calendario
+      </button>
+    </div>
+  
+    <!-- Resumen del sistema -->
+    <div class="summary-cards">
+      <mat-card class="summary-card">
+        <mat-card-title>Expedientes activos</mat-card-title>
+        <mat-card-content>{{expedientesActivos}}</mat-card-content>
+      </mat-card>
+  
+      <mat-card class="summary-card">
+        <mat-card-title>Clientes registrados</mat-card-title>
+        <mat-card-content>{{clientesRegistrados}}</mat-card-content>
+      </mat-card>
+  
+      <mat-card class="summary-card">
+        <mat-card-title>Sentencias emitidas</mat-card-title>
+        <mat-card-content>{{sentenciasEmitidas}}</mat-card-content>
+      </mat-card>
+  
+      <mat-card class="summary-card">
+        <mat-card-title>Honorarios pendientes</mat-card-title>
+        <mat-card-content>{{honorariosPendientes | currency:'$' }}</mat-card-content>
+      </mat-card>
+    </div>
+  
+    <!-- Ayuda rápida -->
+    <div class="help-section">
+      <h2>¿Necesitás ayuda?</h2>
+      <p>Contactanos por soporte o consultá la documentación del sistema.</p>
+      <button mat-stroked-button color="primary">
+        <mat-icon>help_outline</mat-icon> Soporte técnico
+      </button>
+      <button mat-stroked-button color="accent">
+        <mat-icon>menu_book</mat-icon> Ver manual de uso
+      </button>
+    </div>
+  
+  </div>
+  

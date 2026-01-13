@@ -1,0 +1,180 @@
+.dialog-title {
+    background-color: #1976d2; /* Azul Material */
+    color: rgb(158, 27, 233);
+    padding: 16px;
+    margin: -24px -24px 16px -24px; /* Para que ocupe todo el ancho */
+    text-align: center;
+  }
+  
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 300%; /* Para que no sea tan pequeño */
+    background-color: #002b5c; /* Azul Material */
+
+  }
+  
+  mat-dialog-actions {
+    padding: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+
+  //////////////////
+  /// 
+  /// 
+  
+
+  $primary: #11998e;
+$secondary: #38ef7d;
+$white: #fff;
+$gray: #ffffff;
+.form__group {
+  position: relative;
+  padding: 15px 0 0;
+  margin-top: 10px;
+  width: 50%;
+}
+
+.form__field {
+  font-family: inherit;
+  width: 100%;
+  border: 0;
+  border-bottom: 2px solid $gray;
+  outline: 0;
+  font-size: 1.3rem;
+  color: $white;
+  padding: 7px 0;
+  background: transparent;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: transparent;
+  }
+
+  &:placeholder-shown ~ .form__label {
+    font-size: 1.3rem;
+    cursor: text;
+    top: 20px;
+  }
+}
+
+.form__label {
+  position: absolute;
+  top: 0;
+  display: block;
+  transition: 0.2s;
+  font-size: 1rem;
+  color: $gray;
+}
+
+.form__field:focus {
+  ~ .form__label {
+    position: absolute;
+    top: 0;
+    display: block;
+    transition: 0.2s;
+    font-size: 1rem;
+    color: $primary;
+    font-weight:700;    
+  }
+  padding-bottom: 6px;  
+  font-weight: 700;
+  border-width: 3px;
+  border-image: linear-gradient(to right, $primary,$secondary);
+  border-image-slice: 1;
+}
+/* reset input */
+.form__field{
+  &:required,&:invalid { box-shadow:none; }
+}
+/* demo */
+body {
+  font-family: 'Poppins', sans-serif; 
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 1.5rem;
+  background-color:#222222;
+}
+
+  /* label color */
+  .input-field label {
+    color: #000;
+  }
+  /* label focus color */
+  .input-field input[type=text]:focus + label {
+    color: #000;
+  }
+  /* label underline focus color */
+  .input-field input[type=text]:focus {
+    border-bottom: 1px solid #000;
+    box-shadow: 0 1px 0 0 #000;
+  }
+  /* valid color */
+  .input-field input[type=text].valid {
+    border-bottom: 1px solid #000;
+    box-shadow: 0 1px 0 0 #000;
+  }
+  /* invalid color */
+  .input-field input[type=text].invalid {
+    border-bottom: 1px solid #000;
+    box-shadow: 0 1px 0 0 #000;
+  }
+  /* icon prefix focus color */
+  .input-field .prefix.active {
+    color: #000;
+  }
+       
+
+  .form-row {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .form__group {
+    position: relative;
+    padding: 15px 0 0;
+    margin-top: 10px;
+    width: 48%; /* Cada input ocupará la mitad del ancho */
+  }
+/*
+  .form-alta, .form-expedientes {
+    max-width: 600px;  
+    margin: 0 auto;    
+    padding: 20px;     
+    border-radius: 8px; 
+  }*/
+  
+  .mat-dialog {
+    height: 100vh; /* El cuadro de diálogo ocupará el 100% de la altura de la ventana */
+    display: flex;
+    flex-direction: column;
+  }
+  
+  mat-dialog-content {
+    flex-grow: 1; /* Hace que el contenido crezca para ocupar el espacio disponible */
+    max-height: 70vh; /* Ocupa el 70% de la altura de la ventana */
+    overflow-y: auto; /* Permite el desplazamiento si el contenido excede */
+  }
+  
+  .mat-dialog-actions {
+    padding: 16px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+
+  .expedientes-container {
+    max-height: 300px; /* Ajusta la altura según el diseño que necesites */
+    overflow-y: auto;  /* Permite el scroll vertical */
+  }
+  
