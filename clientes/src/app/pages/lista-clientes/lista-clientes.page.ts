@@ -202,7 +202,7 @@ export class ListaClientesPage implements OnInit, OnDestroy {
         });
       }*/
       
-        abrirDialog(): void {
+    abrirDialog(): void {
   const dialogRef = this.dialog.open(DialogClienteComponent, {
     width: '500px',
     disableClose: true
@@ -221,7 +221,7 @@ export class ListaClientesPage implements OnInit, OnDestroy {
       this.clienteService.clientesSubject.next([...cache, cliente]);
 
       // Agregarlo a la lista actual visible
-      this.clientes.push(cliente);
+      //this.clientes.push(cliente);
 
       // Si hay búsqueda, actualizá resultados
       if (this.busqueda !== '') {

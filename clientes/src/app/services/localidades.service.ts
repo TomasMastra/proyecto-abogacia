@@ -40,7 +40,7 @@ export class LocalidadesService {
   }
 
   getPartidos() {
-    this.http.get<any[]>('http://192.168.1.36:3000/partidos').subscribe(
+    this.http.get<any[]>(`${this.apiUrl}/partidos`).subscribe(
       (partido) => {
         this.localidadesSubject.next(partido); 
       },

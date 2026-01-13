@@ -500,13 +500,17 @@ getFeriadosDesde(fecha: string) {
 }
 
 obtenerTotalCobranzasPorMes(anio: number, mes: number) {
+  const uid = this.usuarioService.usuarioLogeado?.id;
+
   return this.http.get<any>(`${this.apiUrl}/total-cobranzas-por-mes`, {
     params: {
-      anio: anio.toString(),
-      mes: mes.toString()
+      anio: String(anio),
+      mes: String(mes),
+      usuario_id: uid != null ? String(uid) : '' // o no lo mandes si no hay uid
     }
   });
 }
+
 
 obtenerCantidadExpedientesActivos() {
   console.log(`${this.apiUrl}/expedientes-activos`)
@@ -616,8 +620,14 @@ getCobranzasMensuales(anio?: number) {
 
 // (opcional para el click de un mes → detalle ya hecho antes)
 getCobranzasDetallePorMes(anio: number, mes: number) {
+  const uid = this.usuarioService.usuarioLogeado?.id;
+
   return this.http.get<any[]>(`${this.apiUrl}/cobranzas-detalle-por-mes`, {
-    params: { anio: anio.toString(), mes: mes.toString() }
+    params: { 
+      anio: anio.toString(), 
+      mes: mes.toString(),
+      usuario_id: uid != null ? String(uid) : ''
+ }
   });
 }
 

@@ -20,6 +20,7 @@ import { filter } from 'rxjs/operators';
 import { UsuarioService } from 'src/app/services/usuario.service';
 import { BackupService } from 'src/app/services/backup.service';
 
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -74,5 +75,16 @@ export class AppComponent {
 
       window.URL.revokeObjectURL(url);
     });
+  }
+
+  logout(){
+    this.usuarioService.logout();
+  }
+
+  verificarRol(): boolean{
+    if(this.usuarioService.usuarioLogeado!.rol == 'admin'){
+      return true;
+    }
+    return false;   
   }
 }

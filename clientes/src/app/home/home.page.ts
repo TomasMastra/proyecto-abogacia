@@ -54,4 +54,11 @@ export class HomePage {
   this.expedienteService.obtenerCantidadHonorariosPendientes().subscribe(d => this.honorariosPendientes = d);
 }
 
+  verificarRol(): boolean{
+    if(this.usuarioService.usuarioLogeado!.rol == 'admin'){
+      return true;
+    }
+    return false;   
+  }
+
 }

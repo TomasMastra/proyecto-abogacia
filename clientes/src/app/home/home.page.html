@@ -14,18 +14,21 @@
         <mat-icon>folder_open</mat-icon> Expedientes
       </button>
   
-      <button mat-raised-button color="warn" (click)="goTo('estados')">
+     <!-- <button mat-raised-button color="warn" (click)="goTo('estados')">
         <mat-icon>location_on</mat-icon> Estados.
-      </button>
+      </button> -->
   
       <button mat-raised-button color="primary" (click)="goTo('honorario-diferido')">
         <mat-icon>paid</mat-icon> Honorarios
       </button>
 
-      <button mat-raised-button color="primary" (click)="goTo('calendario')">
+      <button mat-raised-button color="primary" (click)="goTo('calendario')" *ngIf="verificarRol()">
         <mat-icon>date_range</mat-icon> Calendario
       </button>
     </div>
+
+    
+
   
     <!-- Resumen del sistema -->
     <div class="summary-cards">

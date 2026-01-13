@@ -60,7 +60,7 @@ export class OficiosPage implements OnInit {
   estadosOficio: string[] = ['Ordenado', 'Diligenciado', 'Pedir reiteratorio / ampliatorio', 'Reiteratorio solicitado'];
   estadosTestimonial: string[] = ['Pendiente'];
   estadosPericia: string[] = ['Pendiente'];
-  tiposPericia: string[] = ['Pericial informática'];
+  tiposPericia: string[] = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones'];
 
   busqueda: string = '';
   expedienteCtrl = new FormControl('');

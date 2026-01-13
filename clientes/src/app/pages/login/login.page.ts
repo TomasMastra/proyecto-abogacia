@@ -12,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 import { UsuarioService } from 'src/app/services/usuario.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -34,10 +35,11 @@ export class LoginPage implements OnInit {
 
   email: string = '';
   password: string = '';
+  private apiUrl = `${environment.apiBase}/login`;
 
   constructor(private http: HttpClient,
         private usuarioService: UsuarioService,
-          private router: Router 
+        private router: Router 
 
 
   ) { }
@@ -46,7 +48,7 @@ export class LoginPage implements OnInit {
   }
 
 login() {
-this.http.post('http://192.168.1.36:3001/login', {
+this.http.post(this.apiUrl, {
       email: this.email,
       contraseña: this.password
     }).subscribe({

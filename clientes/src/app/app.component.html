@@ -19,11 +19,13 @@
           <mat-icon style="color: #ffffff">home</mat-icon>
           <span style="color: #ffffff">Menú</span>
         </button>
-        
-        <button mat-button class="menu-button" [class.active-route]="isActive('lista-clientes')" (click)="goTo('lista-clientes')">
+
+
+        <button mat-button class="menu-button" [class.active-route]="isActive('lista-clientes')" (click)="goTo('lista-clientes')" *ngIf="verificarRol()">
           <mat-icon style="color: #ffffff">person</mat-icon>
           <span style="color: #ffffff">Clientes</span>
         </button>
+
         
         <button mat-button class="menu-button" [matMenuTriggerFor]="expedienteMenu">
           <mat-icon style="color: #ffffff">folder_open</mat-icon>
@@ -47,7 +49,7 @@
             <mat-icon>upcoming</mat-icon>
             <span>Consultas expediente</span>
           </button>
-            <button mat-menu-item [class.active-route]="isActive('consultas-oficio')" (click)="goTo('consultas-oficio')">
+            <button mat-menu-item [class.active-route]="isActive('consultas-oficio')" (click)="goTo('consultas-oficio')" *ngIf="verificarRol()">
             <mat-icon>upcoming</mat-icon>
             <span>Consultas pruebas</span>
           </button>
@@ -55,7 +57,7 @@
             <mat-icon>exclamation</mat-icon>
             <span>Requieren Atención</span>
           </button>
-          <button mat-menu-item [class.active-route]="isActive('oficio')" (click)="goTo('oficio')">
+          <button mat-menu-item [class.active-route]="isActive('oficio')" (click)="goTo('oficio')" *ngIf="verificarRol()">
             <mat-icon>exclamation</mat-icon>
             <span>Pruebas</span>
           </button>
@@ -70,13 +72,15 @@
             <span>Datos importantes</span>
           </button>
 
-          <button mat-menu-item [class.active-route]="isActive('jurisprudencias')" (click)="goTo('jurisprudencias')">
+          <button mat-menu-item [class.active-route]="isActive('jurisprudencias')" (click)="goTo('jurisprudencias')" *ngIf="verificarRol()">
             <mat-icon>pin</mat-icon>
             <span>jurisprudencias</span>
           </button>
         </mat-menu>
         
         <!-- General -->
+          <div *ngIf="verificarRol()">
+
         <button mat-button class="menu-button" [matMenuTriggerFor]="generalMenu">
           <mat-icon style="color: #ffffff">apps</mat-icon>
           <span style="color: #ffffff">General</span>
@@ -108,6 +112,7 @@
             <span>Estadisticas</span>
           </button>
         </mat-menu>
+        </div>
         
 
         <mat-divider></mat-divider>
@@ -117,9 +122,14 @@
           <span style="color: #ffffff">Ajustes</span>
         </button>
 
-        <button mat-button class="menu-button" (click)="descargar()">
+    <!--   <button mat-button class="menu-button" (click)="descargar()">
           <mat-icon style="color: #ffffff">download</mat-icon>
           <span style="color: #ffffff">Descargar</span>
+        </button> -->
+
+        <button mat-button class="menu-button" (click)="logout()">
+          <mat-icon style="color: #ffffff">logout</mat-icon>
+          <span style="color: #ffffff">Cerrar Sesion</span>
         </button>
 
 

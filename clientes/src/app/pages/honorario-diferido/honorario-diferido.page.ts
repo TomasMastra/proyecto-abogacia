@@ -110,7 +110,7 @@ estadosHonorarios: string[] = [
 
   ngOnInit() {
     this.cargarUsuarios();
-    this.cargarPorEstado('sentencia');
+    this.cargarPorEstado('Sentencia');
   }
 
   cargarHonorariosDiferidos() {
@@ -189,22 +189,21 @@ cargarUsuarios() {
     );
 }
 
-cambiarEstado(event: Event) {
-  const selectedValue = (event.target as HTMLSelectElement).value;
-  console.log('Estado seleccionado:', selectedValue);
-
+cambiarEstado(selectedValue: 'sentencia' | 'cobrado') {
   this.estado = selectedValue;
 
-  if (selectedValue === 'todos') {
-    this.cargarHonorariosDiferidos();
-  } else if (selectedValue === 'cobrado') {
+  if (selectedValue === 'cobrado') {
     this.expedienteService.getExpedientesCobrados().subscribe(expedientes => {
-      this.honorariosDiferidos = expedientes!;
-      this.honorariosOriginales = expedientes!;
+      this.honorariosDiferidos = expedientes || [];
+      this.honorariosOriginales = expedientes || [];
       this.ordenarPor('giro');
     });
-  } else if (selectedValue === 'sentencia') {
-    this.cargarPorEstado('sentencia'); // o podés hacer otro método si querés separar lógica
+    return;
+  }
+
+  if (selectedValue === 'sentencia') {
+    this.cargarPorEstado('sentencia');
+    return;
   }
 }
 
@@ -456,6 +455,7 @@ getCapitalParcial(item: ExpedienteModel) {
   const completo = total > 0 ? pagado >= total : !!item.capitalCobrado;
   return { pagado, total, completo };
 }
+
 finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
   const montoCapital = expediente.montoLiquidacionCapital ?? 0;
   const capitalPagado = expediente.capitalPagoParcial ?? 0;
@@ -840,7 +840,7 @@ restaurarCobro(item: any) {
     body.recalcular_caratula = false;
     body.capitalPagoParcial = null;
     body.esPagoParcial = 0;
-    body.estado = 'sentencia';
+    body.estado = 'Sentencia';
 
 
     this.expedienteService.actualizarExpediente(item.id, body).subscribe({
