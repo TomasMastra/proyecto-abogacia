@@ -1,50 +1,54 @@
-
-
-
-
 <div class="content mat-elevation-z8">
-
   <ion-list class="lista-clientes">
 
     <div class="toolbar">
-      <ion-input 
-        placeholder="Buscar por nombre o apellido" 
+      <input
+        placeholder="Buscar por nombre o apellido"
         class="input-busqueda"
         [(ngModel)]="busqueda"
         (ngModelChange)="buscar()">
 
-      </ion-input>
-
       <button mat-button class="list-button" (click)="agregarCodigo()">
-        <mat-icon style="color: #ffffff">cases</mat-icon>
-        <span style="color: #ffffff">Agregar codigos</span>
-      </button>
-
-      <button mat-button class="list-button" >
-        <mat-icon style="color: #ffffff">download</mat-icon>
+        <mat-icon style="color:#ffffff">cases</mat-icon>
+        <span style="color:#ffffff">Agregar códigos</span>
       </button>
 
       <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff">more_vert</mat-icon>
+        <mat-icon style="color:#ffffff">download</mat-icon>
+      </button>
+
+      <button mat-button class="list-button">
+        <mat-icon style="color:#ffffff">more_vert</mat-icon>
       </button>
     </div>
 
-    <div> 
+    <div>
       <ion-item-sliding *ngFor="let j of codigos" class="jurisprudencias">
         <ion-item class="cliente" *ngIf="hayCodigos && codigos.length > 0">
 
-          <ion-label>
-            <h2 style="color: #ffffff"><strong>{{ j.tipo | titlecase }}</strong> — {{ j.codigo }}</h2>
-            <p style="white-space: pre-line; color: #ffffff">{{ j.descripcion }}</p>
-          </ion-label>
+          <div style="width:100%; display:flex; justify-content:space-between; align-items:flex-start">
 
-          <button mat-button class="list-button" (click)="eliminarCodigos(j)">
-            <mat-icon style="color: #ffffff">delete</mat-icon>
-          </button>
+            <div>
+              <h2 style="color:#ffffff; margin:0">
+                <strong>{{ j.tipo | titlecase }}</strong> — {{ j.codigo }}
+              </h2>
+              <p style="white-space:pre-line; color:#ffffff; margin:0">
+                {{ j.descripcion }}
+              </p>
+            </div>
 
-          <button mat-button class="list-button">
-            <mat-icon style="color: #ffffff">edit</mat-icon>
-          </button>
+            <div style="display:flex; gap:8px">
+              <button mat-button class="list-button" (click)="eliminarCodigos(j)">
+                <mat-icon style="color:#ffffff">delete</mat-icon>
+              </button>
+
+              <button mat-button class="list-button">
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
+            </div>
+
+          </div>
+
         </ion-item>
       </ion-item-sliding>
 
@@ -54,5 +58,4 @@
     </div>
 
   </ion-list>
-
 </div>

@@ -1,13 +1,14 @@
 <div class="content mat-elevation-z8">
 
   <ion-list class="lista-clientes">
+
     <div class="toolbar">
-      <ion-input
+      <input
         placeholder="Buscar por numero/año"
         class="input-busqueda"
         [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()">
-      </ion-input>
+        (ngModelChange)="buscar()"
+      />
 
       <button mat-button class="list-button" (click)="agregarJurisprudencias()">
         <mat-icon style="color: #ffffff">add_location</mat-icon>
@@ -24,25 +25,42 @@
     </div>
 
     <div>
-      <ion-item-sliding *ngFor="let j of jurisprudencias" class="cliente">
-        <ion-item class="cliente" *ngIf="hayJurisprudencias && jurisprudencias.length > 0">
-          <ion-label>
-            <h1>{{ j.expedienteModel?.caratula }}</h1>
-          </ion-label>
 
-          <button mat-button class="list-button" (click)="eliminarJurisprudencia(j)">
-            <mat-icon style="color: #ffffff">delete</mat-icon>
-          </button>
+      <ng-container *ngIf="hayJurisprudencias && (jurisprudencias?.length ?? 0) > 0; else sinJuris">
+        <div
+          *ngFor="let j of jurisprudencias"
+          class="cliente-container"
+        >
+          <div class="cliente-header">
+            <h2>{{ j.expedienteModel?.caratula }}</h2>
 
-          <button mat-button class="list-button" (click)="modificarJurisprudencia(j)">
-            <mat-icon style="color: #ffffff">edit</mat-icon>
-          </button>
+            <div class="acciones">
+              <button
+                mat-icon-button
+                class="list-button"
+                (click)="eliminarJurisprudencia(j); $event.stopPropagation()"
+              >
+                <mat-icon style="color: #ffffff">delete</mat-icon>
+              </button>
+
+              <button
+                mat-icon-button
+                class="list-button"
+                (click)="modificarJurisprudencia(j); $event.stopPropagation()"
+              >
+                <mat-icon style="color: #ffffff">edit</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #sinJuris>
+        <ion-item class="cliente">
+          <ion-label class="ion-text-center">{{ texto }}</ion-label>
         </ion-item>
-      </ion-item-sliding>
+      </ng-template>
 
-      <ion-item *ngIf="!hayJurisprudencias && jurisprudencias.length <= 0" class="cliente">
-        <ion-label text-center>{{ texto }}</ion-label>
-      </ion-item>
     </div>
 
   </ion-list>

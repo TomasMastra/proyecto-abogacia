@@ -6,19 +6,19 @@
           <div *ngIf="menu == '1'">
 
             <div class="toolbar">
-              <ion-input 
+              <input 
                 placeholder="Número" 
                 class="input-busqueda"
                 (keypress)="validateNumber($event)"
                 [(ngModel)]="numero">
-              </ion-input>
+              
       
-              <ion-input 
+              <input 
                 placeholder="Año" 
                 class="input-busqueda"
                 (keypress)="validateNumber($event)"
                 [(ngModel)]="anio">
-              </ion-input>
+              
 
               <form [formGroup]="form">
                 <mat-form-field appearance="outline" class="full-width" style="width: 100%">
@@ -84,28 +84,26 @@
                 <span class="divider-text">Ultimo movimiento</span>
                 <mat-divider class="white-divider"></mat-divider>
               </div>
-              <ion-input
+              <input
               placeholder="Ultimo movimiento"
               type="date"
               class="input-busqueda"
               formControlName="ultimo_movimiento"
               name="ultimo_movimiento"
               id="ultimo_movimiento">
-            </ion-input>
 
       <div  class="divider-container" style="margin-top: 10px;">
         <mat-divider class="white-divider"></mat-divider>
         <span class="divider-text">Fecha atención</span>
         <mat-divider class="white-divider"></mat-divider>
 
-        <ion-input
+        <input
           placeholder="Fecha atención"
           type="date"
           class="input-busqueda"
           formControlName="fecha_atencion"
           name="fecha_atencion"
           id="fecha_atencion">
-        </ion-input>
 
       </div>
 
@@ -164,14 +162,13 @@
                   id="monto">
                 </ion-input> -->
 
-                <ion-input *ngIf="expediente.honorarioCobrado == 0 && umaSeleccionado != 'acuerdo'"
+                <input *ngIf="expediente.honorarioCobrado == 0 && umaSeleccionado != 'acuerdo'"
                 placeholder="Cantidad de UMA" 
                 formControlName="cantidadUMA"
                 class="input-busqueda"
                 type="number"
                 [(ngModel)]="cantidadUMA"
                 (ngModelChange)="calcularMontoUMA()">
-              </ion-input>
 
             <mat-form-field appearance="outline" *ngIf="expediente.honorarioCobrado == 0">
               <mat-label style="color: white">Seleccioná UMA</mat-label>
@@ -186,13 +183,13 @@
               </mat-select>
             </mat-form-field>
 
-              <ion-input *ngIf="umaSeleccionado == 'acuerdo' && expediente.honorarioCobrado == 0"
+              <input *ngIf="umaSeleccionado == 'acuerdo' && expediente.honorarioCobrado == 0"
                 placeholder="Monto" 
                 formControlName="montoAcuerdo"
                 class="input-busqueda"
                 type="number"
                 [(ngModel)]="montoUMA">
-              </ion-input>
+
 
 
 
@@ -205,14 +202,13 @@
               </h2> 
         
         <!-- Campo de fecha de sentencia -->
-        <ion-input
+        <input
           placeholder="Fecha de sentencia"
           type="date"
           class="input-busqueda"
           formControlName="fecha_sentencia"
           name="fecha_sentencia"
           id="fecha_sentencia">
-        </ion-input>
 
           </div>
                 
@@ -343,39 +339,36 @@
   <div style="display: flex; flex-direction: column; gap: 16px;">
 
     <!-- Input fecha -->
-    <ion-input 
+    <input 
       *ngIf="estadoCapitalSeleccionado == 'apelado'"
       type="date"
       class="input-busqueda"
       [(ngModel)]="fechaCapitalSubestado"
       name="fechaCapitalSubestado">
-    </ion-input>
 
-    <ion-input 
+    <input 
     *ngIf="estadoCapitalSeleccionado == 'pendiente'"
     type="date"
     class="input-busqueda"
     [(ngModel)]="fechaCapitalSubestado"
     name="fechaCapitalSubestado">
-  </ion-input>
 
-    <ion-input 
+    <input 
       *ngIf="estadoCapitalSeleccionado == 'firme'"
       type="date"
       class="input-busqueda"
       [(ngModel)]="fechaCapitalSubestado"
       name="fechaCapitalSubestado">
-    </ion-input>
 
     <!-- Input monto -->
-<ion-input
+<input
   *ngIf="mostrarMontoCapital(subEstadoCapitalSeleccionado!)"
   placeholder="Monto Capital"
   type="number"
   class="input-busqueda"
   [(ngModel)]="montoLiquidacionCapital"
   name="montoLiquidacionCapital">
-</ion-input>
+
 
 
   </div>
@@ -489,37 +482,34 @@
   <div style="display: flex; flex-direction: column; gap: 16px;">
 
     <!-- Input fecha -->
-    <ion-input 
+    <input 
       *ngIf="estadoHonorariosSeleccionado === 'apelado'"
       type="date"
       class="input-busqueda"
       [(ngModel)]="fechaHonorariosSubestado"
       name="fechaHonorariosSubestado">
-    </ion-input>
 
-    <ion-input 
+
+    <input 
     *ngIf="estadoHonorariosSeleccionado === 'pendiente'"
     type="date"
     class="input-busqueda"
     [(ngModel)]="fechaHonorariosSubestado"
     name="fechaHonorariosSubestado">
-  </ion-input>
 
-    <ion-input 
+    <input 
     *ngIf="estadoHonorariosSeleccionado === 'diferido'"
     type="date"
     class="input-busqueda"
     [(ngModel)]="fechaHonorariosSubestado"
     name="fechaHonorariosSubestado">
-  </ion-input>
 
-    <ion-input 
+    <input 
       *ngIf="estadoHonorariosSeleccionado === 'firme'"
       type="date"
       class="input-busqueda"
       [(ngModel)]="fechaHonorariosSubestado"
       name="fechaHonorariosSubestado">
-    </ion-input>
 
 
 

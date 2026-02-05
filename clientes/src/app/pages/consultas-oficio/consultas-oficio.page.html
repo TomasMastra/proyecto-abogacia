@@ -1,6 +1,6 @@
 <div class="content mat-elevation-z8" [class.blur-content]="cargando">
   <div class="toolbar">
-    <ion-input placeholder="Buscar por expediente" class="input-busqueda" [(ngModel)]="busqueda" (ngModelChange)="filtrar()"></ion-input>
+    <input placeholder="Buscar por expediente" class="input-busqueda" [(ngModel)]="busqueda" (ngModelChange)="filtrar()">
 
     <label class="custom-select">
       <select [(ngModel)]="estadoSeleccionado" (change)="filtrar()">

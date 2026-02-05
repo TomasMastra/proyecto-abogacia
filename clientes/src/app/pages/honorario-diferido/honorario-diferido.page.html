@@ -1,12 +1,11 @@
 <div class="content mat-elevation-z8" [class.blur-content]="cargando">
 
   <div class="toolbar">
-    <ion-input style="color: white; font-weight: bold;"
+    <input style="color: white; font-weight: bold;"
       placeholder="Buscar por número o año"
       class="input-busqueda"
       [(ngModel)]="busqueda"
       (ngModelChange)="filtrar()">
-    </ion-input>
 <!-- 
     <button mat-button class="list-button">
       <mat-icon style="color: #ffffff">download</mat-icon>

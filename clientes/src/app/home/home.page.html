@@ -6,7 +6,7 @@
   
     <!-- Acciones rápidas -->
     <div class="quick-actions">
-      <button mat-raised-button color="primary" (click)="goTo('lista-clientes')">
+      <button mat-raised-button color="primary" (click)="goTo('lista-clientes')" *ngIf="verificarRol()">
         <mat-icon>person</mat-icon> Clientes
       </button>
   
@@ -18,7 +18,7 @@
         <mat-icon>location_on</mat-icon> Estados.
       </button> -->
   
-      <button mat-raised-button color="primary" (click)="goTo('honorario-diferido')">
+      <button mat-raised-button color="primary" (click)="goTo('honorario-diferido')" *ngIf="verificarRol()">
         <mat-icon>paid</mat-icon> Honorarios
       </button>
 

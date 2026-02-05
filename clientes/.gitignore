@@ -70,3 +70,24 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# electron stuff
+electron/dist/
+electron/out/
+electron/release/
+electron/build/
+
+# Electron downloaded binaries (por las dudas)
+**/electron/dist/
+
+# Electron builds
+**/dist/
+**/out/
+**/*.exe
+
+
+**/node_modules/
+electron/dist/
+electron/out/
+**/win-unpacked/
+**/*.exe

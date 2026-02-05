@@ -26,6 +26,8 @@ mat-toolbar {
   
     font-size: 2rem;
     color: lightgray;
+    font-family: 'Poppins', sans-serif; 
+
   }
   
   mat-sidenav-container {
@@ -318,11 +320,78 @@ mat-toolbar {
   max-height: 400px; /* Ajusta la altura máxima según lo necesites */
   overflow-y: auto;  /* Permite la barra de desplazamiento vertical cuando sea necesario */
   }
+
+
+  .cliente .acciones{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cliente .caratula{
+  min-width: 0; // clave para que el label no rompa el layout
+}
+
+.cliente .caratula h1{
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
   
   
   
   
-  
+  /* 1) En toolbar: que el auto-margin no se aplique a TODOS los botones */
+.toolbar button {
+  margin-left: 0 !important;
+}
+
+/* Si querés que solo el primer botón después del input se vaya a la derecha: */
+.toolbar .input-busqueda + button {
+  margin-left: auto !important;
+}
+
+/* 2) Icon buttons: NO heredan el estilo de botón con texto */
+button.mat-icon-button.list-button {
+  padding: 0 !important;
+  min-width: 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-transform: none !important;
+}
+
+/* 3) Asegurá que en las filas tipo “clientes/juris” sea flex real */
+.cliente-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px;
+}
+
+/* El título no puede empujar a las acciones abajo */
+.cliente-header h2 {
+  min-width: 0;
+  margin: 0;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Acciones siempre en línea */
+.acciones {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
   
   
   

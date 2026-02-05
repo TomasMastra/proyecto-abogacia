@@ -1,5 +1,6 @@
 .calendario-avanzado {
   padding: 10%;
+  font-family: 'Poppins', sans-serif; 
 
   .encabezado {
     display: flex;
@@ -203,10 +204,6 @@
   box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
 }
 
-
-
-
-
 /* Cambios */
 
 .dia-container {
@@ -253,8 +250,6 @@
 // Para los eventos listados debajo del calendario
 .evento-item-horario {
   cursor: pointer;
-
-
 }
 
 

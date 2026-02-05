@@ -10,11 +10,11 @@ export const routes: Routes = [
     canActivate: [LoginRedirectGuard]
 
   },
-  /*{
+  {
     path: '',
-    redirectTo: 'home',
+    redirectTo: 'login',
     pathMatch: 'full',
-  },*/
+  },
   {
     path: 'error',
     loadComponent: () => import('./pages/error/error.page').then( m => m.ErrorPage)
@@ -32,7 +32,7 @@ export const routes: Routes = [
   {
     path: 'lista-clientes',
     loadComponent: () => import('./pages/lista-clientes/lista-clientes.page').then( m => m.ListaClientesPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    //canActivate: [LoginRedirectGuard, AdminGuard]
 
   },
   {
@@ -50,17 +50,17 @@ export const routes: Routes = [
   {
     path: 'localidades',
     loadComponent: () => import('./pages/localidades/localidades.page').then( m => m.LocalidadesPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
   },
   {
     path: 'juzgados',
     loadComponent: () => import('./pages/juzgados/juzgados.page').then( m => m.JuzgadosPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
   },
   {
     path: 'demandado',
     loadComponent: () => import('./pages/demandado/demandado.page').then( m => m.DemandadoPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
   },
   {
@@ -70,19 +70,19 @@ export const routes: Routes = [
   {
     path: 'honorario-diferido',
     loadComponent: () => import('./pages/honorario-diferido/honorario-diferido.page').then( m => m.HonorarioDiferidoPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
   },
   {
     path: 'calendario',
     loadComponent: () => import('./pages/calendario/calendario.page').then( m => m.CalendarioPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
   },
   {
     path: 'jueces',
     loadComponent: () => import('./pages/jueces/jueces.page').then( m => m.JuecesPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
   },
   {
@@ -93,22 +93,17 @@ export const routes: Routes = [
     path: 'requeridos',
     loadComponent: () => import('./pages/requeridos/requeridos.component').then( m => m.RequeridosPage)
   },
-  {
-    path: 'estados-honorarios',
-    loadComponent: () => import('./pages/estados-honorarios/estados-honorarios.page').then( m => m.EstadosHonorariosPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
 
-  },
   {
     path: 'oficio',
     loadComponent: () => import('./pages/oficio/oficio.page').then( m => m.OficiosPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
   },
   {
     path: 'consultas-oficio',
     loadComponent: () => import('./pages/consultas-oficio/consultas-oficio.page').then( m => m.ConsultasOficioPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
   },
   {
@@ -118,7 +113,7 @@ export const routes: Routes = [
   {
     path: 'graficos',
     loadComponent: () => import('./pages/graficos/graficos.page').then( m => m.GraficosPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
   },
   {
@@ -128,13 +123,18 @@ export const routes: Routes = [
   {
     path: 'codigos',
     loadComponent: () => import('./pages/codigos/codigos.page').then( m => m.CodigosPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
   },
   {
     path: 'jurisprudencias',
     loadComponent: () => import('./pages/jurisprudencias/jurisprudencias.page').then( m => m.JurisprudenciasPage),
-    canActivate: [LoginRedirectGuard, AdminGuard]
+    canActivate: [AdminGuard]
 
-  }
+  },
+  {
+  path: '**',
+  redirectTo: 'login',
+},
+
 ];

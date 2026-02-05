@@ -1,13 +1,12 @@
 <div class="content mat-elevation-z8" [class.blur-content]="cargando">
 
   <div class="toolbar">
-    <ion-input style="color: white; font-weight: bold;"
+    <input style="color: white; font-weight: bold;"
       placeholder="Buscar por número o año"
       class="input-busqueda"
       [(ngModel)]="busqueda"
       (ngModelChange)="filtrar()">
 
-    </ion-input>
 
 <label for="styledSelect1" class="custom-select">
   <select id="styledSelect1" name="options" [(ngModel)]="tipoSeleccionado" (change)="filtrar()">

@@ -1,6 +1,8 @@
 import { Component, OnInit, ViewChild, OnDestroy  } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { IonicModule } from '@ionic/angular';
+
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';  // Necesario para usar firstValueFrom
 
@@ -44,10 +46,9 @@ import Swal from 'sweetalert2'
   styleUrls: ['./jueces.page.scss'],
   standalone: true,
   imports: [IonInput, 
-    CommonModule,
-    FormsModule,
-    IonButtons, IonButton, IonIcon, IonList, IonItemSliding, IonLabel, IonItemOptions, IonItemOption, 
-    IonItem, IonCardContent, IonCard, IonImg, IonContent, IonHeader, IonTitle, IonToolbar, IonText,
+    CommonModule, FormsModule,
+    IonButtons, IonButton, IonIcon, IonList, IonItemSliding, IonLabel, 
+    IonItem, IonCardContent, IonCard, IonImg, IonContent, IonTitle, IonToolbar, IonText,
     MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
     MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule, MatPaginatorModule,
     MatMenuModule, MatButtonModule, MatIconModule, MatDialogModule

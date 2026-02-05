@@ -7,14 +7,20 @@ export class AdminGuard implements CanActivate {
 
   constructor(private user: UsuarioService, private router: Router) {}
 
-  canActivate(): boolean {
-    const user = this.user.usuarioLogeado; // o como vos guardes el usuario
+canActivate(): boolean {
+  const user = this.user.usuarioLogeado;
 
-    alert(user!.rol)
-    if (user?.rol != 'admin') {
-      //this.router.navigate(['/error']); // o donde quieras mandarlo
-      return false;
-    }
+  if (!user) {
+    this.router.navigate(['/lista-clientes']);
+    return false;
+  }
+
+  if (user.rol === 'admin') {
+    //alert(user.rol);
     return true;
   }
+
+  return false;
+}
+
 }

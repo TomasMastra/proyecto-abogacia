@@ -48,8 +48,8 @@ import Swal from 'sweetalert2'
     FormsModule,
     IonButtons, IonButton, IonIcon, IonList, IonItemSliding, IonLabel, IonItemOptions, IonItemOption, 
     IonItem, IonCardContent, IonCard, IonImg, IonContent, IonHeader, IonTitle, IonToolbar, IonText,
-    MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
-    MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule, MatPaginatorModule,
+    MatSidenavModule, MatDatepickerModule, MatNativeDateModule,
+    MatFormFieldModule, MatToolbarModule, MatDividerModule, MatPaginatorModule,
     MatMenuModule, MatButtonModule, MatIconModule, MatDialogModule
 
  

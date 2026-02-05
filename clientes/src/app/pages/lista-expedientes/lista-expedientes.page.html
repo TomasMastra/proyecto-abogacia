@@ -3,12 +3,11 @@
   <ion-list class="lista-clientes">
 
     <div class="toolbar">
-      <ion-input 
+      <input 
         placeholder="Buscar"
         class="input-busqueda"
         [(ngModel)]="busqueda"
         (keyup.enter)="filtrar()">
-      </ion-input>
     
       <!-- Mostrar solo si hay texto -->
       <button *ngIf="busqueda" mat-button class="list-button" (click)="busqueda = ''; filtrar()">

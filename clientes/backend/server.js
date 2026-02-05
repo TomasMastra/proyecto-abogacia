@@ -15,6 +15,7 @@ const { Pool } = require("pg");
 
 // DATABASE_URL = URI del *Session pooler* (recomendado en tu caso)
 const pgPool = new Pool({
+  
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }, // Supabase
 });
@@ -310,14 +311,19 @@ app.get("/expedientes", async (req, res) => {
   const rol = String(req.query.rol || "");
   const usuario_id = req.query.usuario_id != null ? Number(req.query.usuario_id) : null;
 
+  // si NO es admin, usuario_id es obligatorio
   if (rol !== "admin" && !Number.isFinite(usuario_id)) {
     return res.status(400).json({ error: "usuario_id inválido" });
   }
 
   try {
     const params = [];
-    const filtroUsuario =
-      rol !== "admin" ? (params.push(usuario_id), ` AND e.usuario_id = $${params.length}`) : "";
+    let filtroUsuario = "";
+
+    if (rol !== "admin") {
+      params.push(usuario_id);
+      filtroUsuario = ` AND e.usuario_id = $1`;
+    }
 
     const query = `
       SELECT 
@@ -357,7 +363,7 @@ app.get("/expedientes", async (req, res) => {
         ), '') AS busqueda
       FROM public.expedientes e
       WHERE e.estado <> 'eliminado'
-        ${filtroUsuario}
+      ${filtroUsuario}
       ORDER BY e.id DESC;
     `;
 
@@ -368,6 +374,7 @@ app.get("/expedientes", async (req, res) => {
     res.status(500).send(err);
   }
 });
+
 
 
 
@@ -3096,7 +3103,7 @@ app.get("/expedientes/cobrados", async (req, res) => {
       WHERE estado <> 'eliminado'
         AND (
           estado = 'Archivo'
-          OR capitalcobrado IS TRUE
+          OR capitalCobrado IS TRUE
           OR espagoparcial IS TRUE
           OR honorariocobrado IS TRUE
           OR honorarioalzadacobrado IS TRUE
@@ -3895,7 +3902,7 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
 
 // postgres
-app.get("/expedientes/honorarios-pendientes", async (req, res) => {
+/*app.get("/expedientes/honorarios-pendientes", async (req, res) => {
   try {
     const { rows } = await pgPool.query(
       `
@@ -3993,20 +4000,248 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
     console.error("Error al calcular honorarios pendientes:", err);
     return res.status(500).json({ error: "Error al calcular honorarios pendientes", message: err.message });
   }
-});
+});*/
 
+app.get("/expedientes/honorarios-pendientes", async (req, res) => {
+  try {
+    const usuarioId = Number(req.query.usuario_id);
+    if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
+      return res.status(400).send("Falta usuario_id válido");
+    }
+
+    const { rows } = await pgPool.query(
+      `
+      WITH uma_val AS (
+        SELECT COALESCE(MAX(valor), 0)::numeric AS valoruma
+        FROM public.uma
+      ),
+      U AS (
+        SELECT DISTINCT ON (id)
+          id,
+          COALESCE(porcentaje, 0)::numeric AS p_cap,
+          COALESCE("porcentajeHonorarios", porcentaje, 0)::numeric AS p_hon
+        FROM public.usuario
+        ORDER BY id
+      ),
+      pendientes AS (
+        SELECT
+          e.id, e.numero, e.anio, e.caratula,
+
+          /* =========================
+             FACTOR CAPITAL (mi parte)
+             ========================= */
+          CASE
+            WHEN e.usuario_id = 7 THEN
+              CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
+            ELSE
+              CASE
+                WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_cap,0) / 100.0)
+                WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_cap,0)) / 100.0)
+                ELSE 0.0
+              END
+          END AS f_cap,
+
+          /* =========================
+             FACTOR HONORARIOS (mi parte)
+             ========================= */
+          CASE
+            WHEN e.usuario_id = 7 THEN
+              CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
+            ELSE
+              CASE
+                WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
+                WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
+                ELSE 0.0
+              END
+          END AS f_hon,
+
+          /* =========================
+             CAPITAL (pendiente para MI)
+             ========================= */
+          CASE
+            WHEN e."fecha_cobro_capital" IS NULL
+             AND COALESCE(e."montoLiquidacionCapital", 0) > 0
+            THEN ROUND(
+              COALESCE(e."montoLiquidacionCapital", 0)::numeric
+              * (COALESCE(e.porcentaje, 100)::numeric / 100.0)
+              * (
+                  CASE
+                    WHEN e.usuario_id = 7 THEN
+                      CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
+                    ELSE
+                      CASE
+                        WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_cap,0) / 100.0)
+                        WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_cap,0)) / 100.0)
+                        ELSE 0.0
+                      END
+                  END
+                ),
+              2
+            )
+            ELSE 0
+          END AS "pendienteCapital",
+
+          /* =========================
+             HONORARIOS (pendiente para MI)
+             ========================= */
+          CASE
+            WHEN e."fecha_cobro" IS NULL THEN
+              ROUND(
+                (
+                  CASE
+                    WHEN LOWER(COALESCE(e."subEstadoHonorariosSeleccionado", '')) IN ('giro', 'da en pago parcial', 'da en pago total')
+                      THEN COALESCE(e."montoLiquidacionHonorarios", 0)::numeric
+                    ELSE
+                      (
+                        CASE
+                          WHEN COALESCE(e."montoLiquidacionHonorarios", 0) > 0
+                            THEN COALESCE(e."montoLiquidacionHonorarios", 0)::numeric
+                          ELSE (COALESCE(e."cantidadUMA", 0)::numeric * (SELECT valoruma FROM uma_val))
+                        END
+                      )
+                  END
+                )
+                * (
+                    CASE
+                      WHEN e.usuario_id = 7 THEN
+                        CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
+                      ELSE
+                        CASE
+                          WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
+                          WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
+                          ELSE 0.0
+                        END
+                    END
+                  ),
+                2
+              )
+            ELSE 0
+          END AS "pendienteHonorarios",
+
+          /* =========================
+             ALZADA (pendiente para MI)
+             ========================= */
+          CASE
+            WHEN e."fechaCobroAlzada" IS NULL THEN
+              ROUND(
+                COALESCE(e."montoAcuerdo_alzada", 0)::numeric
+                * (
+                    CASE
+                      WHEN e.usuario_id = 7 THEN
+                        CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
+                      ELSE
+                        CASE
+                          WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
+                          WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
+                          ELSE 0.0
+                        END
+                    END
+                  ),
+                2
+              )
+            ELSE 0
+          END AS "pendienteAlzada",
+
+          /* =========================
+             EJECUCIÓN (pendiente para MI)
+             ========================= */
+          CASE
+            WHEN e."fechaCobroEjecucion" IS NULL THEN
+              ROUND(
+                COALESCE(e."montoHonorariosEjecucion", 0)::numeric
+                * (
+                    CASE
+                      WHEN e.usuario_id = 7 THEN
+                        CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
+                      ELSE
+                        CASE
+                          WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
+                          WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
+                          ELSE 0.0
+                        END
+                    END
+                  ),
+                2
+              )
+            ELSE 0
+          END AS "pendienteEjecucion",
+
+          /* =========================
+             DIFERENCIA (pendiente para MI)
+             ========================= */
+          CASE
+            WHEN e."fechaCobroDiferencia" IS NULL THEN
+              ROUND(
+                COALESCE(e."montoHonorariosDiferencia", 0)::numeric
+                * (
+                    CASE
+                      WHEN e.usuario_id = 7 THEN
+                        CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
+                      ELSE
+                        CASE
+                          WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
+                          WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
+                          ELSE 0.0
+                        END
+                    END
+                  ),
+                2
+              )
+            ELSE 0
+          END AS "pendienteDiferencia"
+
+        FROM public.expedientes e
+        LEFT JOIN U u ON u.id = e.usuario_id
+        WHERE e.estado <> 'eliminado'
+      )
+      SELECT
+        COALESCE(
+          ROUND(
+            SUM(
+              "pendienteCapital"
+              + "pendienteHonorarios"
+              + "pendienteAlzada"
+              + "pendienteEjecucion"
+              + "pendienteDiferencia"
+            ),
+            2
+          ),
+          0
+        ) AS "totalGeneral"
+      FROM pendientes
+      WHERE ("pendienteCapital" + "pendienteHonorarios" + "pendienteAlzada" + "pendienteEjecucion" + "pendienteDiferencia") > 0;
+      `,
+      [usuarioId]
+    );
+
+    const total = Number(rows?.[0]?.totalGeneral ?? 0);
+    return res.status(200).json(total);
+  } catch (err) {
+    console.error("Error al calcular honorarios pendientes:", err);
+    return res.status(500).json({ error: "Error al calcular honorarios pendientes", message: err.message });
+  }
+});
 
 
 // postgres
 app.get("/expedientes/expedientes-activos", async (req, res) => {
+  const usuarioId = Number(req.query.usuario_id);
+
+  if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
+    return res.status(400).send("Falta usuario_id válido");
+  }
+
   try {
     const { rows } = await pgPool.query(
       `
       SELECT COUNT(*)::int AS cantidad
       FROM public.expedientes
       WHERE estado <> 'eliminado'
-      `
+        AND abogado_id = $1
+      `,
+      [usuarioId]
     );
+
     return res.json(rows[0].cantidad);
   } catch (err) {
     console.error("Error al contar expedientes activos:", err);
@@ -4036,20 +4271,30 @@ app.get("/expedientes/clientes-registrados", async (req, res) => {
 
 // postgres
 app.get("/expedientes/sentencias-emitidas", async (req, res) => {
+  const usuarioId = Number(req.query.usuario_id);
+
+  if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
+    return res.status(400).send("Falta usuario_id válido");
+  }
+
   try {
     const { rows } = await pgPool.query(
       `
       SELECT COUNT(*)::int AS cantidad
       FROM public.expedientes
       WHERE estado = 'sentencia'
-      `
+        AND abogado_id = $1
+      `,
+      [usuarioId]
     );
+
     return res.json(rows[0].cantidad);
   } catch (err) {
     console.error("Error al contar sentencias emitidas:", err);
     return res.status(500).send("Error en sentencias-emitidas");
   }
 });
+
 
 
 // postgres

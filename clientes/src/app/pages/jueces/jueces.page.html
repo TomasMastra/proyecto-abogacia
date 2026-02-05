@@ -1,43 +1,45 @@
 <div class="content mat-elevation-z8">
-
   <ion-list class="lista-clientes">
 
     <div class="toolbar">
-      <ion-input 
-        placeholder="Buscar por nombre o apellido" 
+      <input
+        placeholder="Buscar por nombre o apellido"
         class="input-busqueda"
         [(ngModel)]="busqueda"
         (ngModelChange)="buscar()">
-      </ion-input>
 
       <button mat-button class="list-button" (click)="agregarJuez()">
-        <mat-icon style="color: #ffffff">cases</mat-icon>
-        <span style="color: #ffffff">Agregar juez</span>
+        <mat-icon style="color:#ffffff">cases</mat-icon>
+        <span style="color:#ffffff">Agregar juez</span>
       </button>
 
       <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff">download</mat-icon>
+        <mat-icon style="color:#ffffff">download</mat-icon>
       </button>
 
       <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff">more_vert</mat-icon>
+        <mat-icon style="color:#ffffff">more_vert</mat-icon>
       </button>
     </div>
 
-    <div> 
-      <ion-item-sliding *ngFor="let juez of jueces" class="cliente">
+    <div>
+      <ion-item-sliding *ngFor="let juez of jueces" class="cliente" lines="full">
         <ion-item class="cliente" *ngIf="hayJueces && jueces.length > 0">
-          <ion-label>
-            <h1>{{ juez.nombre }} {{juez.apellido}}</h1>
-          </ion-label>
 
-          <button mat-button class="list-button" (click)="eliminarJuez(juez)">
-            <mat-icon style="color: #ffffff">delete</mat-icon>
-          </button>
+          <div style="width:100%; display:flex; justify-content:space-between; align-items:center">
+            <h1 style="margin:0">{{ juez.nombre }} {{ juez.apellido }}</h1>
 
-          <button mat-button class="list-button" (click)="modificarJuez(juez)">
-            <mat-icon style="color: #ffffff">edit</mat-icon>
-          </button>
+            <div style="display:flex; gap:8px">
+              <button mat-button class="list-button" (click)="eliminarJuez(juez)">
+                <mat-icon style="color:#ffffff">delete</mat-icon>
+              </button>
+
+              <button mat-button class="list-button" (click)="modificarJuez(juez)">
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
+            </div>
+          </div>
+
         </ion-item>
       </ion-item-sliding>
 
@@ -47,5 +49,4 @@
     </div>
 
   </ion-list>
-
 </div>

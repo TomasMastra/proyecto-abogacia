@@ -6,11 +6,6 @@
   color: white;
 }
 
-/*
-.mat-sidenav-container {
-  height: calc(100vh - 65px);
-}*/
-
 .mat-sidenav-content {
   padding: 60px; /* Margen interno general */
 }
@@ -87,6 +82,8 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
+  font-family: 'Poppins', sans-serif; 
+
 }
 
 .toolbar {

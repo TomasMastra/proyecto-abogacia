@@ -7,12 +7,11 @@
 
 
     <div class="toolbar">
-      <ion-input 
+      <input 
         placeholder="Buscar por nombre, apellido o dirección de correo electrónico" 
         class="input-busqueda"
         [(ngModel)]="busqueda"
         (ngModelChange)="buscar()">
-      </ion-input>
 
       <button mat-button class="list-button" (click)="abrirDialog()">
         <mat-icon style="color: #ffffff">person</mat-icon>

@@ -1,41 +1,58 @@
 <div class="content mat-elevation-z8">
   <ion-list class="lista-clientes">
+
     <div class="toolbar">
-      <ion-input 
+      <input
         placeholder="Buscar por nombre"
         class="input-busqueda"
         [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()">
-      </ion-input>
+        (ngModelChange)="buscar()"
+      >
 
       <button mat-button class="list-button" (click)="agregarDemandado()">
-        <mat-icon style="color: #ffffff">backup_table</mat-icon>
-        <span style="color: #ffffff">Agregar demandado</span>
+        <mat-icon style="color:#ffffff">backup_table</mat-icon>
+        <span style="color:#ffffff">Agregar demandado</span>
       </button>
 
       <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff">download</mat-icon>
+        <mat-icon style="color:#ffffff">download</mat-icon>
       </button>
 
       <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff">more_vert</mat-icon>
+        <mat-icon style="color:#ffffff">more_vert</mat-icon>
       </button>
     </div>
 
     <div>
       <ion-item-sliding *ngFor="let demandado of demandados" class="cliente">
         <ion-item class="cliente" *ngIf="hayDemandados && demandados.length > 0">
-          <ion-label>
-            <h1>{{ demandado.nombre }}</h1>
-          </ion-label>
 
-          <button mat-button class="list-button" (click)="eliminarDemandado(demandado)">
-            <mat-icon style="color: #ffffff">delete</mat-icon>
-          </button>
+          <!-- CONTENEDOR FLEX -->
+          <div style="width:100%; display:flex; justify-content:space-between; align-items:center">
+            <h1 style="margin:0">
+              {{ demandado.nombre }}
+            </h1>
 
-          <button mat-button class="list-button" (click)="modificarDemandado(demandado)">
-            <mat-icon style="color: #ffffff">edit</mat-icon>
-          </button>
+            <!-- ACCIONES -->
+            <div style="display:flex; gap:8px">
+              <button
+                mat-button
+                class="list-button"
+                (click)="eliminarDemandado(demandado)"
+              >
+                <mat-icon style="color:#ffffff">delete</mat-icon>
+              </button>
+
+              <button
+                mat-button
+                class="list-button"
+                (click)="modificarDemandado(demandado)"
+              >
+                <mat-icon style="color:#ffffff">edit</mat-icon>
+              </button>
+            </div>
+          </div>
+
         </ion-item>
       </ion-item-sliding>
 
@@ -43,5 +60,6 @@
         <ion-label text-center>{{ texto }}</ion-label>
       </ion-item>
     </div>
+
   </ion-list>
 </div>

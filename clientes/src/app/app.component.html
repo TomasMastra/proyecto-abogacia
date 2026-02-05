@@ -9,7 +9,7 @@
   <mat-sidenav-container class="sidenav-container" style="background-color: #1976d2">
     <mat-sidenav #sidenav mode="side" opened>
       <div class="sidebar-content">
-        <img class="avatar mat-elevation-z8" src="../../../assets/botones/user.png" />
+        <!-- <img class="avatar mat-elevation-z8" src="../../../assets/botones/user.png" /> -->
         <h4 class="name">Andres Mastrapasqua</h4>
         <p class="designation">Abogado</p>
 
@@ -35,17 +35,17 @@
         <mat-menu #expedienteMenu="matMenu">
           <button mat-menu-item [class.active-route]="isActive('lista-expedientes')" (click)="goTo('lista-expedientes')">
             <mat-icon>gavel</mat-icon>
-            <span>ABM</span>
+            <span>Listado</span>
           </button>
-          <button mat-menu-item [class.active-route]="isActive('estado')" (click)="goTo('estado')">
+          <button mat-menu-item [class.active-route]="isActive('estado')" (click)="goTo('estado')" *ngIf="verificarRol()">
             <mat-icon>location_on</mat-icon>
             <span>Estados</span>
           </button>
-          <button mat-menu-item [class.active-route]="isActive('honorario-diferido')" (click)="goTo('honorario-diferido')">
+          <button mat-menu-item [class.active-route]="isActive('honorario-diferido')" (click)="goTo('honorario-diferido')" *ngIf="verificarRol()">
             <mat-icon>paid</mat-icon>
             <span>Honorarios</span>
           </button>
-          <button mat-menu-item [class.active-route]="isActive('consultas')" (click)="goTo('consultas')">
+          <button mat-menu-item [class.active-route]="isActive('consultas')" (click)="goTo('consultas')" *ngIf="verificarRol()">
             <mat-icon>upcoming</mat-icon>
             <span>Consultas expediente</span>
           </button>
@@ -53,7 +53,7 @@
             <mat-icon>upcoming</mat-icon>
             <span>Consultas pruebas</span>
           </button>
-          <button mat-menu-item [class.active-route]="isActive('requeridos')" (click)="goTo('requeridos')">
+          <button mat-menu-item [class.active-route]="isActive('requeridos')" (click)="goTo('requeridos')" *ngIf="verificarRol()">
             <mat-icon>exclamation</mat-icon>
             <span>Requieren Atención</span>
           </button>
@@ -67,7 +67,7 @@
             <span>Cobranzas</span>
           </button>
 
-          <button mat-menu-item [class.active-route]="isActive('datos-importantes')" (click)="goTo('datos-importantes')">
+          <button mat-menu-item [class.active-route]="isActive('datos-importantes')" (click)="goTo('datos-importantes')" *ngIf="verificarRol()">
             <mat-icon>exclamation</mat-icon>
             <span>Datos importantes</span>
           </button>
