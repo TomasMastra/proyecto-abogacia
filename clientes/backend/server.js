@@ -26,7 +26,11 @@ console.log("DB_URL_MASKED:", raw);
 });*/
 
 
-const pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false }, family: 4 });
+const pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  family: 4
+});
 
 
 // Render
