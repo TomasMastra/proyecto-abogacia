@@ -37,6 +37,8 @@ async function iniciarServidor() {
       console.log(`Servidor corriendo en puerto ${PORT}`);
     });
   } catch (err) {
+    console.log("DATABASE_URL:", process.env.DATABASE_URL);
+
     console.error("❌ Error conectando", err);
     process.exit(1);
   }
