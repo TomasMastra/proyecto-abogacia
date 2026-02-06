@@ -13,6 +13,11 @@ app.use(express.json());
 // ====== Postgres (Supabase) ======
 const { Pool } = require("pg");
 
+// PRUEBA
+const raw = process.env.DATABASE_URL || "";
+console.log("HAS_DATABASE_URL:", Boolean(raw), "LEN:", raw.length);
+console.log("DB_URL_MASKED:", raw.replace(/\/\/([^:]+):([^@]+)@/, "//$1:***@"));
+
 // DATABASE_URL = URI del *Session pooler* (recomendado en tu caso)
 const pgPool = new Pool({
   
@@ -37,8 +42,6 @@ async function iniciarServidor() {
       console.log(`Servidor corriendo en puerto ${PORT}`);
     });
   } catch (err) {
-    console.error("DATABASE_URL:", process.env.DATABASE_URL);
-
     console.error("❌ Error conectando", err);
     process.exit(1);
   }
