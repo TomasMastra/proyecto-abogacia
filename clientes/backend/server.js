@@ -16,12 +16,25 @@ dns.setDefaultResultOrder("ipv4first");
 // ====== Postgres (Supabase) ======
 const { Pool } = require("pg");
 
+// PRUEBA
+const raw = process.env.DATABASE_URL || "";
+console.log("HAS_DATABASE_URL:", Boolean(raw), "LEN:", raw.length);
+console.log("DB_URL_MASKED:", raw);
+
 // DATABASE_URL = URI del *Session pooler* (recomendado en tu caso)
-const pgPool = new Pool({
+/*const pgPool = new Pool({
   
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }, // Supabase
+});*/
+
+
+const pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  family: 4
 });
+
 
 // Render
 const PORT = process.env.PORT || 3000;
