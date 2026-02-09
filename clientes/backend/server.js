@@ -4256,7 +4256,7 @@ app.get("/expedientes/expedientes-activos", async (req, res) => {
       SELECT COUNT(*)::int AS cantidad
       FROM public.expedientes
       WHERE estado <> 'eliminado'
-        AND abogado_id = $1
+        AND usuario_id = $1
       `,
       [usuarioId]
     );
@@ -4302,7 +4302,7 @@ app.get("/expedientes/sentencias-emitidas", async (req, res) => {
       SELECT COUNT(*)::int AS cantidad
       FROM public.expedientes
       WHERE estado = 'sentencia'
-        AND abogado_id = $1
+        AND usuario_id = $1
       `,
       [usuarioId]
     );

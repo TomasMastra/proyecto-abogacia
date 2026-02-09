@@ -513,21 +513,33 @@ obtenerTotalCobranzasPorMes(anio: number, mes: number) {
 
 
 obtenerCantidadExpedientesActivos() {
-  console.log(`${this.apiUrl}/expedientes-activos`)
-  return this.http.get<number>(`${this.apiUrl}/expedientes-activos`);
+  const usuario = this.usuarioService.usuarioLogeado;
+  const usuarioId = Number(usuario?.id);
+
+  return this.http.get<number>(`${this.apiUrl}/expedientes-activos`, {
+    params: { usuario_id: String(usuarioId) }
+  });
 }
+
 
 obtenerCantidadClientesRegistrados() {
   return this.http.get<number>(`${this.apiUrl}/clientes-registrados`);
 }
 
 obtenerCantidadSentenciasEmitidas() {
-  return this.http.get<number>(`${this.apiUrl}/sentencias-emitidas`);
+  const usuario = this.usuarioService.usuarioLogeado;
+  const usuarioId = Number(usuario?.id);
+  return this.http.get<number>(`${this.apiUrl}/sentencias-emitidas`, {
+    params: { usuario_id: String(usuarioId) }
+  });
 }
 
 obtenerCantidadHonorariosPendientes() {
-  return this.http.get<number>(`${this.apiUrl}/honorarios-pendientes`);
-}
+  const usuario = this.usuarioService.usuarioLogeado;
+  const usuarioId = Number(usuario?.id);
+  return this.http.get<number>(`${this.apiUrl}/honorarios-pendientes`, {
+    params: { usuario_id: String(usuarioId) }
+  });}
 
 
 obtenerDemandadosPorMes(): Observable<{ [mes: string]: number }> {
