@@ -58,6 +58,9 @@ async function iniciarServidor() {
   }
 }
 
+    app.get("/health", (req, res) => {
+      res.status(200).send("ok");
+    });
 
 
     // Ruta para obtener todos los usuarios (postgres)
