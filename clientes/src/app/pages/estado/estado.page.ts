@@ -1003,8 +1003,8 @@ public actualizarValidacionesCondicionales() {
   const montoLiquidacionCapital = this.form.get('montoLiquidacionCapital');
   const subEstadoHonorarios = this.form.get('subEstadoHonorariosSeleccionado');
   const fechaHonorariosSubestado = this.form.get('fechaHonorariosSubestado');
-  const requiereAtencionValor = this.form.get('requiere_atencion')?.value;
-  const fechaAtencion = this.form.get('fecha_atencion');
+  //const requiereAtencionValor = this.form.get('requiere_atencion')?.value;
+  //const fechaAtencion = this.form.get('fecha_atencion');
   const sala = this.form.get('sala');
 
   console.log(this.expediente.juzgadoModel.tipo);
@@ -1017,13 +1017,13 @@ public actualizarValidacionesCondicionales() {
 
   }
 
-if (requiereAtencionValor == true) {
+/*if (requiereAtencionValor == true) {
   fechaAtencion?.setValidators([Validators.required]);
 } else {
   fechaAtencion?.clearValidators();
   fechaAtencion?.setValue(null);
 }
-fechaAtencion?.updateValueAndValidity();
+fechaAtencion?.updateValueAndValidity();*/
 
 
   // Capital
