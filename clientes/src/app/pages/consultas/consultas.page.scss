@@ -432,3 +432,40 @@ table {
   .toolbar-filtros { flex-direction: column; align-items: stretch; }
   .custom-select { width: 100% !important; max-width: none; }
 }
+
+
+.toolbar{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* SOLO el input buscador */
+.input-busqueda{
+  height: 48px;                 /* mismo alto visual que mat-form-field fill */
+  min-width: 260px;
+  width: 320px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: none;
+  outline: none;
+
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  font-weight: 500;
+  font-size: 14px;
+
+  transition: all 0.2s ease;
+}
+
+/* placeholder */
+.input-busqueda::placeholder{
+  color: rgba(255,255,255,0.65);
+  font-weight: 400;
+}
+
+/* efecto focus prolijo */
+.input-busqueda:focus{
+  background: rgba(255,255,255,0.18);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.25);
+}

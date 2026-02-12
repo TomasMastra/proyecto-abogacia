@@ -2278,9 +2278,13 @@ app.get("/demandados/oficiados", async (req, res) => {
     // );
 
     // Opción B: si es integer (0/1)
-    const { rows } = await pgPool.query(
-      "SELECT * FROM public.demandados WHERE estado <> 'eliminado' AND esoficio = 1"
-    );
+    const { rows } = await pgPool.query(`
+      SELECT *
+      FROM public.demandados
+      WHERE estado <> 'eliminado'
+        AND "esOficio" = 1
+    `);
+
 
     return res.json(rows);
   } catch (err) {

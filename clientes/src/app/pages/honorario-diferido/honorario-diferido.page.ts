@@ -113,6 +113,11 @@ estadosHonorarios: string[] = [
     this.cargarPorEstado('Sentencia');
   }
 
+  ngOnDestroy() {
+  this.destroy$.next();
+  this.destroy$.complete();
+}
+
   cargarHonorariosDiferidos() {
     this.cargando = true;
     this.expedienteService.getHonorarios()
@@ -202,7 +207,7 @@ cambiarEstado(selectedValue: 'sentencia' | 'cobrado') {
   }
 
   if (selectedValue === 'sentencia') {
-    this.cargarPorEstado('sentencia');
+    this.cargarPorEstado('Sentencia');
     return;
   }
 }
@@ -627,12 +632,6 @@ calcularCobroFinalHonorario(monto: number | null, usuario_id: number): number {
     }
   }
   return 0;
-}
-
-ngOnDestroy() {
-  this.destroy$.next();
-  this.destroy$.complete();
-  this.honorariosDiferidos = [];  // limpia datos por si quedan pegados
 }
 
 getCantidadColumnas(item: any): number {
