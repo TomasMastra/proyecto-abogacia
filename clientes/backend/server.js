@@ -3116,22 +3116,20 @@ app.get("/clientes/expedientesPorCliente", async (req, res) => {
 // postgres
 app.get("/expedientes/cobrados", async (req, res) => {
   try {
-    const { rows } = await pgPool.query(
-      `
+    const { rows } = await pgPool.query(`
       SELECT *
       FROM public.expedientes
       WHERE estado <> 'eliminado'
         AND (
           estado = 'Archivo'
-          OR capitalCobrado IS TRUE
-          OR espagoparcial IS TRUE
-          OR honorariocobrado IS TRUE
-          OR honorarioalzadacobrado IS TRUE
-          OR honorarioejecucioncobrado IS TRUE
-          OR honorariodiferenciacobrado IS TRUE
+          OR "capitalCobrado" IS TRUE
+          OR "esPagoParcial" IS TRUE
+          OR "honorarioCobrado" IS TRUE
+          OR "honorarioAlzadaCobrado" IS TRUE
+          OR "honorarioEjecucionCobrado" IS TRUE
+          OR "honorarioDiferenciaCobrado" IS TRUE
         )
-      `
-    );
+    `);
 
     return res.json(rows);
   } catch (err) {
@@ -3139,6 +3137,7 @@ app.get("/expedientes/cobrados", async (req, res) => {
     return res.status(500).json({ error: "Error interno del servidor", message: err.message });
   }
 });
+
 
 
 // postgres
