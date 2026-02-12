@@ -2869,15 +2869,19 @@ app.get("/eventos", async (req, res) => {
       SELECT
         e.*,
         COALESCE(
-          json_agg(c.*) FILTER (WHERE c.id IS NOT NULL),
+          (
+            SELECT json_agg(c.*)
+            FROM public.clientes_eventos ce
+            JOIN public.clientes c ON c.id = ce.id_cliente
+            WHERE ce.id_evento = e.id
+              AND c.id IS NOT NULL
+          ),
           '[]'::json
         ) AS clientes
       FROM public.eventos_calendario e
-      LEFT JOIN public.clientes_eventos ce ON ce.id_evento = e.id
-      LEFT JOIN public.clientes c ON c.id = ce.id_cliente
       WHERE e.estado <> 'eliminado'
-      GROUP BY e.id
-      ORDER BY e.fecha_evento DESC, e.id DESC
+      ORDER BY e.fecha_evento DESC, e.id DESC;
+
       `
     );
 
@@ -2895,7 +2899,6 @@ app.get("/eventos", async (req, res) => {
 app.post('/eventos/agregar', async (req, res) => {
   try {
     const {
-      titulo,
       descripcion,
       fecha_evento,
       hora_evento,
@@ -2920,7 +2923,6 @@ app.post('/eventos/agregar', async (req, res) => {
       `
       INSERT INTO public.eventos_calendario (
         id,
-        titulo,
         descripcion,
         fecha_evento,
         hora_evento,
@@ -2936,7 +2938,6 @@ app.post('/eventos/agregar', async (req, res) => {
       `,
       [
         id,
-        titulo ?? null,
         descripcion ?? null,
         new Date(fecha_evento),
         hora_evento ?? null,
@@ -3253,7 +3254,6 @@ app.put("/eventos/editar/:id", async (req, res) => {
     await client.query(
       `
       UPDATE public.eventos_calendario SET
-        titulo        = $1,
         descripcion   = $2,
         fecha_evento  = $3,
         tipo_evento   = $4,
@@ -3265,7 +3265,6 @@ app.put("/eventos/editar/:id", async (req, res) => {
       WHERE id = $10
       `,
       [
-        e.titulo ?? null,
         e.descripcion ?? null,
         e.fecha_evento ? new Date(e.fecha_evento) : null,
         e.tipo_evento ?? null,
