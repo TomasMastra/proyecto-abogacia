@@ -3710,32 +3710,47 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
         /* =========================
            CAPITAL NO PARCIAL (y viejos flag=true sin pagos)
            ========================= */
-        SELECT
-          e.id AS expediente_id,
-          e.numero,
-          e.anio AS anio_expediente,
-          e.caratula,
-          'capital' AS concepto,
-          COALESCE(e."capitalPagoParcial", 0) *
-          CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS monto
-        FROM public.expedientes e
-        LEFT JOIN U u ON u.id = e.usuario_id
-        WHERE e.estado <> 'eliminado'
-          AND (
-            COALESCE(e."esPagoParcial", false) = false
-            OR NOT EXISTS (SELECT 1 FROM public.pagos pc WHERE pc.expediente_id = e.id)
-          )
-          AND e."fecha_cobro_capital"::date >= $1::date
-          AND e."fecha_cobro_capital"::date <  $2::date
+    /* =========================
+   CAPITAL (MISMA LÓGICA QUE FRONT)
+   ========================= */
+SELECT
+  e.id AS expediente_id,
+  e.numero,
+  e.anio AS anio_expediente,
+  e.caratula,
+  'capital' AS concepto,
+
+  CASE
+    WHEN COALESCE(e."esPagoParcial", false) = true THEN
+      (
+        (
+          COALESCE(e."montoLiquidacionCapital",0)::numeric
+          * (COALESCE(e.porcentaje,100)::numeric / 100.0)
+        )
+        *
+        (
+          (100 - COALESCE(u.p,0)::numeric) / 100.0
+        )
+      )
+      - COALESCE(e."capitalPagoParcial",0)::numeric
+
+    ELSE
+      (
+        COALESCE(e."montoLiquidacionCapital",0)::numeric
+        * (COALESCE(e.porcentaje,100)::numeric / 100.0)
+      )
+      *
+      (
+        (100 - COALESCE(u.p,0)::numeric) / 100.0
+      )
+  END AS monto
+
+FROM public.expedientes e
+LEFT JOIN U u ON u.id = e.usuario_id
+WHERE e.estado <> 'eliminado'
+  AND e."fecha_cobro_capital"::date >= $1::date
+  AND e."fecha_cobro_capital"::date <  $2::date
+
 
         UNION ALL
 
