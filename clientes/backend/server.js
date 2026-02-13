@@ -3711,13 +3711,16 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 WITH U AS (
   SELECT DISTINCT ON (id)
     id,
-    COALESCE(porcentaje, 0)::numeric AS p
+    COALESCE(porcentaje, 0)::numeric AS p_soc
   FROM public.usuario
   ORDER BY id
 ),
 movimientos AS (
 
-  -- CAPITAL NO PARCIAL (incluye viejos flag=true pero sin filas en pagos)
+  /* =========================
+     CAPITAL NO PARCIAL (y viejos flag=true sin pagos)
+     cobrado_mes = e.capitalPagoParcial (del mes por fecha_cobro_capital)
+     ========================= */
   SELECT
     e.id AS expediente_id,
     e.numero,
@@ -3732,8 +3735,8 @@ movimientos AS (
         CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
       ELSE
         CASE
-          WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)            -- socio
-          WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)     -- papá
+          WHEN $3 = e.usuario_id THEN (COALESCE(u.p_soc, 0) / 100.0)
+          WHEN $3 = 7           THEN ((100 - COALESCE(u.p_soc, 0)) / 100.0)
           ELSE 0.0
         END
     END AS monto
@@ -3742,14 +3745,17 @@ movimientos AS (
   WHERE e.estado <> 'eliminado'
     AND (
       COALESCE(e."esPagoParcial", false) = false
-      OR NOT EXISTS (SELECT 1 FROM public.pagos pc WHERE pc.expediente_id = e.id)
+      OR NOT EXISTS (SELECT 1 FROM public.pagos p WHERE p.expediente_id = e.id)
     )
     AND e."fecha_cobro_capital"::date >= $1::date
     AND e."fecha_cobro_capital"::date <  $2::date
 
   UNION ALL
 
-  -- CAPITAL PARCIAL REAL
+  /* =========================
+     CAPITAL PARCIAL REAL
+     cobrado_mes = SUM(pagos del mes)
+     ========================= */
   SELECT
     e.id AS expediente_id,
     e.numero,
@@ -3757,7 +3763,7 @@ movimientos AS (
     e.caratula,
     'capital' AS concepto,
     SUM(
-      COALESCE(pc.monto, 0)::numeric
+      COALESCE(p.monto, 0)::numeric
       * (COALESCE(e.porcentaje, 100)::numeric / 100.0)
       *
       CASE
@@ -3765,24 +3771,27 @@ movimientos AS (
           CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
         ELSE
           CASE
-            WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-            WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+            WHEN $3 = e.usuario_id THEN (COALESCE(u.p_soc, 0) / 100.0)
+            WHEN $3 = 7           THEN ((100 - COALESCE(u.p_soc, 0)) / 100.0)
             ELSE 0.0
           END
       END
     ) AS monto
   FROM public.expedientes e
-  JOIN public.pagos pc ON pc.expediente_id = e.id
+  JOIN public.pagos p ON p.expediente_id = e.id
   LEFT JOIN U u ON u.id = e.usuario_id
   WHERE e.estado <> 'eliminado'
     AND COALESCE(e."esPagoParcial", false) = true
-    AND pc.fecha >= $1::date
-    AND pc.fecha <  $2::date
-  GROUP BY e.id, e.numero, e.anio, e.caratula, e.usuario_id, u.p, e.porcentaje
+    AND p.fecha >= $1::date
+    AND p.fecha <  $2::date
+  GROUP BY e.id, e.numero, e.anio, e.caratula, e.usuario_id, u.p_soc, e.porcentaje
 
   UNION ALL
 
-  -- HONORARIOS
+  /* =========================
+     HONORARIOS
+     (si tu montoLiquidacionHonorarios ya es del estudio, NO multipliques por e.porcentaje)
+     ========================= */
   SELECT
     e.id, e.numero, e.anio, e.caratula,
     'honorarios' AS concepto,
@@ -3793,8 +3802,8 @@ movimientos AS (
         CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
       ELSE
         CASE
-          WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-          WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+          WHEN $3 = e.usuario_id THEN (COALESCE(u.p_soc, 0) / 100.0)
+          WHEN $3 = 7           THEN ((100 - COALESCE(u.p_soc, 0)) / 100.0)
           ELSE 0.0
         END
     END AS monto
@@ -3806,7 +3815,9 @@ movimientos AS (
 
   UNION ALL
 
-  -- ALZADA
+  /* =========================
+     ALZADA
+     ========================= */
   SELECT
     e.id, e.numero, e.anio, e.caratula,
     'alzada' AS concepto,
@@ -3817,8 +3828,8 @@ movimientos AS (
         CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
       ELSE
         CASE
-          WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-          WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+          WHEN $3 = e.usuario_id THEN (COALESCE(u.p_soc, 0) / 100.0)
+          WHEN $3 = 7           THEN ((100 - COALESCE(u.p_soc, 0)) / 100.0)
           ELSE 0.0
         END
     END AS monto
@@ -3830,7 +3841,9 @@ movimientos AS (
 
   UNION ALL
 
-  -- EJECUCION
+  /* =========================
+     EJECUCION
+     ========================= */
   SELECT
     e.id, e.numero, e.anio, e.caratula,
     'ejecucion' AS concepto,
@@ -3841,8 +3854,8 @@ movimientos AS (
         CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
       ELSE
         CASE
-          WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-          WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+          WHEN $3 = e.usuario_id THEN (COALESCE(u.p_soc, 0) / 100.0)
+          WHEN $3 = 7           THEN ((100 - COALESCE(u.p_soc, 0)) / 100.0)
           ELSE 0.0
         END
     END AS monto
@@ -3854,7 +3867,9 @@ movimientos AS (
 
   UNION ALL
 
-  -- DIFERENCIA
+  /* =========================
+     DIFERENCIA
+     ========================= */
   SELECT
     e.id, e.numero, e.anio, e.caratula,
     'diferencia' AS concepto,
@@ -3865,8 +3880,8 @@ movimientos AS (
         CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
       ELSE
         CASE
-          WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-          WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+          WHEN $3 = e.usuario_id THEN (COALESCE(u.p_soc, 0) / 100.0)
+          WHEN $3 = 7           THEN ((100 - COALESCE(u.p_soc, 0)) / 100.0)
           ELSE 0.0
         END
     END AS monto
@@ -3914,6 +3929,7 @@ FROM (
   FROM detalle
 ) x
 ORDER BY x.orden, x.numero;
+
 
 
       `,
