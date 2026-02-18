@@ -2922,7 +2922,6 @@ app.post('/eventos/agregar', async (req, res) => {
     }
 
     const id = await generarNuevoId(pgPool, 'eventos_calendario', 'id');
-    const id_mediacion = await generarNuevoId(pgPool, 'mediaciones', 'id');
 
     const { rows } = await pgPool.query(
       `
@@ -2957,17 +2956,17 @@ app.post('/eventos/agregar', async (req, res) => {
 
     const eventoId = rows[0].id;
 
-    for (const cliente of clientes) {
-      const relId = await generarNuevoId(pgPool, 'clientes_eventos', 'id');
+for (const c of clientes) {
+  const clienteId = typeof c === 'object' ? (c.id ?? c.id_cliente ?? c.cliente_id) : c;
+  if (!clienteId) continue;
 
-      await pgPool.query(
-        `
-        INSERT INTO public.clientes_eventos (id, id_evento, id_cliente)
-        VALUES ($1, $2, $3)
-        `,
-        [relId, eventoId, cliente.id]
-      );
-    }
+  await pgPool.query(
+    `INSERT INTO public.clientes_eventos (id_evento, id_cliente)
+     VALUES ($1, $2)`,
+    [eventoId, Number(clienteId)]
+  );
+}
+
 
     return res.status(201).json({
       message: 'Evento agregado exitosamente',

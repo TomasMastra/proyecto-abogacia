@@ -18,7 +18,7 @@ export class MediacionesService {
   }
 
   getMediacionPorId(id: number): Observable<MediacionModel> {
-  return this.http.get<MediacionModel>(`http://192.168.1.36:3000/mediaciones/${id}`);
+  return this.http.get<MediacionModel>(`${this.apiUrl}/${id}`);
 }
 
 }

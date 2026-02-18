@@ -197,20 +197,8 @@
     (optionSelected)="seleccionarExpediente($event.option.value)">
     
     <mat-option *ngFor="let expediente of filteredExpedientes | async" [value]="expediente">
-      {{ expediente.numero }}/{{ expediente.anio }}
-      {{ expediente.clientes.length > 1 
-          ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido + ' y otros' 
-          : expediente.clientes.length === 1 
-            ? expediente.clientes[0].nombre + ' ' + expediente.clientes[0].apellido 
-            : '(sin actora)' 
-      }}
-      contra
-      {{ expediente.demandados.length > 1 
-          ? expediente.demandados[0].nombre + ' y otros'
-          : expediente.demandados.length === 1 
-            ? expediente.demandados[0].nombre 
-            : '(sin demandado)' 
-      }}
+      {{ expediente.numero }}/{{ expediente.anio }} {{expediente.caratula}}
+
     </mat-option>
   </mat-autocomplete>
 </mat-form-field>
