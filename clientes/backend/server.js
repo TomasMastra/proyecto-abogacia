@@ -2922,6 +2922,7 @@ app.post('/eventos/agregar', async (req, res) => {
     }
 
     const id = await generarNuevoId(pgPool, 'eventos_calendario', 'id');
+    const id_mediacion = await generarNuevoId(pgPool, 'mediaciones', 'id');
 
     const { rows } = await pgPool.query(
       `
