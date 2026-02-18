@@ -2937,7 +2937,7 @@ app.post('/eventos/agregar', async (req, res) => {
         link_virtual,
         estado
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
       RETURNING id
       `,
       [
