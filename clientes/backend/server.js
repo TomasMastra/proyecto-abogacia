@@ -3349,7 +3349,6 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const { anio, mes, usuario_id } = req.query;
   if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
 
-  //console.log(usuario_id);
   const y = parseInt(anio, 10);
   const m = parseInt(mes, 10);
   if (isNaN(y) || isNaN(m) || m < 1 || m > 12)
@@ -3365,155 +3364,185 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const inicioStr = inicio.toISOString().slice(0, 10);
   const finStr    = fin.toISOString().slice(0, 10);
 
+  const PAPA_ID = 7;
+
   try {
     const { rows } = await pgPool.query(
       `
-      WITH U AS (
+      WITH params AS (
+        SELECT
+          $1::date AS inicio,
+          $2::date AS fin,
+          $3::int  AS uid,
+          $4::int  AS papa
+      ),
+      U AS (
         SELECT DISTINCT ON (id)
           id,
-          COALESCE(porcentaje, 0) AS p
+          COALESCE("porcentajeHonorarios", porcentaje, 0)::numeric AS porc
         FROM public.usuario
         ORDER BY id
       ),
       movimientos AS (
 
-        -- CAPITAL NO PARCIAL (incluye viejos flag=1 pero sin filas en pagos)
+        /* =========================
+           CAPITAL NO PARCIAL / LEGACY
+           - NO prorrateo (bruto)
+           - incluye legacy: esPagoParcial=true pero sin pagos de CAPITAL
+           ========================= */
         SELECT
-          'capital' AS concepto,
-          COALESCE(e."capitalPagoParcial", 0) *
-          CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS monto
+          'capital'::text AS concepto,
+          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
         FROM public.expedientes e
-        LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
-            COALESCE(e."esPagoParcial", false) = false
-            OR NOT EXISTS (SELECT 1 FROM public.pagos pc WHERE pc.expediente_id = e.id)
+            p.uid = p.papa OR e.usuario_id = p.uid
           )
-          AND e."fecha_cobro_capital"::date >= $1::date
-          AND e."fecha_cobro_capital"::date <  $2::date
+          AND (
+            COALESCE(e."esPagoParcial", false) = false
+            OR NOT EXISTS (
+              SELECT 1
+              FROM public.pagos pc
+              WHERE pc.expediente_id = e.id
+                AND pc.tipo_pago = 'capital'
+            )
+          )
+          AND e."fecha_cobro_capital"::date >= p.inicio
+          AND e."fecha_cobro_capital"::date <  p.fin
 
         UNION ALL
 
-        -- CAPITAL PARCIAL REAL
+        /* =========================
+           CAPITAL PARCIAL REAL (solo del mes)
+           - NO prorrateo (bruto)
+           ========================= */
         SELECT
-          'capital' AS concepto,
-          SUM(
-            COALESCE(pc.monto, 0) *
-            CASE
-              WHEN e.usuario_id = 7 THEN
-                CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
-              ELSE
-                CASE
-                  WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                  WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
-                  ELSE 0.0
-                END
-            END
-          ) AS monto
+          'capital'::text AS concepto,
+          COALESCE(SUM(pc.monto), 0)::numeric AS monto
         FROM public.expedientes e
         JOIN public.pagos pc ON pc.expediente_id = e.id
-        LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
+          AND (
+            p.uid = p.papa OR e.usuario_id = p.uid
+          )
           AND COALESCE(e."esPagoParcial", false) = true
-          AND pc.fecha >= $1::date
-          AND pc.fecha <  $2::date
+          AND pc.tipo_pago = 'capital'
+          AND pc.fecha::date >= p.inicio
+          AND pc.fecha::date <  p.fin
 
         UNION ALL
 
-        -- HONORARIOS
+        /* =========================
+           HONORARIOS (prorrateado)
+           ========================= */
         SELECT
-          'honorarios' AS concepto,
-          COALESCE(e."montoLiquidacionHonorarios", 0) *
+          'honorarios'::text AS concepto,
+          COALESCE(e."montoLiquidacionHonorarios", 0)::numeric *
           CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
+            WHEN e.usuario_id = (SELECT papa FROM params) THEN
+              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
             ELSE
               CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
+                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
                 ELSE 0.0
               END
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND e."fecha_cobro"::date >= $1::date
-          AND e."fecha_cobro"::date <  $2::date
+          AND (
+            p.uid = p.papa OR e.usuario_id = p.uid
+          )
+          AND e."fecha_cobro"::date >= p.inicio
+          AND e."fecha_cobro"::date <  p.fin
 
         UNION ALL
 
-        -- ALZADA
+        /* =========================
+           ALZADA (prorrateado)
+           ========================= */
         SELECT
-          'alzada' AS concepto,
-          COALESCE(e."montoAcuerdo_alzada", 0) *
+          'alzada'::text AS concepto,
+          COALESCE(e."montoAcuerdo_alzada", 0)::numeric *
           CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
+            WHEN e.usuario_id = (SELECT papa FROM params) THEN
+              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
             ELSE
               CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
+                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
                 ELSE 0.0
               END
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND e."fechaCobroAlzada"::date >= $1::date
-          AND e."fechaCobroAlzada"::date <  $2::date
+          AND (
+            p.uid = p.papa OR e.usuario_id = p.uid
+          )
+          AND e."fechaCobroAlzada"::date >= p.inicio
+          AND e."fechaCobroAlzada"::date <  p.fin
 
         UNION ALL
 
-        -- EJECUCION
+        /* =========================
+           EJECUCION (prorrateado)
+           ========================= */
         SELECT
-          'ejecucion' AS concepto,
-          COALESCE(e."montoHonorariosEjecucion", 0) *
+          'ejecucion'::text AS concepto,
+          COALESCE(e."montoHonorariosEjecucion", 0)::numeric *
           CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
+            WHEN e.usuario_id = (SELECT papa FROM params) THEN
+              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
             ELSE
               CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
+                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
                 ELSE 0.0
               END
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND e."fechaCobroEjecucion"::date >= $1::date
-          AND e."fechaCobroEjecucion"::date <  $2::date
+          AND (
+            p.uid = p.papa OR e.usuario_id = p.uid
+          )
+          AND e."fechaCobroEjecucion"::date >= p.inicio
+          AND e."fechaCobroEjecucion"::date <  p.fin
 
         UNION ALL
 
-        -- DIFERENCIA
+        /* =========================
+           DIFERENCIA (prorrateado)
+           ========================= */
         SELECT
-          'diferencia' AS concepto,
-          COALESCE(e."montoHonorariosDiferencia", 0) *
+          'diferencia'::text AS concepto,
+          COALESCE(e."montoHonorariosDiferencia", 0)::numeric *
           CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
+            WHEN e.usuario_id = (SELECT papa FROM params) THEN
+              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
             ELSE
               CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
+                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
                 ELSE 0.0
               END
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND e."fechaCobroDiferencia"::date >= $1::date
-          AND e."fechaCobroDiferencia"::date <  $2::date
+          AND (
+            p.uid = p.papa OR e.usuario_id = p.uid
+          )
+          AND e."fechaCobroDiferencia"::date >= p.inicio
+          AND e."fechaCobroDiferencia"::date <  p.fin
       )
       SELECT
         COALESCE(SUM(CASE WHEN concepto = 'capital'    THEN monto ELSE 0 END), 0) AS "totalCapital",
@@ -3524,7 +3553,7 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
         COALESCE(SUM(monto), 0) AS "totalGeneral"
       FROM movimientos;
       `,
-      [inicioStr, finStr, usuarioId] // ✅ 3 parámetros
+      [inicioStr, finStr, usuarioId, PAPA_ID]
     );
 
     return res.json(rows?.[0] ?? {
@@ -3541,19 +3570,14 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   }
 });
 
-
-// ==========================================================
-// GET /expedientes/cobranzas-detalle-por-mes?anio=YYYY&mes=MM postgres
-// ==========================================================
 app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
   const { anio, mes, usuario_id } = req.query;
   if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
 
   const y = parseInt(anio, 10);
   const m = parseInt(mes, 10);
-  if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+  if (isNaN(y) || isNaN(m) || m < 1 || m > 12)
     return res.status(400).send("Parámetros inválidos.");
-  }
 
   const usuarioId = Number(usuario_id);
   if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
@@ -3565,180 +3589,171 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
   const inicioStr = inicio.toISOString().slice(0, 10);
   const finStr    = fin.toISOString().slice(0, 10);
 
+  const PAPA_ID = 7;
+
   try {
     const { rows } = await pgPool.query(
       `
-      WITH U AS (
+      WITH params AS (
+        SELECT
+          $1::date AS inicio,
+          $2::date AS fin,
+          $3::int  AS uid,
+          $4::int  AS papa
+      ),
+      U AS (
         SELECT DISTINCT ON (id)
           id,
-          COALESCE(porcentaje, 0) AS p
+          COALESCE("porcentajeHonorarios", porcentaje, 0)::numeric AS porc
         FROM public.usuario
         ORDER BY id
       ),
       movimientos AS (
 
-        /* =========================
-           CAPITAL NO PARCIAL (y viejos flag=true sin pagos)
-           ========================= */
+        -- CAPITAL NO PARCIAL / LEGACY (bruto, sin prorrateo)
         SELECT
           e.id AS expediente_id,
           e.numero,
           e.anio AS anio_expediente,
           e.caratula,
-          'capital' AS concepto,
-          COALESCE(e."capitalPagoParcial", 0) *
-          CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS monto
+          'capital'::text AS concepto,
+          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
         FROM public.expedientes e
-        LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
+          AND (p.uid = p.papa OR e.usuario_id = p.uid)
           AND (
             COALESCE(e."esPagoParcial", false) = false
-            OR NOT EXISTS (SELECT 1 FROM public.pagos pc WHERE pc.expediente_id = e.id)
+            OR NOT EXISTS (
+              SELECT 1
+              FROM public.pagos pc
+              WHERE pc.expediente_id = e.id
+                AND pc.tipo_pago = 'capital'
+            )
           )
-          AND e."fecha_cobro_capital"::date >= $1::date
-          AND e."fecha_cobro_capital"::date <  $2::date
+          AND e."fecha_cobro_capital"::date >= p.inicio
+          AND e."fecha_cobro_capital"::date <  p.fin
 
         UNION ALL
 
-        /* =========================
-           CAPITAL PARCIAL REAL
-           ========================= */
+        -- CAPITAL PARCIAL REAL (bruto, solo pagos capital del mes)
         SELECT
           e.id AS expediente_id,
           e.numero,
           e.anio AS anio_expediente,
           e.caratula,
-          'capital' AS concepto,
-          SUM(
-            COALESCE(pc.monto, 0) *
-            CASE
-              WHEN e.usuario_id = 7 THEN
-                CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
-              ELSE
-                CASE
-                  WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                  WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
-                  ELSE 0.0
-                END
-            END
-          ) AS monto
+          'capital'::text AS concepto,
+          COALESCE(SUM(pc.monto), 0)::numeric AS monto
         FROM public.expedientes e
         JOIN public.pagos pc ON pc.expediente_id = e.id
-        LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
+          AND (p.uid = p.papa OR e.usuario_id = p.uid)
           AND COALESCE(e."esPagoParcial", false) = true
-          AND pc.fecha >= $1::date
-          AND pc.fecha <  $2::date
-        GROUP BY e.id, e.numero, e.anio, e.caratula, e.usuario_id, u.p
+          AND pc.tipo_pago = 'capital'
+          AND pc.fecha::date >= p.inicio
+          AND pc.fecha::date <  p.fin
+        GROUP BY e.id, e.numero, e.anio, e.caratula
 
         UNION ALL
 
-        /* =========================
-           HONORARIOS
-           ========================= */
+        -- HONORARIOS (prorrateado)
         SELECT
           e.id, e.numero, e.anio, e.caratula,
-          'honorarios' AS concepto,
-          COALESCE(e."montoLiquidacionHonorarios", 0) *
+          'honorarios'::text AS concepto,
+          COALESCE(e."montoLiquidacionHonorarios", 0)::numeric *
           CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
+            WHEN e.usuario_id = (SELECT papa FROM params) THEN
+              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
             ELSE
               CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
+                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
                 ELSE 0.0
               END
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND e."fecha_cobro"::date >= $1::date
-          AND e."fecha_cobro"::date <  $2::date
+          AND (p.uid = p.papa OR e.usuario_id = p.uid)
+          AND e."fecha_cobro"::date >= p.inicio
+          AND e."fecha_cobro"::date <  p.fin
 
         UNION ALL
 
-        /* =========================
-           ALZADA
-           ========================= */
+        -- ALZADA
         SELECT
           e.id, e.numero, e.anio, e.caratula,
-          'alzada' AS concepto,
-          COALESCE(e."montoAcuerdo_alzada", 0) *
+          'alzada'::text AS concepto,
+          COALESCE(e."montoAcuerdo_alzada", 0)::numeric *
           CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
+            WHEN e.usuario_id = (SELECT papa FROM params) THEN
+              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
             ELSE
               CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
+                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
                 ELSE 0.0
               END
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND e."fechaCobroAlzada"::date >= $1::date
-          AND e."fechaCobroAlzada"::date <  $2::date
+          AND (p.uid = p.papa OR e.usuario_id = p.uid)
+          AND e."fechaCobroAlzada"::date >= p.inicio
+          AND e."fechaCobroAlzada"::date <  p.fin
 
         UNION ALL
 
-        /* =========================
-           EJECUCION
-           ========================= */
+        -- EJECUCION
         SELECT
           e.id, e.numero, e.anio, e.caratula,
-          'ejecucion' AS concepto,
-          COALESCE(e."montoHonorariosEjecucion", 0) *
+          'ejecucion'::text AS concepto,
+          COALESCE(e."montoHonorariosEjecucion", 0)::numeric *
           CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
+            WHEN e.usuario_id = (SELECT papa FROM params) THEN
+              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
             ELSE
               CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
+                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
                 ELSE 0.0
               END
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND e."fechaCobroEjecucion"::date >= $1::date
-          AND e."fechaCobroEjecucion"::date <  $2::date
+          AND (p.uid = p.papa OR e.usuario_id = p.uid)
+          AND e."fechaCobroEjecucion"::date >= p.inicio
+          AND e."fechaCobroEjecucion"::date <  p.fin
 
         UNION ALL
 
-        /* =========================
-           DIFERENCIA
-           ========================= */
+        -- DIFERENCIA
         SELECT
           e.id, e.numero, e.anio, e.caratula,
-          'diferencia' AS concepto,
-          COALESCE(e."montoHonorariosDiferencia", 0) *
+          'diferencia'::text AS concepto,
+          COALESCE(e."montoHonorariosDiferencia", 0)::numeric *
           CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $3 = 7 THEN 1.0 ELSE 0.0 END
+            WHEN e.usuario_id = (SELECT papa FROM params) THEN
+              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
             ELSE
               CASE
-                WHEN $3 = e.usuario_id THEN (COALESCE(u.p, 0) / 100.0)
-                WHEN $3 = 7           THEN ((100 - COALESCE(u.p, 0)) / 100.0)
+                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
+                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
                 ELSE 0.0
               END
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u ON u.id = e.usuario_id
+        JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND e."fechaCobroDiferencia"::date >= $1::date
-          AND e."fechaCobroDiferencia"::date <  $2::date
+          AND (p.uid = p.papa OR e.usuario_id = p.uid)
+          AND e."fechaCobroDiferencia"::date >= p.inicio
+          AND e."fechaCobroDiferencia"::date <  p.fin
       ),
       detalle AS (
         SELECT
@@ -3746,12 +3761,12 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           m.numero,
           m.anio_expediente,
           m.caratula,
-          SUM(CASE WHEN m.concepto = 'capital'    THEN m.monto ELSE 0 END) AS "Capital",
-          SUM(CASE WHEN m.concepto = 'honorarios' THEN m.monto ELSE 0 END) AS "Honorarios",
-          SUM(CASE WHEN m.concepto = 'alzada'     THEN m.monto ELSE 0 END) AS "Alzada",
-          SUM(CASE WHEN m.concepto = 'ejecucion'  THEN m.monto ELSE 0 END) AS "Ejecucion",
-          SUM(CASE WHEN m.concepto = 'diferencia' THEN m.monto ELSE 0 END) AS "Diferencia",
-          SUM(m.monto) AS "TotalExpediente"
+          COALESCE(SUM(CASE WHEN m.concepto='capital' THEN m.monto ELSE 0 END), 0)    AS "Capital",
+          COALESCE(SUM(CASE WHEN m.concepto='honorarios' THEN m.monto ELSE 0 END), 0) AS "Honorarios",
+          COALESCE(SUM(CASE WHEN m.concepto='alzada' THEN m.monto ELSE 0 END), 0)     AS "Alzada",
+          COALESCE(SUM(CASE WHEN m.concepto='ejecucion' THEN m.monto ELSE 0 END), 0)  AS "Ejecucion",
+          COALESCE(SUM(CASE WHEN m.concepto='diferencia' THEN m.monto ELSE 0 END), 0) AS "Diferencia",
+          COALESCE(SUM(m.monto), 0) AS "TotalExpediente"
         FROM movimientos m
         GROUP BY m.expediente_id, m.numero, m.anio_expediente, m.caratula
       )
@@ -3769,17 +3784,17 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
         UNION ALL
 
         SELECT
-          NULL::int,
+          NULL::bigint,
           'TOTAL GENERAL'::text,
           NULL::int,
           NULL::text,
           SUM("Capital"), SUM("Honorarios"), SUM("Alzada"), SUM("Ejecucion"), SUM("Diferencia"), SUM("TotalExpediente"),
-          1
+          1 AS orden
         FROM detalle
       ) x
       ORDER BY x.orden, x.numero;
       `,
-      [inicioStr, finStr, usuarioId]  
+      [inicioStr, finStr, usuarioId, PAPA_ID]
     );
 
     return res.json(rows ?? []);
