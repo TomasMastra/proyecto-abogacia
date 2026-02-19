@@ -3254,22 +3254,22 @@ app.put("/eventos/editar/:id", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    await client.query(
+    const upd = await client.query(
       `
       UPDATE public.eventos_calendario SET
-        descripcion   = $2,
-        fecha_evento  = $3,
-        tipo_evento   = $4,
-        ubicacion     = $5,
-        estado        = $6,
-        mediacion_id  = $7,
-        link_virtual  = $8,
-        expediente_id = $9
-      WHERE id = $10
+        descripcion   = $1,
+        fecha_evento  = $2,
+        tipo_evento   = $3,
+        ubicacion     = $4,
+        estado        = $5,
+        mediacion_id  = $6,
+        link_virtual  = $7,
+        expediente_id = $8
+      WHERE id = $9
       `,
       [
         e.descripcion ?? null,
-        e.fecha_evento ? new Date(e.fecha_evento) : null,
+        e.fecha_evento ?? null, // si es DATE en PG, mandá "YYYY-MM-DD"
         e.tipo_evento ?? null,
         e.ubicacion ?? null,
         e.estado ?? null,
@@ -3280,21 +3280,27 @@ app.put("/eventos/editar/:id", async (req, res) => {
       ]
     );
 
+    if (upd.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Evento no encontrado" });
+    }
+
     await client.query(
       `DELETE FROM public.clientes_eventos WHERE id_evento = $1`,
       [id]
     );
 
-    for (const c of (e.clientes || [])) {
-      const clienteId = Number(c?.id);
-      if (!Number.isInteger(clienteId) || clienteId <= 0) continue;
+    const ids = [...new Set((e.clientes || [])
+      .map(c => Number(c?.id))
+      .filter(x => Number.isInteger(x) && x > 0)
+    )];
 
-      // Si tu clientes_eventos tiene (id_evento,id_cliente) como PK y NO tiene id, esto está perfecto.
-      // Si tiene id obligatorio, decime y lo adapto usando generarNuevoId.
+    for (const clienteId of ids) {
       await client.query(
         `
         INSERT INTO public.clientes_eventos (id_evento, id_cliente)
         VALUES ($1, $2)
+        ON CONFLICT DO NOTHING
         `,
         [id, clienteId]
       );
@@ -3310,6 +3316,7 @@ app.put("/eventos/editar/:id", async (req, res) => {
     client.release();
   }
 });
+
 
 
 
