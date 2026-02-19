@@ -318,12 +318,33 @@ cargarEventos() {
     this.expedienteService.getExpedientes().subscribe(expedientes => this.listaExpedientes = expedientes!);
   }
 
-  seleccionarDia(dia: number) {
-    if (dia === 0) return;
-    this.fechaSeleccionada = new Date(this.anioActual, this.mesActual, dia);
-    const fechaStr = this.fechaSeleccionada.toISOString().slice(0, 10);
-    this.eventosSeleccionados = this.eventos.filter(evento => new Date(evento.fecha_evento).toISOString().slice(0, 10) === fechaStr);
-  }
+private keyDiaLocalDesdeDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+private keyDiaEvento(fecha_evento: any): string {
+  // Si viene como string tipo "2026-02-02 22:01:00" o "2026-02-02T22:01:00"
+  if (typeof fecha_evento === 'string') return fecha_evento.slice(0, 10);
+
+  // Si viene como Date (por si tu service mapea)
+  const d = new Date(fecha_evento);
+  return this.keyDiaLocalDesdeDate(d);
+}
+
+seleccionarDia(dia: number) {
+  if (!dia) return;
+
+  this.fechaSeleccionada = new Date(this.anioActual, this.mesActual, dia);
+  const key = this.keyDiaLocalDesdeDate(this.fechaSeleccionada);
+
+  this.eventosSeleccionados = this.eventos.filter(ev =>
+    this.keyDiaEvento(ev.fecha_evento) === key
+  );
+}
+
 
 mostrarDetallesEvento(evento: EventoModel) {
 //debugger;
