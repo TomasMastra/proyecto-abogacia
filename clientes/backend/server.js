@@ -3344,139 +3344,6 @@ app.put("/eventos/eliminar/:id", async (req, res) => {
 });
 
 
-//postgres
-app.post("/oficios/agregar", async (req, res) => {
-  try {
-    const {
-      expediente_id,
-      demandado_id,
-      parte,
-      estado,
-      fecha_diligenciado,
-      tipo,
-      nombre_oficiada,
-      tipo_pericia,
-      supletoria,
-    } = req.body;
-
-    if (!expediente_id || !parte || !estado || !tipo) {
-      return res.status(400).json({
-        error: "Faltan campos obligatorios",
-        camposRequeridos: ["expediente_id", "parte", "estado", "tipo"],
-      });
-    }
-
-    const tipoNorm = String(tipo).toLowerCase().trim();
-    if (!["oficio", "testimonial", "pericia"].includes(tipoNorm)) {
-      return res.status(400).json({ error: "Tipo inválido. Use: oficio | testimonial | pericia" });
-    }
-
-    if (tipoNorm === "oficio") {
-      if (!demandado_id) return res.status(400).json({ error: 'Para tipo "oficio", demandado_id es obligatorio' });
-    } else if (tipoNorm === "testimonial") {
-      if (!nombre_oficiada || String(nombre_oficiada).trim() === "") {
-        return res.status(400).json({ error: 'Para tipo "testimonial", nombre_oficiada (testigo) es obligatorio' });
-      }
-    } else if (tipoNorm === "pericia") {
-      if (!nombre_oficiada || String(nombre_oficiada).trim() === "") {
-        return res.status(400).json({ error: 'Para tipo "pericia", nombre_oficiada (perito) es obligatorio' });
-      }
-      const tp = String(tipo_pericia || "").toLowerCase().trim();
-      if (!["pericial informática", "pericial informatica","pericial contable", "pericial caligrafica", "pericial telecomunicaciones"].includes(tp)) {
-        return res.status(400).json({ error: 'tipo_pericia inválido. Solo "Pericial informática".' });
-      }
-    }
-
-    const id = await generarNuevoId(pgPool, "oficios", "id");
-
-    const { rows } = await pgPool.query(
-      `
-      INSERT INTO public.oficios (
-        id, expediente_id, demandado_id, parte, estado, fecha_diligenciado,
-        tipo, nombre_oficiada, tipo_pericia, supletoria
-      )
-      VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10
-      )
-      RETURNING id
-      `,
-      [
-        id,
-        Number(expediente_id),
-        demandado_id != null ? Number(demandado_id) : null,
-        parte,
-        estado,
-        fecha_diligenciado ? new Date(fecha_diligenciado) : null,
-        tipoNorm,
-        nombre_oficiada ?? null,
-        tipoNorm === "pericia" ? (tipo_pericia ?? null) : null,
-        tipoNorm === "testimonial" ? (supletoria ? new Date(supletoria) : null) : null,
-      ]
-    );
-
-    return res.status(201).json({ ok: true, id: rows[0].id });
-  } catch (err) {
-    console.error("Error al agregar prueba:", err);
-    return res.status(500).json({ error: "Error al agregar prueba", message: err.message });
-  }
-});
-
-
-// postgres
-app.get("/oficios", async (req, res) => {
-  try {
-    const { rows } = await pgPool.query(
-      "SELECT * FROM public.oficios WHERE estado <> 'eliminado'"
-    );
-    return res.status(200).json(rows);
-  } catch (err) {
-    console.error("Error al obtener oficios:", err);
-    return res.status(500).json({ error: "Error al obtener oficios", message: err.message });
-  }
-});
-
-// postgres
-app.put("/oficios/modificar/:id", async (req, res) => {
-  const id = Number(req.params.id);
-  const { expediente_id, demandado_id, parte, estado, fecha_diligenciado } = req.body;
-
-  try {
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ mensaje: "ID inválido" });
-    }
-
-    const { rowCount } = await pgPool.query(
-      `
-      UPDATE public.oficios
-      SET expediente_id = $1,
-          demandado_id = $2,
-          parte = $3,
-          estado = $4,
-          fecha_diligenciado = $5
-      WHERE id = $6
-      `,
-      [
-        expediente_id != null ? Number(expediente_id) : null,
-        demandado_id != null ? Number(demandado_id) : null,
-        parte ?? null,
-        estado ?? null,
-        fecha_diligenciado ? new Date(fecha_diligenciado) : null,
-        id,
-      ]
-    );
-
-    if (rowCount > 0) {
-      return res.status(200).json({ mensaje: "Oficio actualizado correctamente" });
-    } else {
-      return res.status(404).json({ mensaje: "Oficio no encontrado" });
-    }
-  } catch (error) {
-    console.error("Error al actualizar oficio:", error);
-    return res.status(500).json({ mensaje: "Error al actualizar oficio", message: error.message });
-  }
-});
-
 // postgres
 app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const { anio, mes, usuario_id } = req.query;
@@ -3921,6 +3788,145 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
     return res.status(500).send("Error en el servidor");
   }
 });
+
+
+
+//postgres
+app.post("/oficios/agregar", async (req, res) => {
+  try {
+    const {
+      expediente_id,
+      demandado_id,
+      parte,
+      estado,
+      fecha_diligenciado,
+      tipo,
+      nombre_oficiada,
+      tipo_pericia,
+      supletoria,
+    } = req.body;
+
+    if (!expediente_id || !parte || !estado || !tipo) {
+      return res.status(400).json({
+        error: "Faltan campos obligatorios",
+        camposRequeridos: ["expediente_id", "parte", "estado", "tipo"],
+      });
+    }
+
+    const tipoNorm = String(tipo).toLowerCase().trim();
+    if (!["oficio", "testimonial", "pericia"].includes(tipoNorm)) {
+      return res.status(400).json({ error: "Tipo inválido. Use: oficio | testimonial | pericia" });
+    }
+
+    if (tipoNorm === "oficio") {
+      if (!demandado_id) return res.status(400).json({ error: 'Para tipo "oficio", demandado_id es obligatorio' });
+    } else if (tipoNorm === "testimonial") {
+      if (!nombre_oficiada || String(nombre_oficiada).trim() === "") {
+        return res.status(400).json({ error: 'Para tipo "testimonial", nombre_oficiada (testigo) es obligatorio' });
+      }
+    } else if (tipoNorm === "pericia") {
+      if (!nombre_oficiada || String(nombre_oficiada).trim() === "") {
+        return res.status(400).json({ error: 'Para tipo "pericia", nombre_oficiada (perito) es obligatorio' });
+      }
+      const tp = String(tipo_pericia || "").toLowerCase().trim();
+      if (!["pericial informática", "pericial informatica","pericial contable", "pericial caligrafica", "pericial telecomunicaciones"].includes(tp)) {
+        return res.status(400).json({ error: 'tipo_pericia inválido. Solo "Pericial informática".' });
+      }
+    }
+
+    const id = await generarNuevoId(pgPool, "oficios", "id");
+
+    const { rows } = await pgPool.query(
+      `
+      INSERT INTO public.oficios (
+        id, expediente_id, demandado_id, parte, estado, fecha_diligenciado,
+        tipo, nombre_oficiada, tipo_pericia, supletoria
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10
+      )
+      RETURNING id
+      `,
+      [
+        id,
+        Number(expediente_id),
+        demandado_id != null ? Number(demandado_id) : null,
+        parte,
+        estado,
+        fecha_diligenciado ? new Date(fecha_diligenciado) : null,
+        tipoNorm,
+        nombre_oficiada ?? null,
+        tipoNorm === "pericia" ? (tipo_pericia ?? null) : null,
+        tipoNorm === "testimonial" ? (supletoria ? new Date(supletoria) : null) : null,
+      ]
+    );
+
+    return res.status(201).json({ ok: true, id: rows[0].id });
+  } catch (err) {
+    console.error("Error al agregar prueba:", err);
+    return res.status(500).json({ error: "Error al agregar prueba", message: err.message });
+  }
+});
+
+
+// postgres
+app.get("/oficios", async (req, res) => {
+  try {
+    const { rows } = await pgPool.query(
+      "SELECT * FROM public.oficios WHERE estado <> 'eliminado'"
+    );
+    return res.status(200).json(rows);
+  } catch (err) {
+    console.error("Error al obtener oficios:", err);
+    return res.status(500).json({ error: "Error al obtener oficios", message: err.message });
+  }
+});
+
+// postgres
+app.put("/oficios/modificar/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const { expediente_id, demandado_id, parte, estado, fecha_diligenciado } = req.body;
+
+  try {
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ mensaje: "ID inválido" });
+    }
+
+    const { rowCount } = await pgPool.query(
+      `
+      UPDATE public.oficios
+      SET expediente_id = $1,
+          demandado_id = $2,
+          parte = $3,
+          estado = $4,
+          fecha_diligenciado = $5
+      WHERE id = $6
+      `,
+      [
+        expediente_id != null ? Number(expediente_id) : null,
+        demandado_id != null ? Number(demandado_id) : null,
+        parte ?? null,
+        estado ?? null,
+        fecha_diligenciado ? new Date(fecha_diligenciado) : null,
+        id,
+      ]
+    );
+
+    if (rowCount > 0) {
+      return res.status(200).json({ mensaje: "Oficio actualizado correctamente" });
+    } else {
+      return res.status(404).json({ mensaje: "Oficio no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al actualizar oficio:", error);
+    return res.status(500).json({ mensaje: "Error al actualizar oficio", message: error.message });
+  }
+});
+
+// postgres
+
+
 
 
 
