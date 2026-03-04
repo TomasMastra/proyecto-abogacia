@@ -145,34 +145,36 @@ estadosHonorarios: string[] = [
     }
   
   
-  cargarPorEstado(estado: string) {
-    this.cargando = true;
-    this.expedienteService.getExpedientesPorEstado(estado)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(
-        (honorarios) => {
-          //this.honorariosDiferidos = honorarios;
-          this.honorariosDiferidos = honorarios!;
-          this.hayHonorarios = this.honorariosDiferidos.length > 0;
-          this.honorariosOriginales = honorarios!
-  
-         /* this.honorariosDiferidos.forEach(expediente => {
-            this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
-              expediente.juzgadoModel = juzgado;
-            });
-          });*/
-  
-          //this.busqueda = '';
+cargarPorEstado(estado: string) {
+  this.cargando = true;
+
+  this.expedienteService.getExpedientesPorEstado(estado)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (honorarios) => {
+        // 1. Seteamos las listas (siempre usando un fallback de [] por seguridad)
+        this.honorariosOriginales = honorarios || [];
+        this.honorariosDiferidos = honorarios || [];
+        
+        // 2. Actualizamos la bandera de existencia
+        this.hayHonorarios = this.honorariosDiferidos.length > 0;
+
+        // 3. Aplicamos el ordenamiento inicial
         this.ordenarPor('giro');
 
-          this.cargando = false;
-        },
-        (error) => {
-          console.error('Error al obtener expedientes:', error);
-          this.cargando = false;
-        }
-      );
-  }
+        // 4. ✅ CLAVE: Aplicamos el filtro actual. 
+        // Si 'this.busqueda' tiene texto, se filtrará la nueva lista inmediatamente.
+        // Si está vacío, mostrará todo.
+        this.filtrar(); 
+
+        this.cargando = false;
+      },
+      error: (error) => {
+        console.error('Error al obtener expedientes:', error);
+        this.cargando = false;
+      }
+    });
+}
 
   goTo(path: string) {
     this.cargando = false;      // <— agrega esto
@@ -710,6 +712,13 @@ filtrar() {
 
     const numeroOk = expediente.numero?.toString().includes(texto);
     const anioOk   = expediente.anio?.toString().includes(texto);
+    const tipoRegistro = (expediente.tipo_registro ?? '').toString().toLowerCase();
+    const esMediacion = tipoRegistro === 'mediacion';
+
+    const tipoRegistroOk =
+      texto !== '' && ('mediacion'.includes(texto) || 'expediente'.includes(texto))
+        ? (esMediacion ? 'mediacion' : 'expediente').includes(texto)
+        : false;
 
     const matchParte = (p: any) => {
       if (!p) return false;
@@ -746,7 +755,7 @@ filtrar() {
 
     const caratulaOk = expediente.caratula?.toLowerCase?.().includes(texto);
 
-    const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
+    const busquedaOk = texto === '' || numeroOk || anioOk || esMediacion || actoraOk || demandadoOk || caratulaOk;
 
     return estadoCoincide && busquedaOk && procuradorOk;
   });

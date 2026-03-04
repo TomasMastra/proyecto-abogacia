@@ -1,9 +1,7 @@
-import { Component, Inject, OnInit } from '@angular/core';
-import { Observable, startWith, map } from 'rxjs';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { Component, Inject, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,9 +10,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators, FormBuilder  } from '@angular/forms';
+import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators, FormBuilder } from '@angular/forms';
+import { Observable, startWith, map, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { Subject } from 'rxjs';
+
+import Swal from 'sweetalert2';
 
 import { DemandadosService } from 'src/app/services/demandado.service';
 import { DemandadoModel } from 'src/app/models/demandado/demandado.component';
@@ -30,12 +30,15 @@ import { CodigoModel } from 'src/app/models/codigo/codigo.component';
 
 import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
-import Swal from 'sweetalert2';
 
 type ParteMixta =
   | { tipo: 'empresa'; id: number; nombre: string }
   | { tipo: 'cliente'; id: number; nombre: string; apellido?: string | null };
 
+type DialogExpedienteModificarData = {
+  id: number;
+  tipo_registro?: string | null; // lo mandás desde abrirModificar()
+};
 
 @Component({
   selector: 'app-dialog-expediente-modificar',
@@ -57,52 +60,21 @@ type ParteMixta =
     MatAutocompleteModule
   ]
 })
+export class DialogExpedienteModificarComponent implements OnInit, OnDestroy {
+  // =========================
+  // FORM
+  // =========================
+  form!: FormGroup;
 
-
-export class DialogExpedienteModificarComponent implements OnInit {
-  // -------- form
-  protected form: FormGroup = new FormGroup({
-    numero: new FormControl('', [Validators.required]),
-    anio: new FormControl('', [Validators.required]),
-    estado: new FormControl('', [Validators.required]),
-    porcentaje: new FormControl('', [Validators.required]),
-    fechaInicio: new FormControl('', [Validators.required]),
-    juicio: new FormControl('', [Validators.required]),
-    tipo: new FormControl('todos', [Validators.required]),
-    juzgado: new FormControl('', [Validators.required]),
-    abogado: new FormControl('', [Validators.required]),
-    procurador: new FormControl('', [Validators.required]),
-    codigo: new FormControl<number|null>(null), // ← NUEVO
-
-    // mixto
-    actoraTipo: new FormControl<'cliente'|'empresa'>('cliente', [Validators.required]),
-    actoraEmpresa: new FormControl<any | null>(null),
-    demandadoTipo: new FormControl<'cliente'|'empresa'>('empresa', [Validators.required]),
-    demandadoEmpresa: new FormControl<any | null>(null),
-  });
-
+  // =========================
+  // DATA
+  // =========================
   expediente!: ExpedienteModel;
-  cargando = false;
+  mode: 'expediente' | 'mediacion' = 'expediente';
 
-  // -------- catálogos / estado
-  juzgados: JuzgadoModel[] = [];
-  juzgadosOriginales: JuzgadoModel[] = [];
-  demandados: DemandadoModel[] = [];  // empresas
-  clientes: ClienteModel[]   = [];
-  listaUsuarios: UsuarioModel[] = [];
-  codigos: CodigoModel[] = [];
-  codigosOriginales: CodigoModel[] = [];
-
-  actorasAgregadas: ParteMixta[] = [];
-  demandadosAgregados: ParteMixta[] = [];
-
-  abogadoSeleccionado: UsuarioModel | null = null;
-  procuradorSeleccionado: UsuarioModel | null = null;
-  juzgadoElegido: JuzgadoModel | null = null;
-  codigoSeleccionado: any = null;
-
-  tipos = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
-  estados = [
+  // estados
+  estadosMediacion = ['Mediacion', 'Cobrado'];
+  estados: string[] = [
     'Sorteado','Inicio - Previo','Inicio - Plantea Revocatoria','Inicio - Da Cumplimiento',
     'Inicio - Solicita','Inicio - Apela','Inicio - Recusa','Inicio - Plantea Nulidad','Inicio - Se Eleve',
     'Traslado demanda - Se Ordena','Traslado demanda - Cedula Confronte','Traslado demanda - Cedula Liberada',
@@ -118,21 +90,36 @@ export class DialogExpedienteModificarComponent implements OnInit {
     'Defensor Oficial - Solicita','Defensor Oficial - Cedula','Defensor Oficial - Ratifica lo actuado',
     'Sentencia - Previo','Sentencia - Solicita','Sentencia - Pasen autos a Sentencia','Sentencia','Archivo','Caducidad'
   ];
+  estadosVisibles: string[] = [];
+
+  // combos
+  tipos = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
   juicios = ['ordinario', 'sumarisimo', 'a definir'];
   mensajeSelectJuzgado = 'Filtrar por juzgado';
 
-  // -------- autocompletes
+  // catálogos
+  juzgados: JuzgadoModel[] = [];
+  juzgadosOriginales: JuzgadoModel[] = [];
+  demandados: DemandadoModel[] = [];
+  clientes: ClienteModel[] = [];
+  listaUsuarios: UsuarioModel[] = [];
+  codigos: CodigoModel[] = [];
+  codigosOriginales: CodigoModel[] = [];
+
+  // partes
+  actorasAgregadas: ParteMixta[] = [];
+  demandadosAgregados: ParteMixta[] = [];
+
+  // autocompletes
   actoraClienteCtrl = new FormControl<string>('');
   actoraEmpresaCtrl = new FormControl<string | DemandadoModel>('');
-
   demandadoClienteCtrl = new FormControl<string>('');
-  filteredActoraClientes!: Observable<ClienteModel[]>;
-  filteredActoraEmpresas!: Observable<DemandadoModel[]>;
-
-  filteredDemandadoClientes!: Observable<ClienteModel[]>;
   demandadoEmpresaCtrl = new FormControl<string | DemandadoModel>('');
+
+  filteredActoraClientes!: Observable<ClienteModel[]>;
+  filteredDemandadoClientes!: Observable<ClienteModel[]>;
+  filteredActoraEmpresas!: Observable<DemandadoModel[]>;
   filteredDemandadoEmpresas!: Observable<DemandadoModel[]>;
-  codigosFiltradas: any[] = [];
 
   private destroy$ = new Subject<void>();
 
@@ -143,45 +130,298 @@ export class DialogExpedienteModificarComponent implements OnInit {
     private clienteService: ClientesService,
     private expedienteService: ExpedientesService,
     private codigosService: CodigosService,
-      private fb: FormBuilder,
-
-
+    private fb: FormBuilder,
+    private cdr: ChangeDetectorRef,
     public dialogRef: MatDialogRef<DialogExpedienteModificarComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: ExpedienteModel
-  ) {
-    // precarga campos simples
-    if (data) {
-      const fechaFormateada = data.fecha_inicio
-        ? new Date(data.fecha_inicio).toISOString().split('T')[0]
-        : '';
-      this.form.patchValue({
-        numero: data.numero ?? '',
-        anio: data.anio ?? '',
-        estado: data.estado ?? '',
-        porcentaje: data.porcentaje ?? '',
-        fechaInicio: fechaFormateada,
-        juicio: data.juicio ?? '',
-      });
-    }
-  }
+    @Inject(MAT_DIALOG_DATA) public data: DialogExpedienteModificarData
+  ) {}
 
-  // ============================================================
-  // lifecycle
-  // ============================================================
+  // =========================
+  // INIT / DESTROY
+  // =========================
   ngOnInit(): void {
-    //alert(this.data.id);
+    // 1) MODO INICIAL (rápido) por data
+    const tr0 = (this.data?.tipo_registro ?? '').toString().toLowerCase();
+    this.mode = tr0 === 'mediacion' ? 'mediacion' : 'expediente';
+    this.setEstadosVisibles();
 
+    // 2) Crear form UNA SOLA VEZ
     this.inicializarForm();
-    this.cargarExpediente();
+    this.configurarModo();
+    this.configurarAutocompletes();
 
+    // 3) Catálogos
     this.cargarJuzgado();
     this.cargarDemandados();
     this.cargarClientes();
     this.cargarUsuarios();
     this.cargarCodigos();
 
-    // Autocomplete robusto: maneja string u objeto y resetea al enfocar/seleccionar
-    // Autocomplete robusto (clientes)
+    // 4) Datos desde backend
+    this.cargarExpediente();
+    this.cargarPartes();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // =========================
+  // FORM
+  // =========================
+  private inicializarForm(): void {
+    this.form = this.fb.group({
+      numero: [null],
+      anio: [null, Validators.required],
+      estado: [null, Validators.required],
+      porcentaje: [null, Validators.required],
+      fechaInicio: [null, Validators.required],
+      juicio: [null],
+      tipo: ['todos'],
+      juzgado: [null],
+      abogado: [null, Validators.required],
+      procurador: [null, Validators.required],
+      codigo: [null],
+
+      // mediación
+      montoLiquidacionCapital: [null],
+      montoLiquidacionHonorarios: [null],
+
+      // mixto
+      actoraTipo: ['cliente', Validators.required],
+      actoraEmpresa: [null],
+      demandadoTipo: ['empresa', Validators.required],
+      demandadoEmpresa: [null],
+    });
+  }
+
+  private setEstadosVisibles(): void {
+    this.estadosVisibles = this.mode === 'mediacion' ? this.estadosMediacion : this.estados;
+  }
+
+  private configurarModo(): void {
+    const esMed = this.mode === 'mediacion';
+
+    const numero = this.form.get('numero');
+    const juicio = this.form.get('juicio');
+    const tipo = this.form.get('tipo');
+    const juzgado = this.form.get('juzgado');
+    const codigo = this.form.get('codigo');
+
+    const montoCap = this.form.get('montoLiquidacionCapital');
+    const montoHon = this.form.get('montoLiquidacionHonorarios');
+
+    if (esMed) {
+      // NO van
+      [numero, juicio, tipo, juzgado, codigo].forEach(c => {
+        c?.clearValidators();
+        c?.setValue(null, { emitEvent: false });
+        c?.disable({ emitEvent: false });
+        c?.updateValueAndValidity({ emitEvent: false });
+      });
+
+      // SI van (obligatorios)
+      montoCap ?.setValidators([Validators.required, Validators.min(0)]);
+      montoHon?.setValidators([Validators.required, Validators.min(0)]);
+      montoCap ?.enable({ emitEvent: false });
+      montoHon?.enable({ emitEvent: false });
+      montoCap ?.updateValueAndValidity({ emitEvent: false });
+      montoHon?.updateValueAndValidity({ emitEvent: false });
+    } else {
+      // SI van
+      numero?.setValidators([Validators.required, Validators.min(0)]);
+      juicio?.setValidators([Validators.required]);
+      tipo?.setValidators([Validators.required]);
+      juzgado?.setValidators([Validators.required]);
+
+      [numero, juicio, tipo, juzgado, codigo].forEach(c => {
+        c?.enable({ emitEvent: false });
+        c?.updateValueAndValidity({ emitEvent: false });
+      });
+
+      // NO van
+      montoCap ?.clearValidators();
+      montoHon?.clearValidators();
+      montoCap ?.setValue(null, { emitEvent: false });
+      montoHon?.setValue(null, { emitEvent: false });
+      montoCap ?.disable({ emitEvent: false });
+      montoHon?.disable({ emitEvent: false });
+      montoCap ?.updateValueAndValidity({ emitEvent: false });
+      montoHon?.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+
+  // =========================
+  // CARGAS
+  // =========================
+  private cargarExpediente(): void {
+    this.expedienteService.getExpedientePorId(this.data.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (exp: any) => {
+          if (!exp) return;
+
+          this.expediente = exp;
+
+          // MODO FINAL: backend manda la posta
+            const tr = (exp?.tipo_registro ?? '').toString().toLowerCase();
+            this.mode = tr === 'mediacion' ? 'mediacion' : 'expediente';
+          this.setEstadosVisibles();
+          this.configurarModo();
+
+          console.log(this.mode, exp?.tipo_registro);
+
+          // preselecciones (si catálogos todavía no llegaron, quedan null; luego los re-parcheamos)
+          const juzgadoSel = this.juzgados.find(j => +j.id === +exp.juzgado_id) || null;
+          const codigoSel  = this.codigos.find(c => +c.id === +exp.codigo_id) || null;
+          const abogadoSel = this.listaUsuarios.find(u => +u.id === +exp.usuario_id) || null;
+          const procurSel  = this.listaUsuarios.find(u => +u.id === +exp.procurador_id) || null;
+
+          this.form.patchValue({
+            numero: exp.numero ?? null,
+            anio: exp.anio ?? null,
+            estado: exp.estado ?? null,
+            porcentaje: exp.porcentaje ?? null,
+            fechaInicio: exp.fecha_inicio ? String(exp.fecha_inicio).substring(0, 10) : null,
+            juicio: exp.juicio ?? null,
+            tipo: (exp as any).tipo ?? 'todos',
+
+            juzgado: juzgadoSel,
+            codigo: codigoSel,
+            abogado: abogadoSel,
+            procurador: procurSel,
+
+            // mediación
+            montoLiquidacionCapital: exp.montoLiquidacionCapital ?? null,
+            montoLiquidacionHonorarios: exp.montoLiquidacionHonorarios ?? null,
+          }, { emitEvent: false });
+
+          // filtros dependientes
+          if (this.mode !== 'mediacion') {
+            this.cambiarTipoJuzgado();
+            this.cambiarTipoCodigo();
+          }
+
+          this.cdr.markForCheck();
+        },
+        error: (e) => {
+          console.error('getExpedientePorId ERROR', e);
+          Swal.fire({ icon: 'error', title: 'Error cargando expediente' });
+        }
+      });
+  }
+
+  private cargarPartes(): void {
+    this.expedienteService.getPartes(+this.data.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (r: any) => {
+          this.actorasAgregadas = (r?.actoras || []).map((a: any) => ({
+            tipo: a.tipo === 'cliente' ? 'cliente' : 'empresa',
+            id: +a.id,
+            nombre: a.nombre!,
+            apellido: a.apellido ?? null
+          }));
+
+          this.demandadosAgregados = (r?.demandados || []).map((d: any) => ({
+            tipo: d.tipo === 'cliente' ? 'cliente' : 'empresa',
+            id: +d.id,
+            nombre: d.nombre!,
+            apellido: d.apellido ?? null
+          }));
+
+          this.form.patchValue({
+            actoraTipo: this.actorasAgregadas.some(x => x.tipo === 'empresa') ? 'empresa' : 'cliente',
+            demandadoTipo: this.demandadosAgregados.length ? this.demandadosAgregados[0].tipo : 'empresa',
+          }, { emitEvent: false });
+
+          this.cdr.markForCheck();
+        },
+        error: (e) => console.error('getPartes ERROR', e)
+      });
+  }
+
+  cargarJuzgado(): void {
+    this.juzgadoService.getJuzgados()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(juzgados => {
+        this.juzgadosOriginales = juzgados || [];
+        this.juzgados = [...this.juzgadosOriginales];
+
+        // re-enganchar selección si ya cargó expediente
+        const exp: any = this.expediente as any;
+        if (exp?.juzgado_id) {
+          const j = this.juzgados.find(x => +x.id === +exp.juzgado_id) || null;
+          if (j) this.form.patchValue({ juzgado: j }, { emitEvent: false });
+        }
+
+        this.cdr.markForCheck();
+      });
+  }
+
+  cargarDemandados(): void {
+    this.demandadoService.getDemandados()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(empresas => {
+        this.demandados = empresas || [];
+        this.cdr.markForCheck();
+      });
+  }
+
+  cargarClientes(): void {
+    this.clienteService.getClientes()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(clientes => {
+        this.clientes = clientes || [];
+        this.cdr.markForCheck();
+      });
+  }
+
+  cargarUsuarios(): void {
+    this.usuarioService.getUsuarios()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(usuarios => {
+        this.listaUsuarios = usuarios || [];
+
+        // re-enganchar selección si ya cargó expediente
+        const exp: any = this.expediente as any;
+        if (exp?.usuario_id) {
+          const ab = this.listaUsuarios.find(u => +u.id === +exp.usuario_id) || null;
+          if (ab) this.form.patchValue({ abogado: ab }, { emitEvent: false });
+        }
+        if (exp?.procurador_id) {
+          const pr = this.listaUsuarios.find(u => +u.id === +exp.procurador_id) || null;
+          if (pr) this.form.patchValue({ procurador: pr }, { emitEvent: false });
+        }
+
+        this.cdr.markForCheck();
+      });
+  }
+
+  cargarCodigos(): void {
+    this.codigosService.getCodigos()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(codigos => {
+        this.codigosOriginales = codigos || [];
+        this.codigos = [...this.codigosOriginales];
+
+        // re-enganchar selección si ya cargó expediente
+        const exp: any = this.expediente as any;
+        if (exp?.codigo_id) {
+          const c = this.codigos.find(x => +x.id === +exp.codigo_id) || null;
+          if (c) this.form.patchValue({ codigo: c }, { emitEvent: false });
+        }
+
+        this.cdr.markForCheck();
+      });
+  }
+
+  // =========================
+  // AUTOCOMPLETE
+  // =========================
+  private configurarAutocompletes(): void {
     this.filteredActoraClientes = this.actoraClienteCtrl.valueChanges.pipe(
       startWith(''),
       map(v => this.filtrarClientes(v ?? ''))
@@ -190,7 +430,6 @@ export class DialogExpedienteModificarComponent implements OnInit {
       startWith(''),
       map(v => this.filtrarClientes(v ?? ''))
     );
-
     this.filteredActoraEmpresas = this.actoraEmpresaCtrl.valueChanges.pipe(
       startWith(''),
       map(v => this.filtrarEmpresas(v ?? ''))
@@ -199,558 +438,165 @@ export class DialogExpedienteModificarComponent implements OnInit {
       startWith(''),
       map(v => this.filtrarEmpresas(v ?? ''))
     );
-
-    // Traigo las partes del backend (si hay id)
-    if (this.data?.id) {
-      this.expedienteService.getPartes(+this.data.id).subscribe({
-        next: (r) => {
-          this.actorasAgregadas = (r.actoras || []).map((a: any) => ({
-            tipo: a.tipo === 'cliente' ? 'cliente' : 'empresa',
-            id: +a.id,
-            nombre: a.nombre!,
-            apellido: a.apellido ?? null
-          }));
-          this.demandadosAgregados = (r.demandados || []).map((d: any) => ({
-            tipo: d.tipo === 'cliente' ? 'cliente' : 'empresa',
-            id: +d.id,
-            nombre: d.nombre!,
-            apellido: d.apellido ?? null
-          }));
-
-          // setear selects de tipo
-          this.form.patchValue({
-            actoraTipo: this.actorasAgregadas.some(x => x.tipo === 'empresa') ? 'empresa' : 'cliente',
-            demandadoTipo: this.demandadosAgregados.length
-              ? this.demandadosAgregados[0].tipo
-              : 'empresa'
-          });
-
-          // preselección en combos de empresas (si ya están los catálogos)
-          const actEmp = this.actorasAgregadas.find(x => x.tipo === 'empresa');
-          if (actEmp) {
-            const empA = this.demandados.find(e => +e.id === +actEmp.id);
-            if (empA) this.form.patchValue({ actoraEmpresa: empA });
-          }
-          const demEmp = this.demandadosAgregados.find(x => x.tipo === 'empresa');
-          if (demEmp) {
-            const empD = this.demandados.find(e => +e.id === +demEmp.id);
-            if (empD) this.form.patchValue({ demandadoEmpresa: empD });
-          }
-        },
-        error: (e) => console.error('getPartes error', e)
-      });
-    }
   }
 
-private inicializarForm(): void {
-  this.form = this.fb.group({
-
-    // ===========================
-    // DATOS PRINCIPALES
-    // ===========================
-    numero: ['', Validators.required],
-    anio: ['', Validators.required],
-    estado: ['', Validators.required],
-    porcentaje: ['', Validators.required],
-    fechaInicio: ['', Validators.required],
-    juicio: ['', Validators.required],
-
-    // ===========================
-    // TIPO DE JUZGADO
-    // (CCF — COM — CIV — todos)
-    // ===========================
-    tipo: ['todos', Validators.required],
-
-    // ===========================
-    // RELACIONES
-    // ===========================
-    juzgado: [null, Validators.required],   // ← antes era "juzgado"
-    abogado: ['', Validators.required],         // usuario_id
-    procurador: ['', Validators.required],      // procurador_id
-    codigo: [null],                             // código jurisprudencia
-
-    // ===========================
-    // ACTORA MIXTA
-    // ===========================
-    actoraTipo: ['cliente', Validators.required],   // cliente | empresa
-    actoraEmpresa: [null],                          // si es empresa va acá
-
-    // ===========================
-    // DEMANDADO MIXTO
-    // ===========================
-    demandadoTipo: ['empresa', Validators.required], // cliente | empresa
-    demandadoEmpresa: [null]                         // si es empresa va acá
-  });
-}
-
-private cargarExpediente(): void {
-  this.cargando = true;
-
-  this.expedienteService.getExpedientePorId(this.data.id).subscribe({
-    next: (exp) => {
-      this.expediente = exp;
-      if (!exp) {
-        this.cargando = false;
-        return;
-      }
-
-      // buscar los objetos correspondientes al id
-      const juzgadoSel =
-        this.juzgados.find(j => +j.id == +exp.juzgado_id!) || null;
-
-      const codigoSel =
-        this.codigos.find(c => +c.id == exp.codigo_id) || null;
-
-      const abogadoSel =
-        this.listaUsuarios.find(u => +u.id == +exp.usuario_id) || null;
-
-      const procuradorSel =
-        this.listaUsuarios.find(u => u.id === exp.procurador_id) || null;
-
-      // por ahora tomamos el primer demandado para el selector
-      const primerDemandado =
-        exp.demandados && exp.demandados.length ? exp.demandados[0] : null;
-
-      this.form.patchValue({
-        numero: exp.numero ?? '',
-        anio: exp.anio ?? '',
-        estado: exp.estado ?? '',
-        porcentaje: exp.porcentaje ?? '',
-        fechaInicio: exp.fecha_inicio ? exp.fecha_inicio.substring(0, 10) : '',
-        juicio: exp.juicio ?? '',
-
-        tipo: (exp as any).tipo ?? 'todos',
-
-        juzgado: juzgadoSel,
-        codigo: codigoSel,
-        abogado: abogadoSel,
-        procurador: procuradorSel,
-
-        actoraTipo: 'cliente',
-        actoraEmpresa: null,
-
-        demandadoTipo: 'empresa',
-        demandadoEmpresa: primerDemandado
-      });
-
-      // sincronizás los [(ngModel)] también
-      this.juzgadoElegido = juzgadoSel;
-      this.codigoSeleccionado = codigoSel;
-      this.abogadoSeleccionado = abogadoSel;
-      this.procuradorSeleccionado = procuradorSel;
-
-      this.cargando = false;
-    },
-    error: (err) => {
-      console.error('Error cargando expediente en diálogo:', err);
-      this.cargando = false;
-    }
-  });
-}
-
-  // ============================================================
-  // catálogos
-  // ============================================================
-  cargarJuzgado() {
-    this.juzgadoService.getJuzgados()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(juzgados => {
-        this.juzgadosOriginales = juzgados || [];
-        this.juzgados = [...this.juzgadosOriginales];
-        if (this.data?.juzgado_id) {
-          const j = this.juzgados.find(x => +x.id === +this.data.juzgado_id!);
-          if (j) { this.form.get('juzgado')?.setValue(j); this.juzgadoElegido = j; }
-        }
-      });
-  }
-
-  cargarDemandados() {
-    this.demandadoService.getDemandados()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(empresas => {
-        this.demandados = empresas || [];
-        // si ya había actora/demandado empresa, preselecciono
-        const actEmp = this.actorasAgregadas.find(a => a.tipo === 'empresa');
-        if (actEmp) {
-          const emp = this.demandados.find(d => +d.id === +actEmp.id) || null;
-          if (emp) this.form.patchValue({ actoraEmpresa: emp });
-        }
-        const demEmp = this.demandadosAgregados.find(d => d.tipo === 'empresa');
-        if (demEmp) {
-          const emp = this.demandados.find(d => +d.id === +demEmp.id) || null;
-          if (emp) this.form.patchValue({ demandadoEmpresa: emp });
-        }
-      });
-  }
-
-  cargarClientes() {
-    this.clienteService.getClientes()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(clientes => { this.clientes = clientes || []; });
-  }
-
-  cargarUsuarios() {
-    this.usuarioService.getUsuarios()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(usuarios => {
-        this.listaUsuarios = usuarios || [];
-        if (this.data?.usuario_id) {
-          const ab = this.listaUsuarios.find(u => +u.id === +this.data.usuario_id);
-          if (ab) { this.form.get('abogado')?.setValue(ab); this.abogadoSeleccionado = ab; }
-        }
-        if (this.data?.procurador_id) {
-          const pr = this.listaUsuarios.find(u => +u.id === +this.data.procurador_id!);
-          if (pr) { this.form.get('procurador')?.setValue(pr); this.procuradorSeleccionado = pr; }
-        }
-      });
-  }
-
-  // ============================================================
-  // helpers búsqueda
-  // ============================================================
-  private textoDeCliente(v: any): string {
-    if (typeof v === 'string') return v;
-    if (!v) return '';
-    return `${v?.nombre ?? ''} ${v?.apellido ?? ''}`.trim();
-  }
-  private filtrarClientes(text: string) {
+  private filtrarClientes(text: string): ClienteModel[] {
     const term = (text || '').toLowerCase();
-    return this.clientes.filter(c => (`${c?.nombre ?? ''} ${c?.apellido ?? ''}`).toLowerCase().includes(term));
+    return this.clientes.filter(c =>
+      (`${c?.nombre ?? ''} ${c?.apellido ?? ''}`).toLowerCase().includes(term)
+    );
   }
+
   displayCliente(c: ClienteModel | string): string {
     if (!c) return '';
     if (typeof c === 'string') return c;
     return `${c?.nombre ?? ''} ${c?.apellido ?? ''}`.trim();
   }
-  resetActoraFiltro() { this.actoraClienteCtrl.setValue(''); }
-  resetDemandadoFiltro() { this.demandadoClienteCtrl.setValue(''); }
-
-  cambiarTipoJuzgado() {
-    const tipo = this.form.get('tipo')?.value;
-    this.juzgados = (!tipo || tipo === 'todos') ? [...this.juzgadosOriginales] : this.juzgadosOriginales.filter(j => j.tipo === tipo);
-  }
-
-  // ============================================================
-  // acciones actora
-  // ============================================================
-
-    private yaExiste(arr: any[], tipo: 'cliente'|'empresa', id: number): boolean {
-    return arr.some(x => x.tipo === tipo && Number(x.id) === Number(id));
-  }
-  seleccionarActoraCliente(c: ClienteModel) {
-    if (!c?.id) return;
-    const ya = this.actorasAgregadas.find(x => x.tipo === 'cliente' && x.id === +c.id);
-    if (!ya) this.actorasAgregadas.push({ tipo: 'cliente', id: +c.id, nombre: c.nombre!, apellido: c.apellido ?? '' });
-    this.actoraClienteCtrl.setValue(''); // limpia input
-  }
-  seleccionarActoraEmpresa(e: DemandadoModel) {
-    if (!e?.id) { Swal.fire('Empresa inválida'); return; }
-    const id = Number(e.id);
-    if (Number.isNaN(id)) { Swal.fire('ID empresa inválido'); return; }
-
-    if (!this.yaExiste(this.actorasAgregadas, 'empresa', id)) {
-      this.actorasAgregadas.push({ tipo: 'empresa', id, nombre: e.nombre ?? '' });
-    }
-  }
-  eliminarActora(a: ParteMixta) {
-    this.actorasAgregadas = this.actorasAgregadas.filter(x => !(x.tipo === a.tipo && x.id === a.id));
-  }
-
-
-  eliminarDemandado(d: ParteMixta) {
-    this.demandadosAgregados = this.demandadosAgregados.filter(x => !(x.tipo === d.tipo && x.id === d.id));
-  }
-
-  // ============================================================
-  // guardar / cerrar
-  // ============================================================
-  acceptDialog(): void {
-    const invalid = Object.entries(this.form.controls)
-      .filter(([_, c]) => c.invalid)
-      .map(([k, c]) => `${k}: ${JSON.stringify(c.errors)}`);
-    console.log('Controles inválidos =>', invalid);
-
-    if (!this.form.valid || this.actorasAgregadas.length === 0 || this.demandadosAgregados.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'Faltan datos obligatorios' });
-      return;
-    }
-
-    console.log(this.data.ultimo_movimiento ?? null);
-    /*const expediente = {
-      id: this.data?.id,
-      numero: this.form.value.numero,
-      anio: this.form.value.anio,
-      estado: this.form.value.estado,
-      porcentaje: this.form.value.porcentaje,
-      juicio: this.form.value.juicio,
-      fecha_inicio: this.form.value.fechaInicio,
-
-      juzgado_id: this.form.value.juzgado?.id ?? null,
-      usuario_id: this.form.value.abogado?.id ?? null,
-      procurador_id: this.form.value.procurador?.id ?? null,
-
-      // partes mixtas
-      actoras: this.actorasAgregadas,
-      demandados: this.demandadosAgregados,
-
-      // resto se mantiene del data
-      titulo: this.data.titulo ?? null,
-      descripcion: this.data.descripcion ?? '',
-      fecha_creacion: this.data.fecha_creacion,
-      demandado_id: this.data.demandado_id ?? null,
-      demandadoModel: this.data.demandadoModel ?? null,
-      sala_radicacion: this.data.sala_radicacion ?? null,
-      honorario: this.data.honorario ?? null,
-      fecha_sentencia: this.data.fecha_sentencia ?? null,
-      hora_sentencia: this.data.hora_sentencia ?? null,
-      juez_id: this.data.juez_id ?? null,
-      juezModel: this.data.juezModel ?? null,
-      ultimo_movimiento: this.data.ultimo_movimiento ?? null,
-      monto: this.data.monto ?? null,
-      apela: this.data.apela ?? null,
-      juzgadoModel: this.data.juzgadoModel ?? null,
-      sala: this.data.sala ?? null,
-      fecha_cobro: this.data.fecha_cobro ?? null,
-      fecha_cobro_capital: this.data.fecha_cobro_capital ?? null,
-      valorUMA: this.data.valorUMA ?? null,
-      requiere_atencion: this.data.requiere_atencion ?? false,
-      fecha_atencion: this.data.fecha_atencion ?? null,
-
-      // Capital
-      estadoCapitalSeleccionado: this.data.estadoCapitalSeleccionado ?? null,
-      subEstadoCapitalSeleccionado: this.data.subEstadoCapitalSeleccionado ?? null,
-      fechaCapitalSubestado: this.data.fechaCapitalSubestado ?? null,
-      estadoLiquidacionCapitalSeleccionado: this.data.estadoLiquidacionCapitalSeleccionado ?? null,
-      fechaLiquidacionCapital: this.data.fechaLiquidacionCapital ?? null,
-      montoLiquidacionCapital: this.data.montoLiquidacionCapital ?? null,
-      capitalCobrado: this.data.capitalCobrado ?? null,
-      capitalPagoParcial: this.data.capitalPagoParcial ?? null,
-
-      // Honorarios principal
-      estadoHonorariosSeleccionado: this.data.estadoHonorariosSeleccionado ?? null,
-      subEstadoHonorariosSeleccionado: this.data.subEstadoHonorariosSeleccionado ?? null,
-      fechaHonorariosSubestado: this.data.fechaHonorariosSubestado ?? null,
-      estadoLiquidacionHonorariosSeleccionado: this.data.estadoLiquidacionHonorariosSeleccionado ?? null,
-      fechaLiquidacionHonorarios: this.data.fechaLiquidacionHonorarios ?? null,
-      montoLiquidacionHonorarios: this.data.montoLiquidacionHonorarios ?? null,
-      honorarioCobrado: this.data.honorarioCobrado ?? null,
-      cantidadUMA: (this.data.cantidadUMA as any) ?? null,
-
-      // EDESUR/EDENOR
-      numeroCliente: this.data.numeroCliente ?? null,
-      minutosSinLuz: this.data.minutosSinLuz ?? null,
-      periodoCorte: this.data.periodoCorte ?? null,
-
-      // Alzada
-      estadoHonorariosAlzadaSeleccionado: this.data.estadoHonorariosAlzadaSeleccionado ?? null,
-      subEstadoHonorariosAlzadaSeleccionado: this.data.subEstadoHonorariosAlzadaSeleccionado ?? null,
-      fechaHonorariosAlzada: this.data.fechaHonorariosAlzada ?? null,
-      umaSeleccionado_alzada: this.data.umaSeleccionado_alzada ?? null,
-      cantidadUMA_alzada: this.data.cantidadUMA_alzada ?? null,
-      montoAcuerdo_alzada: this.data.montoAcuerdo_alzada ?? null,
-      honorarioAlzadaCobrado: this.data.honorarioAlzadaCobrado ?? false,
-      fechaCobroAlzada: this.data.fechaCobroAlzada ?? null,
-
-      // Ejecución
-      estadoHonorariosEjecucionSeleccionado: this.data.estadoHonorariosEjecucionSeleccionado ?? null,
-      subEstadoHonorariosEjecucionSeleccionado: this.data.subEstadoHonorariosEjecucionSeleccionado ?? null,
-      fechaHonorariosEjecucion: this.data.fechaHonorariosEjecucion ?? null,
-      umaSeleccionado_ejecucion: this.data.umaSeleccionado_ejecucion ?? null,
-      cantidadUMA_ejecucion: this.data.cantidadUMA_ejecucion ?? null,
-      montoHonorariosEjecucion: this.data.montoHonorariosEjecucion ?? null,
-      honorarioEjecucionCobrado: this.data.honorarioEjecucionCobrado ?? false,
-      fechaCobroEjecucion: this.data.fechaCobroEjecucion ?? null,
-
-      // Diferencia
-      estadoHonorariosDiferenciaSeleccionado: this.data.estadoHonorariosDiferenciaSeleccionado ?? null,
-      subEstadoHonorariosDiferenciaSeleccionado: this.data.subEstadoHonorariosDiferenciaSeleccionado ?? null,
-      fechaHonorariosDiferencia: this.data.fechaHonorariosDiferencia ?? null,
-      montoHonorariosDiferencia: this.data.montoHonorariosDiferencia ?? null,
-      honorarioDiferenciaCobrado: this.data.honorarioDiferenciaCobrado ?? false,
-      fechaCobroDiferencia: this.data.fechaCobroDiferencia ?? null,
-      recalcular_caratula: true,
-      codigo_id: this.codigoSeleccionado?.id ?? null
-
-    };*/
-
-const expediente = {
-  id: this.expediente?.id,
-
-  numero: this.form.value.numero,
-  anio: this.form.value.anio,
-  estado: this.form.value.estado,
-  porcentaje: this.form.value.porcentaje,
-  juicio: this.form.value.juicio,
-  fecha_inicio: this.form.value.fechaInicio,
-
-  juzgado_id: this.form.value.juzgado?.id ?? this.expediente.juzgado_id,
-  usuario_id: this.form.value.abogado?.id ?? this.expediente.usuario_id,
-  procurador_id: this.form.value.procurador?.id ?? this.expediente.procurador_id,
-
-  // partes mixtas
-  actoras: this.actorasAgregadas,
-  demandados: this.demandadosAgregados,
-
-  // resto se mantiene del expediente (NO data)
-  titulo: this.expediente.titulo ?? null,
-  descripcion: this.expediente.descripcion ?? '',
-  fecha_creacion: this.expediente.fecha_creacion,
-  demandado_id: this.expediente.demandado_id ?? null,
-  demandadoModel: this.expediente.demandadoModel ?? null,
-  sala_radicacion: this.expediente.sala_radicacion ?? null,
-  honorario: this.expediente.honorario ?? null,
-  fecha_sentencia: this.expediente.fecha_sentencia ?? null,
-  hora_sentencia: this.expediente.hora_sentencia ?? null,
-  juez_id: this.expediente.juez_id ?? null,
-  juezModel: this.expediente.juezModel ?? null,
-  ultimo_movimiento: this.expediente.ultimo_movimiento ?? null,
-  monto: this.expediente.monto ?? null,
-  apela: this.expediente.apela ?? null,
-  juzgadoModel: this.expediente.juzgadoModel ?? null,
-  sala: this.expediente.sala ?? null,
-  fecha_cobro: this.expediente.fecha_cobro ?? null,
-  fecha_cobro_capital: this.expediente.fecha_cobro_capital ?? null,
-  valorUMA: this.expediente.valorUMA ?? null,
-  requiere_atencion: this.expediente.requiere_atencion ?? false,
-  fecha_atencion: this.expediente.fecha_atencion ?? null,
-
-  // Capital
-  estadoCapitalSeleccionado: this.expediente.estadoCapitalSeleccionado ?? null,
-  subEstadoCapitalSeleccionado: this.expediente.subEstadoCapitalSeleccionado ?? null,
-  fechaCapitalSubestado: this.expediente.fechaCapitalSubestado ?? null,
-  estadoLiquidacionCapitalSeleccionado: this.expediente.estadoLiquidacionCapitalSeleccionado ?? null,
-  fechaLiquidacionCapital: this.expediente.fechaLiquidacionCapital ?? null,
-  montoLiquidacionCapital: this.expediente.montoLiquidacionCapital ?? null,
-  capitalCobrado: this.expediente.capitalCobrado ?? 0,
-  capitalPagoParcial: this.expediente.capitalPagoParcial ?? null,
-
-  // Honorarios principal
-  estadoHonorariosSeleccionado: this.expediente.estadoHonorariosSeleccionado ?? null,
-  subEstadoHonorariosSeleccionado: this.expediente.subEstadoHonorariosSeleccionado ?? null,
-  fechaHonorariosSubestado: this.expediente.fechaHonorariosSubestado ?? null,
-  estadoLiquidacionHonorariosSeleccionado: this.expediente.estadoLiquidacionHonorariosSeleccionado ?? null,
-  fechaLiquidacionHonorarios: this.expediente.fechaLiquidacionHonorarios ?? null,
-  montoLiquidacionHonorarios: this.expediente.montoLiquidacionHonorarios ?? null,
-  honorarioCobrado: this.expediente.honorarioCobrado ?? 0,
-  cantidadUMA: this.expediente.cantidadUMA ?? null,
-
-  // EDESUR / EDENOR
-  numeroCliente: this.expediente.numeroCliente ?? null,
-  minutosSinLuz: this.expediente.minutosSinLuz ?? null,
-  periodoCorte: this.expediente.periodoCorte ?? null,
-
-  // Alzada
-  estadoHonorariosAlzadaSeleccionado: this.expediente.estadoHonorariosAlzadaSeleccionado ?? null,
-  subEstadoHonorariosAlzadaSeleccionado: this.expediente.subEstadoHonorariosAlzadaSeleccionado ?? null,
-  fechaHonorariosAlzada: this.expediente.fechaHonorariosAlzada ?? null,
-  umaSeleccionado_alzada: this.expediente.umaSeleccionado_alzada ?? null,
-  cantidadUMA_alzada: this.expediente.cantidadUMA_alzada ?? null,
-  montoAcuerdo_alzada: this.expediente.montoAcuerdo_alzada ?? null,
-  honorarioAlzadaCobrado: this.expediente.honorarioAlzadaCobrado ?? 0,
-  fechaCobroAlzada: this.expediente.fechaCobroAlzada ?? null,
-
-  // Ejecución
-  estadoHonorariosEjecucionSeleccionado: this.expediente.estadoHonorariosEjecucionSeleccionado ?? null,
-  subEstadoHonorariosEjecucionSeleccionado: this.expediente.subEstadoHonorariosEjecucionSeleccionado ?? null,
-  fechaHonorariosEjecucion: this.expediente.fechaHonorariosEjecucion ?? null,
-  umaSeleccionado_ejecucion: this.expediente.umaSeleccionado_ejecucion ?? null,
-  cantidadUMA_ejecucion: this.expediente.cantidadUMA_ejecucion ?? null,
-  montoHonorariosEjecucion: this.expediente.montoHonorariosEjecucion ?? null,
-  honorarioEjecucionCobrado: this.expediente.honorarioEjecucionCobrado ?? 0,
-  fechaCobroEjecucion: this.expediente.fechaCobroEjecucion ?? null,
-
-  // Diferencia
-  estadoHonorariosDiferenciaSeleccionado: this.expediente.estadoHonorariosDiferenciaSeleccionado ?? null,
-  subEstadoHonorariosDiferenciaSeleccionado: this.expediente.subEstadoHonorariosDiferenciaSeleccionado ?? null,
-  fechaHonorariosDiferencia: this.expediente.fechaHonorariosDiferencia ?? null,
-  montoHonorariosDiferencia: this.expediente.montoHonorariosDiferencia ?? null,
-  honorarioDiferenciaCobrado: this.expediente.honorarioDiferenciaCobrado ?? 0,
-  fechaCobroDiferencia: this.expediente.fechaCobroDiferencia ?? null,
-
-  recalcular_caratula: true,
-  codigo_id: this.codigoSeleccionado?.id ?? this.expediente.codigo_id
-};
-
-
-
-    this.dialogRef.close(expediente);
-  }
-
-  closeDialog(): void { this.dialogRef.close(); }
 
   private filtrarEmpresas(termLike: string | DemandadoModel): DemandadoModel[] {
-  const toText = (v: string | DemandadoModel) =>
-    typeof v === 'string' ? v : (v?.nombre ?? '');
-  const normalize = (s: string) =>
-    (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const toText = (v: string | DemandadoModel) => typeof v === 'string' ? v : (v?.nombre ?? '');
+    const normalize = (s: string) =>
+      (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
-  const term = normalize(toText(termLike));
-  if (!term) return this.demandados.slice();
-  return this.demandados.filter(e => normalize(e.nombre ?? '').includes(term));
-}
+    const term = normalize(toText(termLike));
+    if (!term) return this.demandados.slice();
+    return this.demandados.filter(e => normalize(e.nombre ?? '').includes(term));
+  }
 
   displayEmpresa = (e: DemandadoModel) => e ? (e.nombre ?? '') : '';
 
-// ========= DEMANDADOS (múltiples) =========
-  seleccionarDemandadoCliente(c: ClienteModel) {
+  // =========================
+  // FILTROS
+  // =========================
+  cambiarTipoJuzgado(): void {
+    const tipo = this.form.get('tipo')?.value;
+    this.juzgados = (!tipo || tipo === 'todos')
+      ? [...this.juzgadosOriginales]
+      : this.juzgadosOriginales.filter(j => j.tipo === tipo);
+  }
+
+  cambiarTipoCodigo(): void {
+    const tipo = this.form.get('tipo')?.value;
+
+    if (!tipo || tipo === 'todos') {
+      this.codigos = [...this.codigosOriginales];
+      return;
+    }
+
+    if (tipo === 'COM') {
+      this.codigos = this.codigosOriginales.filter(j => (j.tipo ?? '').toLowerCase() === 'comercial');
+    } else {
+      this.codigos = this.codigosOriginales.filter(j => (j.tipo ?? '').toLowerCase() !== 'comercial');
+    }
+  }
+
+  // =========================
+  // PARTES (AGREGAR/ELIMINAR)
+  // =========================
+  private yaExiste(arr: any[], tipo: 'cliente'|'empresa', id: number): boolean {
+    return arr.some(x => x.tipo === tipo && Number(x.id) === Number(id));
+  }
+
+  seleccionarActoraCliente(c: ClienteModel): void {
+    if (!c?.id) return;
+    const id = Number(c.id);
+    if (!this.yaExiste(this.actorasAgregadas, 'cliente', id)) {
+      this.actorasAgregadas.push({ tipo: 'cliente', id, nombre: c.nombre!, apellido: c.apellido ?? '' });
+    }
+    this.actoraClienteCtrl.setValue('');
+  }
+
+  seleccionarActoraEmpresa(e: DemandadoModel): void {
+    if (!e?.id) { Swal.fire('Empresa inválida'); return; }
+    const id = Number(e.id);
+    if (!this.yaExiste(this.actorasAgregadas, 'empresa', id)) {
+      this.actorasAgregadas.push({ tipo: 'empresa', id, nombre: e.nombre ?? '' });
+    }
+    this.actoraEmpresaCtrl.setValue('');
+  }
+
+  eliminarActora(a: ParteMixta): void {
+    this.actorasAgregadas = this.actorasAgregadas.filter(x => !(x.tipo === a.tipo && x.id === a.id));
+  }
+
+  seleccionarDemandadoCliente(c: ClienteModel): void {
     if (!c?.id) { Swal.fire('Cliente inválido'); return; }
     const id = Number(c.id);
-    if (Number.isNaN(id)) { Swal.fire('ID cliente inválido'); return; }
-
     if (!this.yaExiste(this.demandadosAgregados, 'cliente', id)) {
       this.demandadosAgregados.push({ tipo: 'cliente', id, nombre: c.nombre ?? '', apellido: c.apellido ?? '' });
     }
-
-    // reset para volver a ver toda la lista
     this.demandadoClienteCtrl.setValue('');
   }
 
-  seleccionarDemandadoEmpresa(e: DemandadoModel) {
+  seleccionarDemandadoEmpresa(e: DemandadoModel): void {
     if (!e?.id) { Swal.fire('Empresa inválida'); return; }
     const id = Number(e.id);
-    if (Number.isNaN(id)) { Swal.fire('ID empresa inválido'); return; }
-
     if (!this.yaExiste(this.demandadosAgregados, 'empresa', id)) {
       this.demandadosAgregados.push({ tipo: 'empresa', id, nombre: e.nombre ?? '' });
     }
+    this.demandadoEmpresaCtrl.setValue('');
   }
 
-  cargarCodigos() {
-    this.codigosService.getCodigos()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(codigos => {
-        this.codigosOriginales = codigos || [];
-        this.codigos = [...this.codigosOriginales];
-        if (this.data?.codigo_id) {
-          const j = this.codigos.find(x => +x.id === +this.data.codigo_id!);
-          if (j) { this.form.get('codigo')?.setValue(j); this.codigoSeleccionado = j; }
-        }
-      });
+  eliminarDemandado(d: ParteMixta): void {
+    this.demandadosAgregados = this.demandadosAgregados.filter(x => !(x.tipo === d.tipo && x.id === d.id));
   }
 
-cambiarTipoCodigo() {
+  // =========================
+  // GUARDAR / CERRAR
+  // =========================
+  acceptDialog(): void {
+    if (!this.form.valid) {
+      Swal.fire({ icon: 'warning', title: 'Faltan datos obligatorios' });
+      return;
+    }
+    if (this.actorasAgregadas.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'Agregá al menos una actora' });
+      return;
+    }
+    if (this.demandadosAgregados.length === 0) {
+      Swal.fire({ icon: 'warning', title: 'Agregá al menos un demandado' });
+      return;
+    }
 
-  const tipo = this.form.get('tipo')?.value;
+    const esMed = this.mode === 'mediacion';
 
-  if (!tipo || tipo === 'todos') {
-    this.codigos = [...this.codigosOriginales];
-    return;
+    const payload: any = {
+      id: (this.expediente as any)?.id ?? this.data.id,
+
+      anio: this.form.value.anio,
+      estado: this.form.value.estado,
+      porcentaje: this.form.value.porcentaje,
+      fecha_inicio: this.form.value.fechaInicio,
+
+      usuario_id: this.form.value.abogado?.id ?? null,
+      procurador_id: this.form.value.procurador?.id ?? null,
+
+      actoras: this.actorasAgregadas,
+      demandados: this.demandadosAgregados,
+
+      recalcular_caratula: true,
+      tipo_registro: esMed ? 'mediacion' : 'expediente',
+    };
+
+    if (esMed) {
+      payload.montoLiquidacionCapital  = this.form.value.montoLiquidacionCapital ;
+      payload.montoLiquidacionHonorarios = this.form.value.montoLiquidacionHonorarios;
+
+      payload.numero = null;
+      payload.juzgado_id = null;
+      payload.juicio = null;
+      payload.codigo_id = null;
+    } else {
+      payload.numero = this.form.value.numero;
+      payload.juicio = this.form.value.juicio;
+      payload.juzgado_id = this.form.value.juzgado?.id ?? null;
+      payload.codigo_id = this.form.value.codigo?.id ?? null;
+    }
+
+    this.dialogRef.close(payload);
   }
 
-  if (tipo === 'COM') {
-    // Solo las comerciales
-    this.codigos = this.codigosOriginales.filter(j => 
-      j.tipo?.toLowerCase() === 'comercial'
-    );
-  } else {
-    // Todo menos las comerciales
-    this.codigos = this.codigosOriginales.filter(j => 
-      j.tipo?.toLowerCase() !== 'comercial'
-    );
+  closeDialog(): void {
+    this.dialogRef.close();
   }
-
-
-}
-
-
 }

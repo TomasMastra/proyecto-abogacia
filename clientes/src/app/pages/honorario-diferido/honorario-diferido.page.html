@@ -100,53 +100,87 @@
       
       <tr [class.hover]="item.hover"   style="background-color: #07295c; position: relative; padding-right: 40px;"
 >
-        <td [attr.rowspan]="5" style="background-color: #07295c;">{{ item.numero }}/{{ item.anio }}
+<td [attr.rowspan]="5" style="background-color: #07295c;">
+  {{
+    (item.tipo_registro?.toString().toLowerCase() === 'mediacion')
+      ? 'Mediación'
+      : (item.numero + '/' + item.anio)
+  }}
 
-          <button
-          *ngIf="estado == 'cobrado'"
-          mat-icon-button
-          matTooltip="Restaurar cobro"
-          (click)="restaurarCobro(item)">
-          <mat-icon>restore</mat-icon>
-        </button>
+  <button
+    *ngIf="estado == 'cobrado'"
+    mat-icon-button
+    matTooltip="Restaurar cobro"
+    (click)="restaurarCobro(item)">
+    <mat-icon>restore</mat-icon>
+  </button>
+</td>
 
-        </td>
-        <td [attr.rowspan]="5" style="background-color: #07295c;">
-          {{item.caratula}}
-        </td>
+<td [attr.rowspan]="5" style="background-color: #07295c;">
+  {{ item.caratula }}
+</td>
       <!--  <td [attr.rowspan]="5" *ngIf="estado == 'sentencia'" style="background-color: #07295c;">{{ item.juzgadoModel?.tipo }}</td> -->
 
         <!-- CAPITAL -->
         <td [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">Capital</td>
         <td *ngIf="mostrarCapital(item) && estado == 'sentencia'" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">
-          {{ item.subEstadoCapitalSeleccionado || item.estadoLiquidacionCapitalSeleccionado }}
+          {{ item.subEstadoCapitalSeleccionado || item.estadoLiquidacionCapitalSeleccionado || '-' }}
         </td>
-        <td *ngIf="mostrarCapital(item) && estado == 'sentencia'" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">
-          {{ item.fechaCapitalSubestado?.split('T')[0] || item.fechaLiquidacionCapital?.split('T')[0] }}
-        </td>
-        <td *ngIf="mostrarCapital(item) && estado == 'sentencia'" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">
-          <span>
-            {{ item.montoLiquidacionCapital | currency:'$' }} 
-          </span>
-        </td>
-        <td style="background-color: #07295c;" *ngIf="mostrarCapital(item) && estado == 'sentencia'" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">
-          {{ calcularCobro(item.montoLiquidacionCapital, item.porcentaje) | currency:'$' }}
-        </td>
+          <td *ngIf="mostrarCapital(item) && estado == 'sentencia'" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">
+            {{ (item.fechaCapitalSubestado?.split('T')[0]) || (item.fechaLiquidacionCapital?.split('T')[0]) || '-' }}
+          </td>
+          <td *ngIf="mostrarCapital(item) && estado == 'sentencia'">
+            <span>
+              {{ item.montoLiquidacionCapital ? (item.montoLiquidacionCapital | currency:'$') : '-' }}
+            </span>
+          </td>
+            <td style="background-color: #07295c;"
+                *ngIf="mostrarCapital(item) && estado == 'sentencia'"
+                [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">
+
+              {{
+                item.montoLiquidacionCapital != null
+                  ? (calcularCobro(item.montoLiquidacionCapital, item.porcentaje) | currency:'$')
+                  : '-'
+              }}
+
+            </td>
         <td *ngIf=" mostrarCapital(item) && estado == 'cobrado'" style="background-color: #07295c;">          
           {{ item.fecha_cobro_capital?.split('T')[0]}}
         </td>
-        <td style="background-color: #07295c;" *ngIf="mostrarCapital(item)" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">
-        
-        {{ item.esPagoParcial == 1 || item.esPagoParcial === true
-            ? (calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id) - (item.capitalPagoParcial || 0))
-            : calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id)
-          | currency:'$' }}
-          
-          <button *ngIf="!item.capitalCobrado" mat-icon-button color="primary" (click)="cobrar('capital', item)">
-            <mat-icon style="color: limegreen">attach_money</mat-icon>
-          </button>
-          <mat-icon *ngIf="item.capitalCobrado" style="color: limegreen">check_circle</mat-icon>
-        </td>
+<td style="background-color: #07295c;"
+    *ngIf="mostrarCapital(item)"
+    [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'capital') }">
+
+  <ng-container *ngIf="item.montoLiquidacionCapital != null; else sinMonto">
+
+    {{
+      (
+        (item.esPagoParcial == 1 || item.esPagoParcial === true)
+          ? (calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id) - (item.capitalPagoParcial || 0))
+          :  calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id)
+      ) | currency:'$'
+    }}
+
+    <button *ngIf="!item.capitalCobrado"
+            mat-icon-button
+            color="primary"
+            (click)="cobrar('capital', item)">
+      <mat-icon style="color: limegreen">attach_money</mat-icon>
+    </button>
+
+    <mat-icon *ngIf="item.capitalCobrado"
+              style="color: limegreen">
+      check_circle
+    </mat-icon>
+
+  </ng-container>
+
+  <ng-template #sinMonto>
+    -
+  </ng-template>
+
+</td>
       <td *ngIf="estado === 'cobrado' && (item.capitalCobrado == true  || item.esPagoParcial == true)" style="background-color:#07295c;">
         <span *ngIf="item.esPagoParcial != 1">{{ item.capitalPagoParcial | currency:'$' }}</span>
         <span *ngIf="item.esPagoParcial == 1">{{ item.capitalPagoParcial | currency:'$' }} <small>(parcial)</small></span>
@@ -175,10 +209,10 @@
       <tr [class.hover]="item.hover" >
         <td [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'honorarios') }">Honorarios</td>
         <td *ngIf="mostrarHonorario(item) && estado == 'sentencia'" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'honorarios') }">
-          {{ item.subEstadoHonorariosSeleccionado || item.estadoLiquidacionHonorariosSeleccionado }}
+          {{ item.subEstadoHonorariosSeleccionado || item.estadoLiquidacionHonorariosSeleccionado || '-' }}
         </td>
         <td *ngIf="mostrarHonorario(item) && estado == 'sentencia'" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'honorarios') }">
-          {{ item.fechaHonorariosSubestado?.split('T')[0] || item.fechaLiquidacionHonorarios?.split('T')[0] }}
+          {{ (item.fechaHonorariosSubestado?.split('T')[0]) || (item.fechaLiquidacionHonorarios?.split('T')[0]) || '-' }}
         </td>
         <td *ngIf="mostrarHonorario(item) && estado == 'sentencia'" [ngClass]="{ 'estado-giro': tieneEstadoGiroPorTipo(item, 'honorarios') }">
           <span>

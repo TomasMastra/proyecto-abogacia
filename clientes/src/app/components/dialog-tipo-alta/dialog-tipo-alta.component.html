@@ -1,0 +1,19 @@
+<h2 mat-dialog-title>Agregar</h2>
+
+<mat-dialog-content class="content">
+  <p class="desc">Elegí qué querés crear:</p>
+
+  <div class="buttons">
+    <button mat-flat-button color="primary" (click)="elegir('expediente')">
+      Expediente
+    </button>
+
+    <button mat-flat-button color="accent" (click)="elegir('mediacion')">
+      Mediación
+    </button>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()">Cancelar</button>
+</mat-dialog-actions>

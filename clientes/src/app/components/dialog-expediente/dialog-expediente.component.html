@@ -1,10 +1,10 @@
 <mat-dialog-content>
   <div class="scrollable-content">
-    <h2>Agregar Expediente</h2>
+    <h2>{{ mode === 'mediacion' ? 'Agregar Mediación' : 'Agregar Expediente' }}</h2>
 
     <form [formGroup]="form" class="formulario-expediente">
       <!-- ===== Campos originales ===== -->
-      <mat-form-field appearance="outline">
+      <mat-form-field appearance="outline" *ngIf="mode === 'expediente'">
         <mat-label>Número</mat-label>
         <input matInput formControlName="numero" type="number" />
         <mat-error *ngIf="form.get('numero')?.hasError('required')">El número es requerido</mat-error>
@@ -15,14 +15,23 @@
         <input matInput formControlName="anio" type="number" />
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Estado</mat-label>
-        <mat-select formControlName="estado">
-          <mat-option *ngFor="let estado of estados" [value]="estado">
-            {{ estado }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
+      <ng-container *ngIf="mode === 'expediente'; else estadoMediacion">
+        <mat-form-field appearance="outline">
+          <mat-label>Estado</mat-label>
+          <mat-select formControlName="estado">
+            <mat-option *ngFor="let estado of estados" [value]="estado">
+              {{ estado }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </ng-container>
+
+      <ng-template #estadoMediacion>
+        <mat-form-field appearance="outline">
+          <mat-label>Estado</mat-label>
+          <input matInput value="Mediación" disabled />
+        </mat-form-field>
+      </ng-template>
 
       <mat-form-field appearance="outline">
         <mat-label>Porcentaje</mat-label>
@@ -30,7 +39,7 @@
         <mat-error *ngIf="form.get('porcentaje')?.hasError('required')">El porcentaje es requerido</mat-error>
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
+      <mat-form-field appearance="outline" *ngIf="mode === 'expediente'">
         <mat-label>Tipo de juicio</mat-label>
         <mat-select formControlName="juicio">
           <mat-option *ngFor="let juicio of juicios" [value]="juicio">
@@ -44,7 +53,7 @@
         <input matInput formControlName="fechaInicio" type="date" />
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
+      <mat-form-field appearance="outline" class="full-width" *ngIf="mode === 'expediente'">
         <mat-label style="color:black">{{mensajeSelectJuzgado}}</mat-label>
         <mat-select style="color:black" formControlName="tipo" (selectionChange)="cambiarTipoJuzgado(); cambiarTipoCodigo()">
           <mat-option *ngFor="let tipo of tipos" [value]="tipo">
@@ -56,7 +65,7 @@
         </mat-error>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
+      <mat-form-field appearance="outline" class="full-width" *ngIf="mode === 'expediente'">
         <mat-label style="color:black">Juzgados</mat-label>
         <mat-select style="color:black" formControlName="juzgado" [(ngModel)]="juzgadoElegido">
           <mat-option style="color:black" *ngFor="let juzgado of juzgados" [value]="juzgado">
@@ -68,19 +77,19 @@
         </mat-error>
       </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
-      <mat-label style="color:black">Codigo</mat-label>
-      <mat-select style="color:black"
-                  formControlName="codigo"
-                  [(ngModel)]="codigoSeleccionado">
-        <mat-option *ngFor="let j of codigos" [value]="j">
-          {{ j.codigo }} - {{ j.descripcion }}
-        </mat-option>
+      <mat-form-field appearance="outline" class="full-width" *ngIf="mode === 'expediente'">
+        <mat-label style="color:black">Codigo</mat-label>
+        <mat-select style="color:black"
+                    formControlName="codigo"
+                    [(ngModel)]="codigoSeleccionado">
+          <mat-option *ngFor="let j of codigos" [value]="j">
+            {{ j.codigo }} - {{ j.descripcion }}
+          </mat-option>
       </mat-select>
 
       <mat-error *ngIf="form.controls?.['codigo']?.invalid && (form.controls?.['codigo']?.dirty || form.controls?.['codigo']?.touched)">
         <span *ngIf="form.controls?.['codigo']?.errors?.['required']" style="color:red">
-          El codigo es requerida
+          El codigo es requerido
         </span>
       </mat-error>
     </mat-form-field>
@@ -92,7 +101,7 @@
             {{ usuario.nombre }}
           </mat-option>
         </mat-select>
-        <mat-error *ngIf="form.controls?.['abogao']?.invalid && (form.controls?.['abogado']?.dirty || form.controls?.['abogado']?.touched)">
+        <mat-error *ngIf="form.controls?.['abogado']?.invalid && (form.controls?.['abogado']?.dirty || form.controls?.['abogado']?.touched)">
           <span *ngIf="form.controls?.['abogado']?.errors?.['required']" style="color:red">El abogado es requerido</span>
         </mat-error>
       </mat-form-field>
@@ -108,6 +117,24 @@
           El procurador es requerido
         </mat-error>
       </mat-form-field>
+
+      <ng-container *ngIf="mode === 'mediacion'">
+        <mat-form-field appearance="outline">
+          <mat-label>Monto capital</mat-label>
+          <input matInput formControlName="monto_capital" type="number" />
+          <mat-error *ngIf="form.get('monto_capital')?.hasError('required')">
+            El monto capital es requerido
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Monto honorarios</mat-label>
+          <input matInput formControlName="monto_honorarios" type="number" />
+          <mat-error *ngIf="form.get('monto_honorarios')?.hasError('required')">
+            El monto honorarios es requerido
+          </mat-error>
+        </mat-form-field>
+      </ng-container>
 
       <!-- ======== ACTORA (mixto) ======== -->
       <h3>Parte Actora</h3>

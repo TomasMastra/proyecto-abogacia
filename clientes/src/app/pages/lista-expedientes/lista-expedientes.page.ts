@@ -36,7 +36,12 @@ import Swal from 'sweetalert2'
 import { ViewWillEnter } from '@ionic/angular';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 
+import { MatDialogModule } from '@angular/material/dialog';
+import { DialogTipoAltaComponent, AltaMode } from '../../components/dialog-tipo-alta/dialog-tipo-alta.component';
 
+
+// clientes\src\app\components\dialog-tipo-alta.component.ts\dialog-tipo-alta.component.ts
+// clientes\src\app\components\dialog-expediente\dialog-expediente.component.html
 @Component({
   selector: 'app-lista-expedientes',
   templateUrl: './lista-expedientes.page.html',
@@ -48,7 +53,7 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
     IonButtons, IonButton, IonIcon, IonList, IonItemSliding, IonLabel, IonItemOptions, IonItemOption, 
     IonItem, IonCardContent, IonCard, IonImg, IonContent, IonHeader, IonTitle, IonToolbar, IonText,
     MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
-    MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule, MatMenuModule, ScrollingModule
+    MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule, MatMenuModule, ScrollingModule, MatDialogModule
   ]
 })
 export class ListaExpedientesPage implements OnInit, OnDestroy {
@@ -116,118 +121,28 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
     );
   }
  
-/*
-        abrirModificar(expediente: ExpedienteModel) {
-          const dialogRef = this.dialog.open(DialogExpedienteModificarComponent, {
-            width: '500px',
-            data: expediente,
-            disableClose: true, // 🔹 Evita que se cierre al hacer clic afuera
-
-          });
-        
-          dialogRef.afterClosed().subscribe((expedienteModificado: ExpedienteModel) => {
-            if (expedienteModificado) {
-              this.expedienteService.deleteClienteExpedientePorId(expediente.id).subscribe(response => {
-                console.log('Respuesta del servidor:', response);
-              }, error => {
-                console.error('Error al eliminar clientes:', error);
-
-              });
-              
-              this.expedienteService.actualizarExpediente(expedienteModificado.id, expedienteModificado)
-                .subscribe(response => {
-                  console.log('Expediente actualizado:', response);
-
-                  Swal.fire({
-                    toast: true,
-                    position: "top-end",
-                    icon: "success",
-                    title: "Expediente modificado exitosamente",
-                    showConfirmButton: false,
-                    timer: 1500
-                  });
-                  
-                  this.expedientes = this.expedientes.map(exp => 
-                    exp.id === expedienteModificado.id ? expedienteModificado : exp
-                  );
-
-                  this.cargarExpedientes();
-                  
-                }, error => {
-                  console.error('Error al actualizar expediente:', error);
-
-                  Swal.fire({
-                    toast: true,
-                    position: "top-end",
-                    icon: "error",
-                    title: "Error al actualizar expediente",
-                    showConfirmButton: false,
-                    timer: 1500
-                  });
-                });
-            }
-          });
-        }
-  */
- 
-  abrirModificar(expediente: ExpedienteModel) {
+abrirModificar(expediente: ExpedienteModel) {
   const dialogRef = this.dialog.open(DialogExpedienteModificarComponent, {
     width: '900px',
     disableClose: true,
-    data: { id: expediente.id }   // 🔹 SOLO LE PASÁS EL ID
+        data: {
+      id: expediente.id,
+      tipo_registro: expediente.tipo_registro ?? null,
+    }
   });
 
-  dialogRef.afterClosed().subscribe((expedienteModificado: ExpedienteModel) => {
-    if (expedienteModificado) {
+  dialogRef.afterClosed().subscribe((payload: any) => {
+    if (!payload?.id) return;
 
-      this.expedienteService
-        .deleteClienteExpedientePorId(expedienteModificado.id)
-        .subscribe({
-          next: (response) => {
-            console.log('Respuesta del servidor (delete cliente-expediente):', response);
-          },
-          error: (error) => {
-            console.error('Error al eliminar clientes:', error);
-          }
-        });
-
-      this.expedienteService
-        .actualizarExpediente(expedienteModificado.id, expedienteModificado)
-        .subscribe({
-          next: (response) => {
-            console.log('Expediente actualizado:', response);
-
-            Swal.fire({
-              toast: true,
-              position: 'top-end',
-              icon: 'success',
-              title: 'Expediente modificado exitosamente',
-              showConfirmButton: false,
-              timer: 1500
-            });
-
-            // Actualizás en la lista local
-            this.expedientes = this.expedientes.map(exp =>
-              exp.id === expedienteModificado.id ? expedienteModificado : exp
-            );
-
-            // Y si querés, recargás todo de la API
-            this.cargarExpedientes();
-          },
-          error: (error) => {
-            console.error('Error al actualizar expediente:', error);
-
-            Swal.fire({
-              toast: true,
-              position: 'top-end',
-              icon: 'error',
-              title: 'Error al actualizar expediente',
-              showConfirmButton: false,
-              timer: 1500
-            });
-          }
-        });
-    }
+    this.expedienteService.actualizarExpediente(payload.id, payload).subscribe({
+      next: () => {
+        Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Expediente modificado', showConfirmButton:false, timer:1500 });
+        this.cargarExpedientes();
+      },
+      error: () => {
+        Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al actualizar', showConfirmButton:false, timer:1500 });
+      }
+    });
   });
 }
 
@@ -236,89 +151,48 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
     this.router.navigate([path]); // Navega a la ruta deseada
   }
 
-
-          abrirDialog(): void {
-            const dialogRef = this.dialog.open(DialogExpedienteComponent, {
-              width: '500px',
-              disableClose: true, // 🔹 Evita que se cierre al hacer clic afuera
-
-            });
-          
-            dialogRef.afterClosed().subscribe((expediente: ExpedienteModel) => {
-              if (expediente) {
-                // Primero, agregar el cliente a la base de datos
-                this.expedienteService.addExpediente(expediente).subscribe(response => {
-                  // El cliente agregado tendrá ahora el ID asignado
-                  expediente.id = response.id; // Asignamos el ID devuelto desde la base de datos
-          
-                  console.log('expediente agregado:', response);
-                  this.expedientes.push(expediente);
-
-                  Swal.fire({
-                    toast: true,
-                    position: "top-end",
-                    icon: "success",
-                    title: "Expediente cargado exitosamente",
-                    showConfirmButton: false,
-                    timer: 1500
-                  });
-          
-                  //this.agregarClientes(+expediente.id, expediente.clientes);
-                  // Si la búsqueda está vacía, obtener todos los clientes
-                  if (this.busqueda == '') {
-                    this.obtenerExpedientes();
-                  } /*else {
-                    this.clienteService.searchClientes(this.busqueda);
-                  }*/
-          
-  
-                }, error => {
-                   console.error('Error al agregar expediente:', error);
-
-  let mensaje = 'Error al cargar expediente';
-  
-  if (error.status === 400 && error.error?.error === 'Ya existe un expediente con el mismo número, año y juzgado.') {
-    mensaje = `
-      Ya existe un expediente cargado con ese <strong>número</strong>, <strong>año</strong> y <strong>juzgado</strong>.<br>
-      Verificá los datos antes de continuar.
-    `;
-  }
-
-  Swal.fire({
-    icon: 'error',
-    title: 'Carga rechazada',
-    html: mensaje,
-    confirmButtonText: 'Entendido'
+abrirDialog(): void {
+  const selRef = this.dialog.open(DialogTipoAltaComponent, {
+    width: '420px',
+    disableClose: true
   });
-                });
-              }
-            });
-          }
 
-      /*buscar() {
-        const texto = this.busqueda.trim();
-      
-        // ✅ Si está vacío, restaurar todos los expedientes
-        if (texto === '') {
-          this.expedientes = [...this.expedientesOriginales];
-          this.hayExpedientes = this.expedientes.length > 0;
-          return;
+  selRef.afterClosed().subscribe((mode: AltaMode | null) => {
+    if (!mode) return;
+
+    const dialogRef = this.dialog.open(DialogExpedienteComponent, {
+      width: '900px',
+      disableClose: true,
+      data: { mode }
+    });
+
+    dialogRef.afterClosed().subscribe((payload: any) => {
+      if (!payload) return;
+
+      this.expedienteService.addExpediente(payload).subscribe({
+        next: (resp) => {
+          Swal.fire({
+            icon: 'success',
+            title: payload.tipo_registro === 'mediacion'
+              ? 'Mediación cargada correctamente'
+              : 'Expediente cargado correctamente',
+            timer: 1500,
+            showConfirmButton: false
+          });
+
+          this.cargarExpedientes(); // refrescá la tabla
+        },
+        error: (err) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Hubo un error',
+            text: err?.error?.message || 'No se pudo guardar el registro'
+          });
         }
-      
-        // 🔎 Si hay texto, buscar
-        this.expedienteService.buscarExpedientes(texto).subscribe(
-          (expedientes) => {
-            this.expedientes = expedientes;
-            this.hayExpedientes = this.expedientes.length > 0;
-          },
-          (error) => {
-            console.error('Error al obtener expedientes:', error);
-          }
-        );
-      }*/
-          
-          
-          
+      });
+    });
+  });
+}
 
 
       async agregarClientes(expedienteId: number, clientes: ClienteModel[]): Promise<void> {

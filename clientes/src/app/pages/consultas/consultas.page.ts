@@ -174,7 +174,7 @@ cargarExpedientes() {
         // Filtrar acá: que NO sean 'Sentencia' ni 'Cobrado'
         const filtrados = expedientes!.filter(expediente => 
           expediente.estado !== 'Sentencia' && expediente.estado !== 'Cobrado' && expediente.estado !== 'eliminado'
-          && expediente.estado !== 'Archivo'
+          && expediente.estado !== 'Archivo' && expediente.estado !== 'Mediacion'
         );
 
         this.expedientes = filtrados;

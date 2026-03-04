@@ -1,0 +1,19 @@
+.content {
+  min-width: 320px;
+}
+
+.desc {
+  margin: 0 0 14px 0;
+  opacity: 0.9;
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  button {
+    flex: 1 1 140px;
+    height: 44px;
+  }
+}

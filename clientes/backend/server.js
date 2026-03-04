@@ -359,6 +359,7 @@ app.get("/expedientes", async (req, res) => {
         e.fecha_atencion,
         e."capitalCobrado",
         e."estadoHonorariosSeleccionado",
+        e.tipo_registro,
         COALESCE((
           SELECT string_agg(btrim(p.nombre_completo::text), ' | ')
           FROM (
@@ -851,177 +852,219 @@ async function recalcularCaratulaPg(pgPool, expedienteId) {
 app.post("/expedientes/agregar", async (req, res) => {
   const {
     titulo, descripcion, demandado_id, juzgado_id, numero, anio,
-    usuario_id, estado, honorario, monto,
+    usuario_id, estado, honorario, montoLiquidacionCapital, montoLiquidacionHonorarios,
     fecha_inicio, juez_id, juicio, requiere_atencion, fecha_sentencia,
     numeroCliente, minutosSinLuz, periodoCorte,
-    actoras, demandados, porcentaje, procurador_id
+    actoras, demandados, porcentaje, procurador_id,
+    tipo_registro 
   } = req.body;
 
-  if (!numero || !anio || !juzgado_id) {
-    return res.status(400).json({
-      error: "Faltan campos obligatorios",
-      camposRequeridos: ["numero", "anio", "juzgado"]
-    });
+  // ✅ normalizo tipo_registro (prioridad) y fallback por estado
+  const tipoRegistroNorm = String(tipo_registro || "").trim().toLowerCase();
+  const estadoNorm = String(estado || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .trim().toLowerCase();
+
+  const esMediacion = tipoRegistroNorm
+    ? (tipoRegistroNorm === "mediacion")
+    : (estadoNorm === "mediacion" || estadoNorm === "cobrado"); // fallback
+
+  const tipoRegistroFinal = esMediacion ? "mediacion" : "expediente";
+
+  // ✅ Validación de estado permitido en mediación
+  if (esMediacion) {
+    const permitido = (estadoNorm === "mediacion" || estadoNorm === "cobrado");
+    if (!permitido) {
+      return res.status(400).json({
+        error: "Estado inválido para mediación",
+        camposRequeridos: ["estado"]
+      });
+    }
+  }
+
+  // ✅ requeridos por modo
+  const requeridos = esMediacion
+    ? ["anio", "porcentaje", "fecha_inicio", "montoLiquidacionCapital", "montoLiquidacionHonorarios"]
+    : ["numero", "anio", "porcentaje", "juzgado_id"];
+
+  const faltan = requeridos.filter((k) => {
+    const v = req.body[k];
+    return v === undefined || v === null || v === "";
+  });
+
+  if (faltan.length) {
+    return res.status(400).json({ error: "Faltan campos obligatorios", camposRequeridos: faltan });
+  }
+
+  // ✅ exigir partes
+  if (!Array.isArray(actoras) || actoras.length === 0) {
+    return res.status(400).json({ error: "Faltan campos obligatorios", camposRequeridos: ["actoras"] });
+  }
+  if (!Array.isArray(demandados) || demandados.length === 0) {
+    return res.status(400).json({ error: "Faltan campos obligatorios", camposRequeridos: ["demandados"] });
   }
 
   const client = await pgPool.connect();
 
-  // Helper: nextval dentro de la misma tx
   const nextId = async (seqName) => {
-    const { rows } = await client.query(
-      `SELECT nextval($1::regclass) AS id`,
-      [seqName]
-    );
+    const { rows } = await client.query(`SELECT nextval($1::regclass) AS id`, [seqName]);
     return Number(rows[0].id);
   };
 
   try {
     await client.query("BEGIN");
 
-    // 1) Tipo de juzgado
-    const tipoJuz = await client.query(
-      `SELECT tipo FROM public.juzgados WHERE id = $1`,
-      [Number(juzgado_id)]
-    );
-    if (tipoJuz.rows.length === 0) throw new Error("No se encontró el tipo del juzgado especificado.");
-    const tipoJ = tipoJuz.rows[0].tipo;
+    // ✅ Unicidad por juzgado/tipo SOLO expediente
+    if (!esMediacion) {
+      const tipoJuz = await client.query(
+        `SELECT tipo FROM public.juzgados WHERE id = $1`,
+        [Number(juzgado_id)]
+      );
+      if (tipoJuz.rows.length === 0) throw new Error("No se encontró el tipo del juzgado especificado.");
+      const tipoJ = tipoJuz.rows[0].tipo;
 
-    // 2) Unicidad
-    const existe = await client.query(
-      `
-      SELECT 1
-      FROM public.expedientes e
-      JOIN public.juzgados j ON e.juzgado_id = j.id
-      WHERE e.numero = $1
-        AND e.anio = $2
-        AND j.tipo = $3
-        AND e.estado <> 'eliminado'
-      LIMIT 1
-      `,
-      [Number(numero), Number(anio), tipoJ]
-    );
+      const existe = await client.query(
+        `
+        SELECT 1
+        FROM public.expedientes e
+        JOIN public.juzgados j ON e.juzgado_id = j.id
+        WHERE e.numero = $1
+          AND e.anio = $2
+          AND j.tipo = $3
+          AND e.estado <> 'eliminado'
+        LIMIT 1
+        `,
+        [Number(numero), Number(anio), tipoJ]
+      );
 
-    if (existe.rows.length) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({ error: "Ya existe un expediente con el mismo número, año y juzgado." });
+      if (existe.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ error: "Ya existe un expediente con el mismo número, año y juzgado." });
+      }
     }
 
-    // 3) ID por sequence
     const expedienteId = await nextId("public.seq_expedientes");
 
-    // 4) Insert expediente
+    // ✅ Insert (misma tabla)
     await client.query(
       `
       INSERT INTO public.expedientes (
         id, titulo, descripcion, numero, anio, demandado_id, juzgado_id,
         fecha_creacion, estado, fecha_inicio, honorario,
         juez_id, juicio, fecha_sentencia, ultimo_movimiento,
-        monto, usuario_id, "numeroCliente", "minutosSinLuz", "periodoCorte",
-        porcentaje, procurador_id, requiere_atencion
+        "montoLiquidacionCapital", "montoLiquidacionHonorarios", usuario_id,
+        "numeroCliente", "minutosSinLuz", "periodoCorte",
+        porcentaje, procurador_id, requiere_atencion,
+        tipo_registro
       )
       VALUES (
         $1,$2,$3,$4,$5,$6,$7,
         now(),$8,$9,$10,
         $11,$12,$13,$14,
-        $15,$16,$17,$18,$19,
-        $20,$21,$22
+        $15,$16,$17,
+        $18,$19,$20,
+        $21,$22,$23,
+        $24
       )
       `,
       [
         expedienteId,
         (titulo ?? "").toString(),
         (descripcion ?? "").toString(),
-        Number(numero),
+
+        esMediacion ? null : Number(numero),
         Number(anio),
         demandado_id ?? null,
-        Number(juzgado_id),
-        estado ?? null,
+        esMediacion ? null : Number(juzgado_id),
+
+        // estado: mediación/cobrado o lo que venga para expediente
+        esMediacion
+          ? (estadoNorm === "cobrado" ? "Cobrado" : "Mediacion")
+          : (estado ?? null),
+
         fecha_inicio || null,
         honorario ?? null,
         juez_id ?? null,
-        juicio ?? null,
+        esMediacion ? null : (juicio ?? null),
         fecha_sentencia || null,
         fecha_inicio || null,
-        monto ?? null,
+
+        montoLiquidacionCapital ?? null,
+        montoLiquidacionHonorarios ?? null,
         usuario_id ?? null,
+
         numeroCliente ?? null,
         minutosSinLuz ?? null,
         periodoCorte ?? null,
+
         porcentaje ?? null,
         procurador_id ?? null,
-        !!requiere_atencion
+        !!requiere_atencion,
+
+        tipoRegistroFinal
       ]
     );
 
-      // 5) ACTORAS
-    if (Array.isArray(actoras)) {
-      for (const a of actoras) {
-        const tipoA = String(a?.tipo || "").toLowerCase().trim();
-        const idA = a?.id !== undefined && a?.id !== null && a?.id !== ""
-          ? Number(a.id)
-          : null;
+    // ACTORAS
+    for (const a of actoras) {
+      const tipoA = String(a?.tipo || "").toLowerCase().trim();
+      const idA = a?.id !== undefined && a?.id !== null && a?.id !== "" ? Number(a.id) : null;
 
-        if (!idA || Number.isNaN(idA) || (tipoA !== "cliente" && tipoA !== "empresa")) {
-          throw new Error(`Actora inválida: ${JSON.stringify(a)}`);
-        }
-
-        const idRel = await nextId("public.seq_clientes_expedientes");
-
-        await client.query(
-          `
-          INSERT INTO public.clientes_expedientes
-            (id, id_expediente, id_cliente, id_empresa, tipo)
-          VALUES
-            ($1, $2,
-            CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
-            CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
-            $3)
-          `,
-          [idRel, expedienteId, tipoA, idA]
-        );
+      if (!idA || Number.isNaN(idA) || (tipoA !== "cliente" && tipoA !== "empresa")) {
+        throw new Error(`Actora inválida: ${JSON.stringify(a)}`);
       }
+
+      const idRel = await nextId("public.seq_clientes_expedientes");
+
+      await client.query(
+        `
+        INSERT INTO public.clientes_expedientes
+          (id, id_expediente, id_cliente, id_empresa, tipo)
+        VALUES
+          ($1, $2,
+          CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
+          CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
+          $3)
+        `,
+        [idRel, expedienteId, tipoA, idA]
+      );
     }
 
-    // 6) DEMANDADOS
-    if (Array.isArray(demandados)) {
-      for (const d of demandados) {
-        const tipoD = String(d?.tipo || "").toLowerCase().trim();
-        const idD = d?.id !== undefined && d?.id !== null && d?.id !== ""
-          ? Number(d.id)
-          : null;
+    // DEMANDADOS
+    for (const d of demandados) {
+      const tipoD = String(d?.tipo || "").toLowerCase().trim();
+      const idD = d?.id !== undefined && d?.id !== null && d?.id !== "" ? Number(d.id) : null;
 
-        if (!idD || Number.isNaN(idD) || (tipoD !== "cliente" && tipoD !== "empresa")) {
-          throw new Error(`Demandado inválido: ${JSON.stringify(d)}`);
-        }
-
-        const idRel = await nextId("public.seq_expedientes_demandados");
-
-        await client.query(
-          `
-          INSERT INTO public.expedientes_demandados
-            (id, id_expediente, id_cliente, id_demandado, tipo)
-          VALUES
-            ($1, $2,
-            CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
-            CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
-            $3)
-          `,
-          [idRel, expedienteId, tipoD, idD]
-        );
+      if (!idD || Number.isNaN(idD) || (tipoD !== "cliente" && tipoD !== "empresa")) {
+        throw new Error(`Demandado inválido: ${JSON.stringify(d)}`);
       }
-    }
 
+      const idRel = await nextId("public.seq_expedientes_demandados");
+
+      await client.query(
+        `
+        INSERT INTO public.expedientes_demandados
+          (id, id_expediente, id_cliente, id_demandado, tipo)
+        VALUES
+          ($1, $2,
+          CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
+          CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
+          $3)
+        `,
+        [idRel, expedienteId, tipoD, idD]
+      );
+    }
 
     await client.query("COMMIT");
 
-    // Recalcular carátula fuera de tx (ok)
-    await recalcularCaratulaPg(pgPool, expedienteId);
+    // carátula solo para expediente
+      await recalcularCaratulaPg(pgPool, expedienteId);
+    
 
     return res.status(201).json({
-      message: "Expediente agregado correctamente",
+      message: esMediacion ? "Mediación agregada correctamente" : "Expediente agregado correctamente",
       expedienteId
     });
-
   } catch (err) {
     try { await client.query("ROLLBACK"); } catch {}
     console.error("POST /expedientes/agregar ERROR =>", err);
@@ -1033,7 +1076,6 @@ app.post("/expedientes/agregar", async (req, res) => {
     client.release();
   }
 });
-
 
 
 
@@ -1349,84 +1391,82 @@ app.put("/expedientes/modificar/:id", async (req, res) => {
     // =========================
     const updateRes = await client.query(
       `
-      UPDATE public.expedientes
-      SET
-        titulo = $1,
-        descripcion = $2,
-        numero = $3::int,
-        anio = $4::int,
-        juzgado_id = $5::int,
-        estado = $6,
-        juez_id = $7::int,
-        honorario = $8,
-        fecha_inicio = $9::timestamp,
-        juicio = $10,
-        fecha_sentencia = $11::timestamp,
-        monto = $12::int,
-        apela = $13::boolean,
-        ultimo_movimiento = $14::timestamp,
-        porcentaje = $15::double precision,
-        usuario_id = $16::int,
-        fecha_cobro = $17::timestamp,
-        fecha_cobro_capital = $18::timestamp,
-        procurador_id = $19::int,
-        "valorUMA" = $20::int,
-        sala = $21,
-        requiere_atencion = $22::boolean,
-        fecha_atencion = $23::date,
+UPDATE public.expedientes
+SET
+  titulo = $1,
+  descripcion = $2,
+  numero = $3::int,
+  anio = $4::int,
+  juzgado_id = $5::int,
+  estado = $6,
+  juez_id = $7::int,
+  honorario = $8,
+  fecha_inicio = $9::timestamp,
+  juicio = $10,
+  fecha_sentencia = $11::timestamp,
+  apela = $12::boolean,
+  ultimo_movimiento = $13::timestamp,
+  porcentaje = $14::double precision,
+  usuario_id = $15::int,
+  fecha_cobro = $16::timestamp,
+  fecha_cobro_capital = $17::timestamp,
+  procurador_id = $18::int,
+  "valorUMA" = $19::int,
+  sala = $20,
+  requiere_atencion = $21::boolean,
+  fecha_atencion = $22::date,
 
-        -- Capital
-        "estadoCapitalSeleccionado" = $24,
-        "subEstadoCapitalSeleccionado" = $25,
-        "fechaCapitalSubestado" = $26::timestamp,
-        "estadoLiquidacionCapitalSeleccionado" = $27,
-        "fechaLiquidacionCapital" = $28::timestamp,
-        "montoLiquidacionCapital" = $29::double precision,
-        "capitalCobrado" = $30::boolean,
+  -- Capital
+  "estadoCapitalSeleccionado" = $23,
+  "subEstadoCapitalSeleccionado" = $24,
+  "fechaCapitalSubestado" = $25::timestamp,
+  "estadoLiquidacionCapitalSeleccionado" = $26,
+  "fechaLiquidacionCapital" = $27::timestamp,
+  "montoLiquidacionCapital" = $28::double precision,
+  "capitalCobrado" = $29::boolean,
 
-        -- Honorarios
-        "estadoHonorariosSeleccionado" = $31,
-        "subEstadoHonorariosSeleccionado" = $32,
-        "fechaHonorariosSubestado" = $33::timestamp,
-        "estadoLiquidacionHonorariosSeleccionado" = $34,
-        "fechaLiquidacionHonorarios" = $35::timestamp,
-        "montoLiquidacionHonorarios" = $36::double precision,
-        "honorarioCobrado" = $37::boolean,
-        "cantidadUMA" = $38::double precision,
+  -- Honorarios
+  "estadoHonorariosSeleccionado" = $30,
+  "subEstadoHonorariosSeleccionado" = $31,
+  "fechaHonorariosSubestado" = $32::timestamp,
+  "estadoLiquidacionHonorariosSeleccionado" = $33,
+  "fechaLiquidacionHonorarios" = $34::timestamp,
+  "montoLiquidacionHonorarios" = $35::double precision,
+  "honorarioCobrado" = $36::boolean,
+  "cantidadUMA" = $37::double precision,
 
-        -- Alzada
-        "estadoHonorariosAlzadaSeleccionado" = $39,
-        "subEstadoHonorariosAlzadaSeleccionado" = $40,
-        "fechaHonorariosAlzada" = $41::timestamp,
-        "umaSeleccionado_alzada" = $42::int,
-        "cantidadUMA_alzada" = $43::double precision,
-        "montoAcuerdo_alzada" = $44::double precision,
-        "honorarioAlzadaCobrado" = $45::boolean,
-        "fechaCobroAlzada" = $46::timestamp,
+  -- Alzada
+  "estadoHonorariosAlzadaSeleccionado" = $38,
+  "subEstadoHonorariosAlzadaSeleccionado" = $39,
+  "fechaHonorariosAlzada" = $40::timestamp,
+  "umaSeleccionado_alzada" = $41::int,
+  "cantidadUMA_alzada" = $42::double precision,
+  "montoAcuerdo_alzada" = $43::double precision,
+  "honorarioAlzadaCobrado" = $44::boolean,
+  "fechaCobroAlzada" = $45::timestamp,
 
-        -- Ejecución
-        "estadoHonorariosEjecucionSeleccionado" = $47,
-        "subEstadoHonorariosEjecucionSeleccionado" = $48,
-        "fechaHonorariosEjecucion" = $49::timestamp,
-        "montoHonorariosEjecucion" = $50::double precision,
-        "honorarioEjecucionCobrado" = $51::boolean,
-        "fechaCobroEjecucion" = $52::timestamp,
-        "cantidadUMA_ejecucion" = $53::double precision,
-        "umaSeleccionado_ejecucion" = $54::int,
+  -- Ejecución
+  "estadoHonorariosEjecucionSeleccionado" = $46,
+  "subEstadoHonorariosEjecucionSeleccionado" = $47,
+  "fechaHonorariosEjecucion" = $48::timestamp,
+  "montoHonorariosEjecucion" = $49::double precision,
+  "honorarioEjecucionCobrado" = $50::boolean,
+  "fechaCobroEjecucion" = $51::timestamp,
+  "cantidadUMA_ejecucion" = $52::double precision,
+  "umaSeleccionado_ejecucion" = $53::int,
 
-        -- Diferencia
-        "estadoHonorariosDiferenciaSeleccionado" = $55,
-        "subEstadoHonorariosDiferenciaSeleccionado" = $56,
-        "fechaHonorariosDiferencia" = $57::timestamp,
-        "montoHonorariosDiferencia" = $58::double precision,
-        "honorarioDiferenciaCobrado" = $59::boolean,
-        "fechaCobroDiferencia" = $60::timestamp,
+  -- Diferencia
+  "estadoHonorariosDiferenciaSeleccionado" = $54,
+  "subEstadoHonorariosDiferenciaSeleccionado" = $55,
+  "fechaHonorariosDiferencia" = $56::timestamp,
+  "montoHonorariosDiferencia" = $57::double precision,
+  "honorarioDiferenciaCobrado" = $58::boolean,
+  "fechaCobroDiferencia" = $59::timestamp,
 
-        "capitalPagoParcial" = $61::double precision,
-        "esPagoParcial" = $62::boolean,
-        codigo_id = $63::int
-
-      WHERE id = $64::int
+  "capitalPagoParcial" = $60::double precision,
+  "esPagoParcial" = $61::boolean,
+  codigo_id = $62::int
+WHERE id = $63::int;
       `,
       [
         nuevosDatos.titulo ?? null,
@@ -1440,7 +1480,6 @@ app.put("/expedientes/modificar/:id", async (req, res) => {
         toNullIfEmpty(nuevosDatos.fecha_inicio),
         nuevosDatos.juicio ?? null,
         toNullIfEmpty(nuevosDatos.fecha_sentencia),
-        toIntOrNull(nuevosDatos.monto),
         toBool(nuevosDatos.apela),
         toNullIfEmpty(nuevosDatos.ultimo_movimiento),
         toFloatOrNull(nuevosDatos.porcentaje),
@@ -2800,7 +2839,7 @@ app.get("/expedientes/estado", async (req, res) => {
       `
       SELECT *
       FROM public.expedientes
-      WHERE estado = $1
+      WHERE estado = $1 OR estado = 'Mediacion'
       `,
       [estado]
     );

@@ -39,9 +39,12 @@
   <div *cdkVirtualFor="let expediente of expedientes; trackBy: trackByExpedientes" class="expediente-container">
     
     <div class="expediente-header">
-  <h2 *ngIf=" expediente.caratula">
-    {{expediente.numero}}/{{expediente.anio}} {{ expediente.caratula }}
-  </h2>
+      <h2 *ngIf="expediente.caratula">
+        <ng-container *ngIf="expediente.tipo_registro !== 'mediacion'">
+          {{ expediente.numero }}/{{ expediente.anio }}
+        </ng-container>
+        {{ expediente.caratula }}
+      </h2>
 
   
 

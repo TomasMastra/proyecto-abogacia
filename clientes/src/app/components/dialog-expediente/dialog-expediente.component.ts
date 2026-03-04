@@ -59,6 +59,8 @@ export class DialogExpedienteComponent {
   codigos: CodigoModel[] = [];
   codigosOriginales: CodigoModel[] = [];
 
+  mode: 'expediente' | 'mediacion' = 'expediente';
+
 
   // múltiples
   actorasAgregadas: Array<{tipo: 'cliente'|'empresa'; id: number; nombre: string; apellido?: string | null}> = [];
@@ -101,6 +103,8 @@ export class DialogExpedienteComponent {
     public dialogRef: MatDialogRef<DialogExpedienteComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {
+      this.mode = this.data?.mode ?? 'expediente';
+
     this.form = new FormGroup({
       numero: new FormControl('', [Validators.required, Validators.min(0)]),
       anio: new FormControl('', [Validators.required]),
@@ -128,6 +132,9 @@ export class DialogExpedienteComponent {
       demandadoTipo: new FormControl<'empresa'|'cliente'>('empresa', Validators.required),
       demandadoEmpresa: new FormControl(null),
       demandadoCliente: new FormControl(null),
+
+      monto_capital: new FormControl('', [Validators.required, Validators.min(0)]),
+      monto_honorarios: new FormControl('', [Validators.required, Validators.min(0)]),
     });
 
     // Mantiene validadores en sync con el tipo actual
@@ -165,10 +172,166 @@ export class DialogExpedienteComponent {
     return c ? `${c.nombre ?? ''} ${c.apellido ?? ''}`.trim() : '';
   }
 
-  // ========= init =========
   ngOnInit() {
-    // Catálogos
-    this.clienteService.getClientes().subscribe(c => { this.clientes = c || []; });
+    this.cargarCatalogos();       // clientes/demandados/juzgados/jueces/codigos/usuarios
+    this.configurarAutocompletes();
+    this.precargarSiVieneData();  // patchValue si te pasan data
+    this.configurarTiposMixtos(); // actora/demandado (validators sync)
+    this.configurarModo();        // mediación vs expediente (validadores + estado fijo)
+
+  }
+
+private configurarModo() {
+  const disableNoMediacion = (name: string) => {
+    const c = this.form.get(name);
+    if (!c) return;
+    c.clearValidators();
+    c.setValue(null, { emitEvent: false });
+    c.disable({ emitEvent: false });
+    c.updateValueAndValidity({ emitEvent: false });
+  };
+
+  const enableWith = (name: string, validators: any[] | null) => {
+    const c = this.form.get(name);
+    if (!c) return;
+    c.enable({ emitEvent: false });
+    c.setValidators(validators);
+    c.updateValueAndValidity({ emitEvent: false });
+  };
+
+  if (this.mode === 'mediacion') {
+    // ❌ campos que no van en mediación
+    disableNoMediacion('numero');
+    disableNoMediacion('tipo');
+    disableNoMediacion('juzgado');
+    disableNoMediacion('codigo');
+    disableNoMediacion('juicio');
+
+    // ✅ estado fijo
+    this.form.get('estado')?.setValue('Mediacion', { emitEvent: false });
+    this.form.get('estado')?.disable({ emitEvent: false });
+    this.form.get('estado')?.clearValidators();
+    this.form.get('estado')?.updateValueAndValidity({ emitEvent: false });
+
+    // ✅ campos que sí van
+    enableWith('anio', [Validators.required]);
+    enableWith('porcentaje', [Validators.required, Validators.min(0)]);
+    enableWith('fechaInicio', [Validators.required]);
+
+    enableWith('abogado', [Validators.required]);
+    enableWith('procurador', [Validators.required]);
+
+    enableWith('monto_capital', [Validators.required, Validators.min(0)]);
+    enableWith('monto_honorarios', [Validators.required, Validators.min(0)]);
+
+  } else {
+    // ✅ EXPEDIENTE normal (restauro validadores)
+    enableWith('numero', [Validators.required, Validators.min(0)]);
+    enableWith('anio', [Validators.required]);
+    enableWith('estado', [Validators.required]);
+    enableWith('porcentaje', [Validators.required]);
+    enableWith('juicio', [Validators.required]);
+    enableWith('fechaInicio', [Validators.required]);
+
+    enableWith('tipo', [Validators.required]);
+    enableWith('juzgado', [Validators.required]);
+    enableWith('abogado', [Validators.required]);
+    enableWith('procurador', [Validators.required]);
+
+    // codigo no es required (dejalo opcional)
+    enableWith('codigo', null);
+
+    // ❌ montos no aplican en expediente
+    disableNoMediacion('monto_capital');
+    disableNoMediacion('monto_honorarios');
+  }
+}
+
+private cargarCatalogos() {
+  this.clienteService.getClientes().subscribe(c => this.clientes = c || []);
+  this.demandadoService.getDemandados().subscribe(d => this.demandados = d || []);
+
+  this.juzgadoService.getJuzgados().subscribe(j => {
+    this.juzgadosOriginales = j || [];
+    this.juzgados = [...this.juzgadosOriginales];
+  });
+
+  this.juezService.getJuez().subscribe(j => this.jueces = j || []);
+  this.codigoService.getCodigos().subscribe(c => {
+    this.codigosOriginales = c || [];
+    this.codigos = [...this.codigosOriginales];
+  });
+
+  this.usuarioService.getUsuarios().subscribe(u => {
+    this.listaUsuarios = u || [];
+
+    const abogado = this.listaUsuarios.find(x => x.id === this.usuarioService.usuarioLogeado?.id) || null;
+    this.abogadoSeleccionado = abogado;
+
+    // 👇 si tu select usa formControlName="abogado" (recomendado)
+    if (abogado?.id) this.form.patchValue({ abogado: abogado.id }, { emitEvent: false });
+  });
+}
+
+private configurarAutocompletes() {
+  this.filteredActoraClientes = this.actoraClienteCtrl.valueChanges.pipe(
+    startWith(''),
+    map(v => this.filtrarClientes(v ?? ''))
+  );
+
+  this.filteredDemandadoClientes = this.demandadoClienteCtrl.valueChanges.pipe(
+    startWith(''),
+    map(v => this.filtrarClientes(v ?? ''))
+  );
+
+  this.filteredActoraEmpresas = this.actoraEmpresaCtrl.valueChanges.pipe(
+    startWith(''),
+    map(v => this.filtrarEmpresas(v ?? ''))
+  );
+
+  this.filteredDemandadoEmpresas = this.demandadoEmpresaCtrl.valueChanges.pipe(
+    startWith(''),
+    map(v => this.filtrarEmpresas(v ?? ''))
+  );
+}
+
+private precargarSiVieneData() {
+  const d = this.data;
+
+  // si data no trae campos de expediente, salí
+  if (!d || (d.numero === undefined && d.anio === undefined && d.fecha_inicio === undefined)) return;
+
+  this.form.patchValue({
+    numero: d.numero ?? null,
+    anio: d.anio ?? null,
+    estado: d.estado ?? null,
+    porcentaje: d.porcentaje ?? null,
+    juicio: d.juicio ?? null,
+    fechaInicio: d.fecha_inicio ?? null,
+    tipo: d.tipo ?? 'todos',
+
+    // mediación (si vinieran)
+    monto_capital: d.monto_capital ?? null,
+    monto_honorarios: d.monto_honorarios ?? null,
+  }, { emitEvent: false });
+}
+private configurarTiposMixtos() {
+  this.onCambioTipo('actora');
+  this.onCambioTipo('demandado');
+
+  this.form.get('actoraTipo')?.valueChanges.subscribe(() => this.onCambioTipo('actora'));
+  this.form.get('demandadoTipo')?.valueChanges.subscribe(() => this.onCambioTipo('demandado'));
+}
+  // ========= init =========
+  /*
+  ngOnInit() {
+
+if (this.mode !== 'mediacion') {
+  this.form.get('monto_capital')?.clearValidators();
+  this.form.get('monto_honorarios')?.clearValidators();
+  this.form.get('monto_capital')?.updateValueAndValidity({ emitEvent: false });
+  this.form.get('monto_honorarios')?.updateValueAndValidity({ emitEvent: false });
+}    this.clienteService.getClientes().subscribe(c => { this.clientes = c || []; });
     this.demandadoService.getDemandados().subscribe(d => { this.demandados = d || []; });
     this.juzgadoService.getJuzgados().subscribe(j => {
       this.juzgadosOriginales = j || [];
@@ -183,7 +346,6 @@ export class DialogExpedienteComponent {
       this.abogadoSeleccionado = this.listaUsuarios.find(x => x.id === this.usuarioService.usuarioLogeado?.id) || null;
     });
 
-    // Autocomplete robusto (clientes)
     this.filteredActoraClientes = this.actoraClienteCtrl.valueChanges.pipe(
       startWith(''),
       map(v => this.filtrarClientes(v ?? ''))
@@ -203,7 +365,6 @@ export class DialogExpedienteComponent {
     );
 
 
-    // Precarga si vino data
     if (this.data) {
       this.form.patchValue({
         numero: this.data.numero ?? '',
@@ -219,7 +380,7 @@ export class DialogExpedienteComponent {
     // Aseguro validadores de subcontroles según tipo
     this.onCambioTipo('actora');
     this.onCambioTipo('demandado');
-  }
+  }*/
 
   cambiarTipoJuzgado() {
     const tipo = this.form.get('tipo')?.value;
@@ -321,44 +482,74 @@ export class DialogExpedienteComponent {
   closeDialog() { this.dialogRef.close(); }
 
   acceptDialog(): void {
-    // Validaciones mínimas finales
-    if (!this.form.valid) {
-      Swal.fire({ icon: 'warning', title: 'Faltan datos del expediente' });
-      return;
-    }
-    if (this.actorasAgregadas.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'Agregá al menos una actora' });
-      return;
-    }
-    if (this.demandadosAgregados.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'Agregá al menos un demandado' });
-      return;
-    }
+  if (!this.form.valid) {
+    Swal.fire({
+      icon: 'warning',
+      title: this.mode === 'mediacion' ? 'Faltan datos de la mediación' : 'Faltan datos del expediente'
+    });
+    return;
+  }
 
-    const expediente = {
-      titulo: '',
-      descripcion: (this.form as any).value.descripcion ?? null,
+  if (this.actorasAgregadas.length === 0) {
+    Swal.fire({ icon: 'warning', title: 'Agregá al menos una actora' });
+    return;
+  }
+
+  if (this.demandadosAgregados.length === 0) {
+    Swal.fire({ icon: 'warning', title: 'Agregá al menos un demandado' });
+    return;
+  }
+
+  const isMediacion = this.mode === 'mediacion';
+
+  const base: any = {
+    titulo: '',
+    descripcion: (this.form as any).value.descripcion ?? null,
+
+    anio: this.form.value['anio'],
+    porcentaje: this.form.value['porcentaje'],
+    fecha_inicio: this.form.value['fechaInicio'],
+
+    juez_id: this.juezSeleccionado?.id ?? null,
+    usuario_id: this.abogadoSeleccionado?.id ?? null,
+    procurador_id: this.procuradorSeleccionado?.id ?? null,
+
+    actoras: this.actorasAgregadas,
+    demandados: this.demandadosAgregados,
+    recalcular_caratula: true,
+    tipo_registro: 'expediente'
+
+  };
+
+  const payload = isMediacion
+  ? {
+      ...base,
+      estado: 'Mediacion',
+
+      // ✅ nombres reales de tu BD / backend
+      montoLiquidacionCapital: this.form.value['monto_capital'],
+      montoLiquidacionHonorarios: this.form.value['monto_honorarios'],
+
+      // no van en mediación
+      numero: null,
+      tipo: null,
+      juzgado_id: null,
+      codigo_id: null,
+      juicio: null,
+      tipo_registro: 'mediacion'
+    }
+  : {
+      ...base,
       numero: this.form.value['numero'],
-      anio: this.form.value['anio'],
       estado: this.form.value['estado'],
       juicio: this.form.value['juicio'],
-      porcentaje: this.form.value['porcentaje'],
-      fecha_inicio: this.form.value['fechaInicio'],
-
+      tipo: this.form.value['tipo'],
       juzgado_id: this.form.value['juzgado']?.id ?? null,
-      juez_id: this.juezSeleccionado?.id ?? null,
-      usuario_id: this.abogadoSeleccionado?.id ?? null,
-      procurador_id: this.procuradorSeleccionado?.id ?? null,
-
-      actoras: this.actorasAgregadas,       // [{tipo, id, nombre, apellido?}]
-      demandados: this.demandadosAgregados,  // [{tipo, id, nombre, apellido?}]
-      recalcular_caratula: true,
-      codigo_id: this.codigoSeleccionado?.id ?? null
-
+      codigo_id: this.codigoSeleccionado?.id ?? null,
     };
 
-    this.dialogRef.close(expediente);
-  }
+  this.dialogRef.close(payload);
+}
 
   private filtrarEmpresas(termLike: string | DemandadoModel): DemandadoModel[] {
   const toText = (v: string | DemandadoModel) =>

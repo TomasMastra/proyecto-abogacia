@@ -214,26 +214,40 @@ getHonorarios() {
     return this.http.get<DemandadoModel>(url);
   }
 
-  getExpedientePorId(id: number | string): Observable<ExpedienteModel> {
+getExpedientePorId(id: number | string): Observable<ExpedienteModel> {
   return this.http.get<ExpedienteModel>(`${this.apiUrl}/obtener/${id}`).pipe(
-    switchMap(expediente => {
-      const clientes$ = this.getClientesPorExpediente(expediente.id);
-      const demandados$ = this.getDemandadosPorExpediente(expediente.id);
-      const juzgado$ = this.juzgadosService.getJuzgadoPorId(expediente.juzgado_id!);
+    switchMap((expediente: any) => {
+      if (!expediente?.id) return of(expediente as ExpedienteModel);
+
+      const clientes$ = this.getClientesPorExpediente(expediente.id).pipe(
+        catchError(() => of([]))
+      );
+
+      const demandados$ = this.getDemandadosPorExpediente(expediente.id).pipe(
+        catchError(() => of([]))
+      );
+
+      // ✅ SOLO pedir juzgado si hay un id válido
+      const juzgadoId = expediente?.juzgado_id;
+      const juzgado$ = (juzgadoId !== null && juzgadoId !== undefined && String(juzgadoId) !== '')
+        ? this.juzgadosService.getJuzgadoPorId(juzgadoId).pipe(catchError(() => of(null)))
+        : of(null);
 
       return forkJoin({ clientes: clientes$, demandados: demandados$, juzgado: juzgado$ }).pipe(
         map(({ clientes, demandados, juzgado }) => {
           expediente.clientes = clientes;
           expediente.demandados = demandados;
-          expediente.juzgadoModel = juzgado;
-          //console.log(expediente.juzgadoModel);
-          return expediente;
+          expediente.juzgadoModel = juzgado ?? null;
+          return expediente as ExpedienteModel;
         })
       );
     }),
     catchError(err => {
       console.error('Error al obtener expediente por ID:', err);
-      return of({} as ExpedienteModel);
+      // ⚠️ NO devuelvas {} porque te hace creer que "no existe nada"
+      // mejor propagar error o devolver null y manejarlo arriba
+      return throwError(() => err);
+      // alternativa: return of(null as any);
     })
   );
 }

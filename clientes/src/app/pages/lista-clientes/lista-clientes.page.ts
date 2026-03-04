@@ -307,21 +307,27 @@ trackByCliente(index: number, cliente: ClienteModel): string {
         }
 
 
-      async buscar() {
+  async buscar() {
+    const q = (this.busqueda ?? '').trim().toLowerCase();
 
-          this.clienteService.searchClientes(this.busqueda).subscribe(
-            (clientes) => {
-              this.clientes = clientes;
-              this.clientesOriginales = [...clientes];
-              this.hayClientes = this.clientes.length > 0;
-              this.texto = 'No se encontraron clientes';
-            },
-            (error) => {
-              console.error('Error al obtener clientes:', error);
-            },
-            
-          );
-      }
+    if (!q) {
+      this.clientes = [...this.clientesOriginales];
+      this.hayClientes = this.clientes.length > 0;
+      this.texto = 'No se encontraron clientes';
+      return;
+    }
+
+    this.clientes = this.clientesOriginales.filter((c: any) => {
+      const nombreApellido = `${c?.nombre ?? ''} ${c?.apellido ?? ''}`.toLowerCase();
+
+      return (
+        nombreApellido.includes(q)
+      );
+    });
+
+    this.hayClientes = this.clientes.length > 0;
+    this.texto = 'No se encontraron clientes';
+  }
 
 
 

@@ -784,7 +784,8 @@ buscar() {
             recalcular_caratula: false,
             esPagoParcial: this.expediente?.esPagoParcial,
 
-            codigo_id: this.expediente?.codigo_id
+            codigo_id: this.expediente?.codigo_id,
+            tipo_registro: this.expediente?.tipo_registro
 
           };
       

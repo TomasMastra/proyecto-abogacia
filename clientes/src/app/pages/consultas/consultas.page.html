@@ -52,13 +52,6 @@
         <option *ngFor="let estado of estados" [value]="estado">{{ estado }}</option>
       </select>
     </label>
-
-    <button mat-button class="list-button">
-      <mat-icon style="color: #ffffff">download</mat-icon>
-    </button>
-    <button mat-button class="list-button">
-      <mat-icon style="color: #ffffff">more_vert</mat-icon>
-    </button>
   </div>
 
   <div *ngIf="cargando" class="fullscreen-loader">
