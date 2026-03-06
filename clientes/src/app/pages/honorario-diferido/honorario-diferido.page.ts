@@ -55,6 +55,8 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
   cargando: boolean = false;
   honorariosDiferidos: any[] = [];
   honorariosOriginales: any[] = [];
+  sentenciaCache: any[] = [];
+  cobradoCache: any[] = [];
 
   hayHonorarios: boolean = true;
   private destroy$ = new Subject<void>();
@@ -67,8 +69,17 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
   listaUsuarios: UsuarioModel[] = [];
   valorUMA: number = 70709;
 
-estadoHonorarioSeleccionado: any;
-procuradorSeleccionado: string = '';
+  usuariosCargados = false;
+  expedientesCargados = false;
+
+  //usuariosCargados = false;
+  //expedientesCargados = false;
+  cargaId: number = 0;
+
+
+  private cargaToken = 0;
+  estadoHonorarioSeleccionado: any;
+  procuradorSeleccionado: string = '';
 estadosHonorarios: string[] = [
   'espera que vuelva',
   'honorario se intima',
@@ -108,11 +119,14 @@ estadosHonorarios: string[] = [
     private router: Router
   ) {}
 
-  ngOnInit() {
-    this.cargarUsuarios();
-    this.cargarPorEstado('Sentencia');
-  }
+ngOnInit() {
+  this.usuariosCargados = false;
+  this.expedientesCargados = false;
+  this.setLoading();
 
+  this.cargarUsuarios();
+  this.cargarPorEstado('Sentencia');
+}
   ngOnDestroy() {
   this.destroy$.next();
   this.destroy$.complete();
@@ -144,36 +158,88 @@ estadosHonorarios: string[] = [
       );
     }
   
-  
-cargarPorEstado(estado: string) {
+    /*
+  cargarPorEstado(estado: string) {
   this.cargando = true;
+
+  this.expedienteService.getExpedientesPorEstado(estado)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (honorarios) => {
+        this.honorariosOriginales = honorarios!;
+        this.hayHonorarios = this.honorariosOriginales.length > 0;
+
+        // reaplica la búsqueda actual
+        this.filtrar();
+
+        this.ordenarPor('giro');
+
+        this.cargando = false;
+      },
+      (error) => {
+        console.error('Error al obtener expedientes:', error);
+        this.cargando = false;
+      }
+    );
+}*/
+cargarPorEstado(estado: string) {
+  const idActual = ++this.cargaId;
+
+  this.expedientesCargados = false;
+  this.setLoading();
 
   this.expedienteService.getExpedientesPorEstado(estado)
     .pipe(takeUntil(this.destroy$))
     .subscribe({
       next: (honorarios) => {
-        // 1. Seteamos las listas (siempre usando un fallback de [] por seguridad)
-        this.honorariosOriginales = honorarios || [];
-        this.honorariosDiferidos = honorarios || [];
-        
-        // 2. Actualizamos la bandera de existencia
-        this.hayHonorarios = this.honorariosDiferidos.length > 0;
+        if (idActual !== this.cargaId) return;
 
-        // 3. Aplicamos el ordenamiento inicial
-        this.ordenarPor('giro');
+        this.honorariosOriginales = (honorarios || []).filter((item: any) => {
+          const esMediacion = (item.tipo_registro ?? '').toString().toLowerCase() === 'mediacion';
 
-        // 4. ✅ CLAVE: Aplicamos el filtro actual. 
-        // Si 'this.busqueda' tiene texto, se filtrará la nueva lista inmediatamente.
-        // Si está vacío, mostrará todo.
-        this.filtrar(); 
+          if (!esMediacion) return true;
 
-        this.cargando = false;
+          return !!(
+            item.montoLiquidacionCapital != null ||
+            item.montoLiquidacionHonorarios != null ||
+            item.montoAcuerdo_alzada != null ||
+            item.montoHonorariosEjecucion != null ||
+            item.montoHonorariosDiferencia != null
+          );
+        });
+
+        this.hayHonorarios = this.honorariosOriginales.length > 0;
+
+        this.expedientesCargados = true;
+        this.setLoading();
+
+        // limpiar búsqueda
+        this.busqueda = '';
+
+        // cargar lista visible directamente
+        this.honorariosDiferidos = [...this.honorariosOriginales];
+
+        // ordenar por giro
+        this.ordenCampo = 'giro';
+        this.ordenAscendente = true;
       },
       error: (error) => {
+        if (idActual !== this.cargaId) return;
+
         console.error('Error al obtener expedientes:', error);
-        this.cargando = false;
+
+        this.honorariosOriginales = [];
+        this.honorariosDiferidos = [];
+        this.hayHonorarios = false;
+
+        this.expedientesCargados = true;
+        this.setLoading();
       }
     });
+}
+
+setLoading() {
+  this.cargando = !(this.usuariosCargados && this.expedientesCargados);
 }
 
   goTo(path: string) {
@@ -182,7 +248,7 @@ cargarPorEstado(estado: string) {
   }
 
 
-
+/*
 cargarUsuarios() {
   this.usuarioService.getUsuarios()
     .pipe(takeUntil(this.destroy$))
@@ -194,23 +260,67 @@ cargarUsuarios() {
         console.error('Error al obtener usuarios:', error);
       }
     );
-}
+}*/
 
+cargarUsuarios() {
+  this.usuariosCargados = false;
+  this.setLoading();
+
+  this.usuarioService.getUsuarios()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (usuarios) => {
+        this.listaUsuarios = usuarios || [];
+        this.usuariosCargados = true;
+        this.setLoading();
+
+        // si ya había expedientes cargados, recalcula la vista
+        if (this.expedientesCargados) {
+          this.filtrar();
+        }
+      },
+      error: (error) => {
+        console.error('Error al obtener usuarios:', error);
+        this.listaUsuarios = [];
+        this.usuariosCargados = true;
+        this.setLoading();
+      }
+    });
+}
 cambiarEstado(selectedValue: 'sentencia' | 'cobrado') {
   this.estado = selectedValue;
+  this.cargaId++;
 
   if (selectedValue === 'cobrado') {
-    this.expedienteService.getExpedientesCobrados().subscribe(expedientes => {
-      this.honorariosDiferidos = expedientes || [];
-      this.honorariosOriginales = expedientes || [];
-      this.ordenarPor('giro');
-    });
+    this.expedientesCargados = false;
+    this.setLoading();
+
+    this.expedienteService.getExpedientesCobrados()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (expedientes) => {
+          this.honorariosOriginales = expedientes || [];
+          this.hayHonorarios = this.honorariosOriginales.length > 0;
+          this.expedientesCargados = true;
+          this.setLoading();
+
+          this.filtrar();
+        },
+        error: (error) => {
+          console.error('Error al obtener cobrados:', error);
+          this.honorariosOriginales = [];
+          this.honorariosDiferidos = [];
+          this.hayHonorarios = false;
+          this.expedientesCargados = true;
+          this.setLoading();
+        }
+      });
+
     return;
   }
 
   if (selectedValue === 'sentencia') {
     this.cargarPorEstado('Sentencia');
-    return;
   }
 }
 
@@ -713,12 +823,12 @@ filtrar() {
     const numeroOk = expediente.numero?.toString().includes(texto);
     const anioOk   = expediente.anio?.toString().includes(texto);
     const tipoRegistro = (expediente.tipo_registro ?? '').toString().toLowerCase();
-    const esMediacion = tipoRegistro === 'mediacion';
+    /*const esMediacion = tipoRegistro === 'mediacion';
 
     const tipoRegistroOk =
       texto !== '' && ('mediacion'.includes(texto) || 'expediente'.includes(texto))
         ? (esMediacion ? 'mediacion' : 'expediente').includes(texto)
-        : false;
+        : false;*/
 
     const matchParte = (p: any) => {
       if (!p) return false;
@@ -755,15 +865,11 @@ filtrar() {
 
     const caratulaOk = expediente.caratula?.toLowerCase?.().includes(texto);
 
-    const busquedaOk = texto === '' || numeroOk || anioOk || esMediacion || actoraOk || demandadoOk || caratulaOk;
+    const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
 
     return estadoCoincide && busquedaOk && procuradorOk;
   });
 }
-
-
-
-
 
 tieneEstadoGiroPorTipo(item: any, tipo: string): boolean {
   const revisar = (estado?: string) => (estado ?? '').toLowerCase() === 'giro';

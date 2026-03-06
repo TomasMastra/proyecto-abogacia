@@ -1,0 +1,79 @@
+<div class="content mat-elevation-z8" [class.blur-content]="cargando">
+
+  <div class="toolbar">
+    <input
+      style="color: white; font-weight: bold;"
+      placeholder="Buscar por número o año"
+      class="input-busqueda"
+      [(ngModel)]="busqueda"
+      (ngModelChange)="filtrar()"
+    />
+
+    <mat-form-field appearance="fill" class="custom-mat-select">
+      <mat-label>Procurador</mat-label>
+      <mat-select [(value)]="procuradorSeleccionado" (selectionChange)="filtrar()">
+        <mat-option value="">Todos los Procuradores</mat-option>
+        <mat-option *ngFor="let abogado of listaUsuarios" [value]="abogado.id">
+          {{ abogado.nombre }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" class="custom-mat-select">
+      <mat-label>Estado</mat-label>
+      <mat-select [(value)]="estadoSeleccionado" (selectionChange)="filtrar()">
+        <mat-option value="">Todos</mat-option>
+        <mat-option value="Pendiente">Pendiente</mat-option>
+        <mat-option value="Continua">Continua</mat-option>
+        <mat-option value="Cerrado sin acuerdo">Cerrado sin acuerdo</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div *ngIf="cargando" class="fullscreen-loader">
+    <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
+  </div>
+
+  <div class="table-container" *ngIf="!cargando">
+    <table>
+      <thead>
+        <tr>
+          <th>Nº expediente</th>
+          <th>Carátula</th>
+          <th>Estado</th>
+          <th>Abogado</th>
+          <th>Procurador</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr
+          *ngFor="let item of mediaciones"
+          (mouseenter)="item.hover = true"
+          (mouseleave)="item.hover = false"
+          [class.hover]="item.hover"
+          style="background-color: #07295c"
+        >
+          <td>Mediación</td>
+
+          <td>
+            {{ item.caratula }}
+          </td>
+
+          <td>
+            {{ item.estado }}
+          </td>
+
+          <td>
+            {{ getNombreAbogado(item.usuario_id) }}
+          </td>
+
+          <td>
+            {{ getNombreAbogado(item.procurador_id) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>

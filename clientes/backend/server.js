@@ -2835,19 +2835,31 @@ app.get("/expedientes/estado", async (req, res) => {
       return res.status(400).json({ error: "Se requiere estado." });
     }
 
-    const { rows } = await pgPool.query(
-      `
+    let query = `
       SELECT *
       FROM public.expedientes
-      WHERE estado = $1 OR estado = 'Mediacion'
-      `,
-      [estado]
-    );
+      WHERE estado = $1
+    `;
+    let params = [estado];
+
+    if (estado.toLowerCase() === 'sentencia') {
+      query = `
+      SELECT *
+      FROM public.expedientes
+      WHERE LOWER(TRIM(estado)) = LOWER(TRIM($1))
+        OR LOWER(TRIM(estado)) = 'cerrado con acuerdo'
+      `;
+    }
+
+    const { rows } = await pgPool.query(query, params);
 
     return res.json(rows);
   } catch (err) {
     console.error("Error al obtener expedientes por estado:", err);
-    return res.status(500).json({ error: "Error interno del servidor", message: err.message });
+    return res.status(500).json({
+      error: "Error interno del servidor",
+      message: err.message
+    });
   }
 });
 

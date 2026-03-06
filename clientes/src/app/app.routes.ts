@@ -132,9 +132,15 @@ export const routes: Routes = [
     canActivate: [AdminGuard]
 
   },
+    {
+    path: 'lista-mediaciones',
+    loadComponent: () => import('./pages/lista-mediaciones/lista-mediaciones.page').then( m => m.ListaMediacionesPage),
+    canActivate: [AdminGuard]
+
+  },
   {
   path: '**',
   redirectTo: 'login',
-},
+  },
 
 ];

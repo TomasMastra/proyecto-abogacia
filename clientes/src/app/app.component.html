@@ -74,7 +74,11 @@
 
           <button mat-menu-item [class.active-route]="isActive('jurisprudencias')" (click)="goTo('jurisprudencias')" *ngIf="verificarRol()">
             <mat-icon>pin</mat-icon>
-            <span>jurisprudencias</span>
+            <span>Jurisprudencias</span>
+          </button>
+
+          <button mat-menu-item [class.active-route]="isActive('lista-mediaciones')" (click)="goTo('lista-mediaciones')" *ngIf="verificarRol()">
+            <span>Mediaciones</span>
           </button>
         </mat-menu>
         

@@ -26,12 +26,17 @@
         </mat-form-field>
       </ng-container>
 
-      <ng-template #estadoMediacion>
-        <mat-form-field appearance="outline">
-          <mat-label>Estado</mat-label>
-          <input matInput value="Mediación" disabled />
-        </mat-form-field>
-      </ng-template>
+    <ng-template #estadoMediacion>
+      <mat-form-field appearance="outline">
+        <mat-label>Estado de Mediación</mat-label>
+        <mat-select formControlName="estado">
+          <mat-option value="Pendiente">Pendiente</mat-option>
+          <mat-option value="Continua">Continúa</mat-option>
+          <mat-option value="Cerrado con acuerdo">Cerrado con acuerdo</mat-option>
+          <mat-option value="Cerrado sin acuerdo">Cerrado sin acuerdo</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </ng-template>
 
       <mat-form-field appearance="outline">
         <mat-label>Porcentaje</mat-label>
