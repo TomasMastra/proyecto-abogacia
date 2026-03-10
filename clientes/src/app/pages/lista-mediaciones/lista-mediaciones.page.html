@@ -18,6 +18,7 @@
         </mat-option>
       </mat-select>
     </mat-form-field>
+    
 
     <mat-form-field appearance="fill" class="custom-mat-select">
       <mat-label>Estado</mat-label>
@@ -28,7 +29,14 @@
         <mat-option value="Cerrado sin acuerdo">Cerrado sin acuerdo</mat-option>
       </mat-select>
     </mat-form-field>
+
+    <button class="btn-nueva-mediacion" (click)="abrirDialog()">
+      <mat-icon>add</mat-icon>
+      <span>Nueva Mediación</span>
+    </button>
   </div>
+
+
 
   <div *ngIf="cargando" class="fullscreen-loader">
     <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
@@ -38,11 +46,13 @@
     <table>
       <thead>
         <tr>
-          <th>Nº expediente</th>
           <th>Carátula</th>
+          <th>Fecha</th>
           <th>Estado</th>
           <th>Abogado</th>
           <th>Procurador</th>
+          <th>Accion</th>
+
         </tr>
       </thead>
 
@@ -54,12 +64,13 @@
           [class.hover]="item.hover"
           style="background-color: #07295c"
         >
-          <td>Mediación</td>
-
           <td>
             {{ item.caratula }}
           </td>
 
+          <td>
+            {{ item.fecha_inicio | date:'dd/MM/yyyy' }}
+          </td>
           <td>
             {{ item.estado }}
           </td>
@@ -70,6 +81,17 @@
 
           <td>
             {{ getNombreAbogado(item.procurador_id) }}
+          </td>
+          <td>
+            <div class="acciones">
+              <button mat-icon-button class="list-button" (click)="eliminarExpediente(item); $event.stopPropagation()">
+                <mat-icon style="color: #ffffff">delete</mat-icon>
+              </button>
+
+              <button mat-icon-button class="list-button" (click)="abrirModificar(item); $event.stopPropagation()">
+                <mat-icon style="color: #ffffff">edit</mat-icon>
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>

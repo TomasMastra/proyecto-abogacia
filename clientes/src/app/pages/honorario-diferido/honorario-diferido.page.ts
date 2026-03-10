@@ -107,7 +107,8 @@ estadosHonorarios: string[] = [
   'embargo deox librado',
   'embargo ejecutado',
   'embargo citese de venta',
-  'giro - consentido' // este es diferente de 'giro - consiente'
+  'giro - consentido', // este es diferente de 'giro - consiente'
+  'solicita se regulan'
 ];
 
   constructor(

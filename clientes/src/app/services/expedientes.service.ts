@@ -657,4 +657,24 @@ getCobranzasDetallePorMes(anio: number, mes: number) {
   });
 }
 
+getMediaciones() {
+  const usuario = this.usuarioService.usuarioLogeado;
+  const params = { usuario_id: usuario!.id, rol: usuario!.rol };
+
+this.http.get<any[]>(`${this.apiUrl}/mediaciones`, { params }).subscribe({
+      next: (expedientes) => {
+      (expedientes ?? []).forEach(e => {
+        e.clientes = [];
+        e.demandados = [];
+      });
+      this.expedientesSubject.next(expedientes ?? []);
+    },
+    error: () => {
+      this.expedientesSubject.next([]);
+    }
+  });
+
+  return this.clientes$; 
+}
+
 }

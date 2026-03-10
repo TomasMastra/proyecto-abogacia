@@ -261,76 +261,11 @@ app.get("/clientes", async (req, res) => {
   }
 });
 
-/*
-app.get("/expedientes", async (req, res) => {
-  const usuario_id = parseInt(req.query.usuario_id);
-  const rol = req.query.rol;
-
-  try {
-    await poolConnect;
-
-    const request = pool.request();
-
-    if (rol !== 'admin') {
-      request.input('usuario_id', sql.Int, usuario_id);
-    }
-
-    const query = `
-      SELECT 
-        e.id,
-        e.numero,
-        e.anio,
-        e.caratula,
-        e.estado,
-        e.juzgado_id,
-        e.usuario_id,
-        e.procurador_id,
-        e.juicio,
-        e.ultimo_movimiento,
-        e.fecha_atencion,
-        e.capitalCobrado,
-        e.estadoHonorariosSeleccionado,
-        ISNULL((
-          SELECT STRING_AGG(LTRIM(RTRIM(p.nombre_completo)), ' | ')
-          FROM (
-            SELECT LTRIM(RTRIM(c.nombre + ' ' + c.apellido)) AS nombre_completo
-            FROM clientes_expedientes ce
-            JOIN clientes c ON c.id = ce.id_cliente
-            WHERE ce.id_expediente = e.id
-
-            UNION ALL
-            SELECT LTRIM(RTRIM(d.nombre)) AS nombre_completo
-            FROM expedientes_demandados ed
-            JOIN demandados d ON d.id = ed.id_demandado
-            WHERE ed.id_expediente = e.id
-
-            UNION ALL
-            SELECT LTRIM(RTRIM(c2.nombre + ' ' + c2.apellido)) AS nombre_completo
-            FROM expedientes_demandados ed2
-            JOIN clientes c2 ON c2.id = ed2.id_cliente
-            WHERE ed2.id_expediente = e.id
-          ) p
-        ), '') AS busqueda
-      FROM expedientes e
-      WHERE e.estado != 'eliminado'
-        ${rol !== 'admin' ? ' AND e.usuario_id = @usuario_id' : ''}
-      ORDER BY e.id DESC;
-    `;
-
-    const result = await request.query(query);
-    res.json(result.recordset);
-  } catch (err) {
-    console.error("Error al obtener expedientes:", err);
-    res.status(500).send(err);
-  }
-});*/
-
 // postgres
 app.get("/expedientes", async (req, res) => {
   const rol = String(req.query.rol || "");
   const usuario_id = req.query.usuario_id != null ? Number(req.query.usuario_id) : null;
 
-  // si NO es admin, usuario_id es obligatorio
   if (rol !== "admin" && !Number.isFinite(usuario_id)) {
     return res.status(400).json({ error: "usuario_id inválido" });
   }
@@ -346,20 +281,10 @@ app.get("/expedientes", async (req, res) => {
 
     const query = `
       SELECT 
-        e.id,
-        e.numero,
-        e.anio,
-        e.caratula,
-        e.estado,
-        e.juzgado_id,
-        e.usuario_id,
-        e.procurador_id,
-        e.juicio,
-        e.ultimo_movimiento,
-        e.fecha_atencion,
-        e."capitalCobrado",
-        e."estadoHonorariosSeleccionado",
-        e.tipo_registro,
+        e.id, e.numero, e.anio, e.caratula, e.estado,
+        e.juzgado_id, e.usuario_id, e.procurador_id, e.juicio,
+        e.ultimo_movimiento, e.fecha_atencion, e."capitalCobrado",
+        e."estadoHonorariosSeleccionado", e.tipo_registro,
         COALESCE((
           SELECT string_agg(btrim(p.nombre_completo::text), ' | ')
           FROM (
@@ -367,13 +292,11 @@ app.get("/expedientes", async (req, res) => {
             FROM public.clientes_expedientes ce
             JOIN public.clientes c ON c.id = ce.id_cliente
             WHERE ce.id_expediente = e.id
-
             UNION ALL
             SELECT btrim(d.nombre) AS nombre_completo
             FROM public.expedientes_demandados ed
             JOIN public.demandados d ON d.id = ed.id_demandado
             WHERE ed.id_expediente = e.id
-
             UNION ALL
             SELECT btrim(c2.nombre || ' ' || c2.apellido) AS nombre_completo
             FROM public.expedientes_demandados ed2
@@ -383,7 +306,9 @@ app.get("/expedientes", async (req, res) => {
         ), '') AS busqueda
       FROM public.expedientes e
       WHERE e.estado <> 'eliminado'
-      ${filtroUsuario}
+        -- AGREGAMOS ESTA LÍNEA PARA FILTRAR:
+        AND (LOWER(e.tipo_registro) <> 'mediacion' OR e.tipo_registro IS NULL)
+        ${filtroUsuario}
       ORDER BY e.id DESC;
     `;
 
@@ -395,6 +320,59 @@ app.get("/expedientes", async (req, res) => {
   }
 });
 
+app.get("/expedientes/mediaciones", async (req, res) => {
+  const rol = String(req.query.rol || "").toLowerCase();
+  const usuario_id = req.query.usuario_id != null ? Number(req.query.usuario_id) : null;
+
+  if (rol !== "admin") {
+    return res.status(400).json({ error: "Usuario invalido" });
+  }
+
+  try {
+    const params = [];
+    let filtroUsuario = "";
+
+    // Lógica de filtrado por dueño (Solo si no es admin)
+    if (rol !== "admin") {
+      params.push(usuario_id);
+      filtroUsuario = ` AND e.usuario_id = $1`;
+    }
+
+    const query = `
+      SELECT 
+        e.id, e.anio, e.caratula, e.estado, e.usuario_id, 
+        e.procurador_id, e.tipo_registro, e.fecha_inicio,
+        e.caratula,
+        COALESCE((
+          SELECT string_agg(btrim(p.nombre_completo::text), ' | ')
+          FROM (
+            SELECT btrim(c.nombre || ' ' || c.apellido) AS nombre_completo
+            FROM public.clientes_expedientes ce
+            JOIN public.clientes c ON c.id = ce.id_cliente
+            WHERE ce.id_expediente = e.id
+            UNION ALL
+            SELECT btrim(d.nombre) AS nombre_completo
+            FROM public.expedientes_demandados ed
+            JOIN public.demandados d ON d.id = ed.id_demandado
+            WHERE ed.id_expediente = e.id
+          ) p
+        ), '') AS busqueda
+      FROM public.expedientes e
+      WHERE e.estado <> 'eliminado'
+        -- FILTROS QUE TENÍAS EN EL TS:
+        AND LOWER(e.tipo_registro) = 'mediacion'
+        AND LOWER(e.estado) NOT IN ('cerrado con acuerdo', 'cobrado')
+        ${filtroUsuario}
+      ORDER BY e.id DESC;
+    `;
+
+    const result = await pgPool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error al obtener mediaciones:", err);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
 
 
 

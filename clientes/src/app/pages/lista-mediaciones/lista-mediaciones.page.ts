@@ -26,6 +26,11 @@ import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { UsuarioService } from 'src/app/services/usuario.service';
 
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import Swal from 'sweetalert2'
+import { DialogExpedienteComponent } from '../../components/dialog-expediente/dialog-expediente.component'; 
+import { DialogExpedienteModificarComponent } from '../../components/dialog-expediente-modificar/dialog-expediente-modificar.component'; 
+import { DialogTipoAltaComponent, AltaMode } from '../../components/dialog-tipo-alta/dialog-tipo-alta.component';
 
 @Component({
   selector: 'app-lista-mediaciones',
@@ -37,7 +42,10 @@ import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
     CommonModule, FormsModule,
     MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
     MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule,
-    MatMenuModule, MatProgressSpinnerModule, MatSelectModule, MatOptionModule
+    MatMenuModule, MatProgressSpinnerModule, MatSelectModule, MatOptionModule, MatDialogModule,
+    DialogTipoAltaComponent, 
+    DialogExpedienteComponent,
+    DialogExpedienteModificarComponent
   ]
 })
 export class ListaMediacionesPage implements OnInit, OnDestroy {
@@ -75,7 +83,8 @@ export class ListaMediacionesPage implements OnInit, OnDestroy {
     private expedienteService: ExpedientesService,
     private juzgadoService: JuzgadosService,
     private usuarioService: UsuarioService,
-    private router: Router
+    private router: Router,
+    private dialog: MatDialog // <-- Faltaba inyectar esto
   ) {}
 
   ngOnInit() {
@@ -114,33 +123,13 @@ export class ListaMediacionesPage implements OnInit, OnDestroy {
   cargarMediaciones() {
     this.cargando = true;
 
-    this.expedienteService.getExpedientes()
+    this.expedienteService.getMediaciones()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (expedientes) => {
-          const filtradas = (expedientes || []).filter((expediente: any) => {
-            const esMediacion =
-              (expediente.tipo_registro ?? '').toString().toLowerCase() === 'mediacion';
-
-            const estado = (expediente.estado ?? '').toString().toLowerCase();
-
-            return esMediacion &&
-                   estado !== 'cerrado con acuerdo' &&
-                   estado !== 'cobrado';
-          });
-
-          this.mediaciones = filtradas;
-          this.mediacionesOriginales = [...filtradas];
+          this.mediaciones = expedientes || [];
+          this.mediacionesOriginales = [...(expedientes || [])];
           this.hayMediaciones = this.mediaciones.length > 0;
-
-          this.mediaciones.forEach(mediacion => {
-            if (mediacion.juzgado_id) {
-              this.juzgadoService.getJuzgadoPorId(mediacion.juzgado_id).subscribe(juzgado => {
-                mediacion.juzgadoModel = juzgado;
-              });
-            }
-          });
-
           this.cargando = false;
         },
         error: (error) => {
@@ -216,6 +205,53 @@ export class ListaMediacionesPage implements OnInit, OnDestroy {
     }
   }
 
+  abrirDialog(): void {
+  // PASO 1: Abrimos el dialog de SELECCIÓN (el chiquito)
+  const selRef = this.dialog.open(DialogTipoAltaComponent, {
+    width: '400px',
+    disableClose: true
+  });
+
+  selRef.afterClosed().subscribe((mode: AltaMode | null) => {
+    if (!mode) return; // Si canceló, no hacemos nada
+
+    // PASO 2: Abrimos el dialog de CARGA (el grande de 900px)
+    // Pasamos el 'mode' en la data para que el formulario sepa qué campos mostrar
+    const dialogRef = this.dialog.open(DialogExpedienteComponent, {
+      width: '900px',
+      disableClose: true,
+      data: { mode } 
+    });
+
+    dialogRef.afterClosed().subscribe((payload: any) => {
+      if (!payload) return;
+
+      this.expedienteService.addExpediente(payload).subscribe({
+        next: (resp) => {
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: payload.tipo_registro === 'mediacion' 
+                   ? 'Mediación cargada' 
+                   : 'Expediente cargado',
+            showConfirmButton: false,
+            timer: 2000
+          });
+          this.cargarMediaciones();
+        },
+        error: (err) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error al guardar',
+            text: err?.error?.message || 'Revisá los datos'
+          });
+        }
+      });
+    });
+  });
+}
+
   filtrar() {
     const texto = (this.busqueda || '').toLowerCase().trim();
     const textoNorm = texto
@@ -285,6 +321,72 @@ export class ListaMediacionesPage implements OnInit, OnDestroy {
       const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
 
       return tipoOk && juzgadoOk && abogadoOk && procuradorOk && estadoOk && busquedaOk;
+    });
+  }
+
+abrirModificar(expediente: any) { // Usá any o el modelo correcto
+    const dialogRef = this.dialog.open(DialogExpedienteModificarComponent, {
+      width: '900px',
+      disableClose: true,
+      data: {
+        id: expediente.id,
+        tipo_registro: expediente.tipo_registro ?? null,
+      }
+    });
+  
+    dialogRef.afterClosed().subscribe((payload: any) => {
+      if (!payload?.id) return;
+  
+      this.expedienteService.actualizarExpediente(payload.id, payload).subscribe({
+        next: () => {
+          Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Mediación modificada', showConfirmButton:false, timer:1500 });
+          this.cargarMediaciones(); // <-- Nombre corregido
+        },
+        error: () => {
+          Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al actualizar', showConfirmButton:false, timer:1500 });
+        }
+      });
+    });
+  }
+
+  eliminarExpediente(expediente: any) {
+    Swal.fire({
+      title: "¿Estás seguro?",
+      text: "El expediente pasará a estado eliminado.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "No, cancelar",
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        
+        // Creamos una copia para no modificar el objeto de la lista antes de la respuesta del server
+        const expedienteUpdate = { ...expediente, estado: 'eliminado' };
+
+        if (!expediente.id) {
+          Swal.fire({ icon: "error", title: "Error", text: "ID no válido." });
+          return;
+        }
+  
+        this.expedienteService.actualizarExpediente(expediente.id, expedienteUpdate).subscribe({
+          next: (response) => {
+            Swal.fire({
+              toast: true,
+              position: "top-end",
+              icon: "success",
+              title: "Eliminado correctamente.",
+              showConfirmButton: false,
+              timer: 3000
+            });
+            this.cargarMediaciones(); // <-- Nombre corregido
+          },
+          error: (error) => {
+            console.error('Error al eliminar:', error);
+            Swal.fire({ icon: "error", title: "Error", text: "No se pudo eliminar." });
+          }
+        });
+      }
     });
   }
 }
