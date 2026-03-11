@@ -53,22 +53,24 @@
             <mat-icon>upcoming</mat-icon>
             <span>Consultas pruebas</span>
           </button>
+
           <button mat-menu-item [class.active-route]="isActive('requeridos')" (click)="goTo('requeridos')" *ngIf="verificarRol()">
-            <mat-icon>exclamation</mat-icon>
+            <mat-icon>alarm</mat-icon>
             <span>Requieren Atención</span>
           </button>
+
           <button mat-menu-item [class.active-route]="isActive('oficio')" (click)="goTo('oficio')" *ngIf="verificarRol()">
-            <mat-icon>exclamation</mat-icon>
+            <mat-icon>find_in_page</mat-icon>
             <span>Pruebas</span>
           </button>
 
           <button mat-menu-item [class.active-route]="isActive('cobranzas')" (click)="goTo('cobranzas')">
-            <mat-icon>exclamation</mat-icon>
+            <mat-icon>attach_money</mat-icon>
             <span>Cobranzas</span>
           </button>
 
           <button mat-menu-item [class.active-route]="isActive('datos-importantes')" (click)="goTo('datos-importantes')" *ngIf="verificarRol()">
-            <mat-icon>exclamation</mat-icon>
+            <mat-icon>info</mat-icon>
             <span>Datos importantes</span>
           </button>
 
@@ -78,7 +80,12 @@
           </button>
 
           <button mat-menu-item [class.active-route]="isActive('lista-mediaciones')" (click)="goTo('lista-mediaciones')" *ngIf="verificarRol()">
+            <mat-icon>handshake</mat-icon>
             <span>Mediaciones</span>
+          </button>
+          <button mat-menu-item [class.active-route]="isActive('informes-enre')" (click)="goTo('informes-enre')" *ngIf="verificarRol()">
+            <mat-icon>chronic</mat-icon>
+            <span>Informes Enre</span>
           </button>
         </mat-menu>
         

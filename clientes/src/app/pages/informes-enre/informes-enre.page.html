@@ -1,0 +1,62 @@
+<div class="content mat-elevation-z8" [class.blur-content]="cargando">
+
+  <div class="toolbar">
+
+    <input
+      style="color: white; font-weight: bold;"
+      placeholder="Buscar cliente o expediente"
+      class="input-busqueda"
+      [(ngModel)]="busqueda"
+      (ngModelChange)="filtrar()"
+    >
+
+    <label for="selectEmpresa" class="custom-select">
+      <select id="selectEmpresa" [(ngModel)]="empresaSeleccionada" (change)="filtrar()">
+        <option [value]="''">Todas</option>
+        <option [value]="1">EDESUR</option>
+        <option [value]="7">EDENOR</option>
+      </select>
+    </label>
+
+  </div>
+
+  <div *ngIf="cargando" class="fullscreen-loader">
+    <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
+  </div>
+
+  <div class="table-container" *ngIf="!cargando">
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Nº expediente</th>
+          <th>Empresa</th>
+          <th>Fecha inicio</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <ng-container *ngFor="let item of informes">
+          <tr>
+            <td style="background-color: #07295c;">
+              {{ item.nombre }} {{ item.apellido }}
+            </td>
+
+            <td style="background-color: #07295c;">
+              {{ item.numero }}/{{ item.anio }}
+            </td>
+
+            <td style="background-color: #07295c;">
+              {{ item.empresa }}
+            </td>
+
+            <td style="background-color: #07295c;">
+              {{ item.fecha_inicio | date:'dd/MM/yyyy' }}
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+
+</div>

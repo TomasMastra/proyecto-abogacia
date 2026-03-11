@@ -5,6 +5,8 @@ import { mergeMap, map, switchMap } from 'rxjs/operators';
 import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 import { ExpedienteModel } from '../models/expediente/expediente.component';
 import { DemandadoModel } from '../models/demandado/demandado.component';
+import { InformeEnreModel } from '../models/informe-enre/informe-enre.component';
+
 import { HttpParams } from '@angular/common/http';
 import { BehaviorSubject, forkJoin, Observable, throwError, of   } from 'rxjs';
 
@@ -677,4 +679,9 @@ this.http.get<any[]>(`${this.apiUrl}/mediaciones`, { params }).subscribe({
   return this.clientes$; 
 }
 
+getInformeEnre() {
+  const url = `${this.apiUrl}/informes`;
+  console.log('GET informe ENRE =>', url);
+  return this.http.get<any[]>(url);
+}
 }

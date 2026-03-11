@@ -73,7 +73,7 @@ abogadoSeleccionado: string = '';
 procuradorSeleccionado: string = '';
 
 tiposJuicio: string[] = ['sumarisimo', 'ordinario', 'a definir'];
-juicioSeleccionado: any;
+juicioSeleccionado: string = '';
 
   constructor(
     private expedienteService: ExpedientesService,

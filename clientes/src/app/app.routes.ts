@@ -139,8 +139,16 @@ export const routes: Routes = [
 
   },
   {
+    path: 'informes-enre',
+    loadComponent: () => import('./pages/informes-enre/informes-enre.page').then( m => m.InformesEnrePage),
+    canActivate: [AdminGuard]
+
+  },
+  {
   path: '**',
   redirectTo: 'login',
   },
+
+
 
 ];

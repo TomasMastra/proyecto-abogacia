@@ -99,36 +99,8 @@
       
       <tr [class.hover]="item.hover">
         <td style="background-color: #07295c;">{{ item.numero }}/{{ item.anio }}</td>
-        <td style="background-color: #07295c;"{{ item.caratula }}>          
-<ion-label>
-<div *ngIf="item.clientes && item.clientes.length === 1 && item.demandados && item.demandados?.length === 1">
-  {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} contra {{ item.demandados[0].nombre }}
-</div>
-
-<div *ngIf="item.clientes && item.clientes.length === 1 && item.demandados && item.demandados?.length > 1">
-  {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} contra {{ item.demandados[0].nombre }} y otros
-</div>
-
-<div *ngIf="item.clientes && item.clientes.length > 1 && item.demandados && item.demandados?.length === 1">
-  {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} y otros contra {{ item.demandados[0].nombre }}
-</div>
-
-<div *ngIf="item.clientes && item.clientes.length > 1 && item.demandados && item.demandados?.length > 1">
-  {{ item.clientes[0]?.nombre }} {{ item.clientes[0]?.apellido }} y otros contra {{ item.demandados[0].nombre }} y otros
-</div>
-
-<div *ngIf="item.clientes && item.clientes.length === 0 && item.demandados && item.demandados?.length === 1">
-  (sin actora) contra {{ item.demandados[0].nombre }}
-</div>
-
-<div *ngIf="item.clientes && item.clientes.length === 0 && item.demandados && item.demandados?.length > 1">
-  (sin actora) contra {{ item.demandados[0].nombre }} y otros
-</div>
-</ion-label>
-
-        </td>
+        <td style="background-color: #07295c;">{{ item.caratula }}</td>
         <td style="background-color: #07295c;">{{ getNombreAbogado(item.usuario_id) }}</td>
-
         <td style="background-color: #07295c;">{{ getNombreAbogado(item.procurador_id) }}</td>
       </tr>
 
