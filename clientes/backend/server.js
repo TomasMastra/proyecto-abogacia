@@ -1327,8 +1327,17 @@ app.put("/expedientes/modificar/:id", async (req, res) => {
 
   // helpers
   const toNullIfEmpty = (v) => (v === "" || v === undefined ? null : v);
-  const toIntOrNull = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
-  const toFloatOrNull = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
+  const toIntOrNull = (v) => {
+    if (v === "" || v === null || v === undefined) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  const toFloatOrNull = (v) => {
+    if (v === "" || v === null || v === undefined) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
   const toBool = (v) => !!v;
 
   const client = await pgPool.connect();
@@ -1350,9 +1359,9 @@ app.put("/expedientes/modificar/:id", async (req, res) => {
         AND estado <> 'eliminado'
       `,
       [
-        Number(nuevosDatos.numero),
-        Number(nuevosDatos.anio),
-        Number(nuevosDatos.juzgado_id),
+        toIntOrNull(nuevosDatos.numero),
+        toIntOrNull(nuevosDatos.anio),
+        toIntOrNull(nuevosDatos.juzgado_id),
         expedienteIdNum,
       ]
     );
@@ -1449,9 +1458,9 @@ WHERE id = $63::int;
       [
         nuevosDatos.titulo ?? null,
         nuevosDatos.descripcion ?? null,
-        Number(nuevosDatos.numero),
-        Number(nuevosDatos.anio),
-        Number(nuevosDatos.juzgado_id),
+        toIntOrNull(nuevosDatos.numero),
+        toIntOrNull(nuevosDatos.anio),
+        toIntOrNull(nuevosDatos.juzgado_id),
         nuevosDatos.estado ?? null,
         toIntOrNull(nuevosDatos.juez_id),
         nuevosDatos.honorario ?? null,

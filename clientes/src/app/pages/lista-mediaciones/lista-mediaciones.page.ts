@@ -205,49 +205,39 @@ export class ListaMediacionesPage implements OnInit, OnDestroy {
     }
   }
 
-  abrirDialog(): void {
-  // PASO 1: Abrimos el dialog de SELECCIÓN (el chiquito)
-  const selRef = this.dialog.open(DialogTipoAltaComponent, {
-    width: '400px',
-    disableClose: true
+abrirDialog(): void {
+  const dialogRef = this.dialog.open(DialogExpedienteComponent, {
+    width: '900px',
+    disableClose: true,
+    data: {
+      mode: 'mediacion',
+      tipo_registro: 'mediacion'
+    }
   });
 
-  selRef.afterClosed().subscribe((mode: AltaMode | null) => {
-    if (!mode) return; // Si canceló, no hacemos nada
+  dialogRef.afterClosed().subscribe((payload: any) => {
+    if (!payload) return;
 
-    // PASO 2: Abrimos el dialog de CARGA (el grande de 900px)
-    // Pasamos el 'mode' en la data para que el formulario sepa qué campos mostrar
-    const dialogRef = this.dialog.open(DialogExpedienteComponent, {
-      width: '900px',
-      disableClose: true,
-      data: { mode } 
-    });
+    this.expedienteService.addExpediente(payload).subscribe({
+      next: () => {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Mediación cargada',
+          showConfirmButton: false,
+          timer: 2000
+        });
 
-    dialogRef.afterClosed().subscribe((payload: any) => {
-      if (!payload) return;
-
-      this.expedienteService.addExpediente(payload).subscribe({
-        next: (resp) => {
-          Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'success',
-            title: payload.tipo_registro === 'mediacion' 
-                   ? 'Mediación cargada' 
-                   : 'Expediente cargado',
-            showConfirmButton: false,
-            timer: 2000
-          });
-          this.cargarMediaciones();
-        },
-        error: (err) => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Error al guardar',
-            text: err?.error?.message || 'Revisá los datos'
-          });
-        }
-      });
+        this.cargarMediaciones();
+      },
+      error: (err) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al guardar',
+          text: err?.error?.message || 'Revisá los datos'
+        });
+      }
     });
   });
 }

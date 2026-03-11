@@ -152,44 +152,38 @@ abrirModificar(expediente: ExpedienteModel) {
   }
 
 abrirDialog(): void {
-  const selRef = this.dialog.open(DialogTipoAltaComponent, {
-    width: '420px',
-    disableClose: true
+  const dialogRef = this.dialog.open(DialogExpedienteComponent, {
+    width: '900px',
+    disableClose: true,
+    data: {
+      mode: 'expediente',
+      tipo_registro: 'expediente'
+    }
   });
 
-  selRef.afterClosed().subscribe((mode: AltaMode | null) => {
-    if (!mode) return;
+  dialogRef.afterClosed().subscribe((payload: any) => {
+    if (!payload) return;
 
-    const dialogRef = this.dialog.open(DialogExpedienteComponent, {
-      width: '900px',
-      disableClose: true,
-      data: { mode }
-    });
+    this.expedienteService.addExpediente(payload).subscribe({
+      next: () => {
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Expediente cargado',
+          showConfirmButton: false,
+          timer: 2000
+        });
 
-    dialogRef.afterClosed().subscribe((payload: any) => {
-      if (!payload) return;
-
-      this.expedienteService.addExpediente(payload).subscribe({
-        next: (resp) => {
-          Swal.fire({
-            icon: 'success',
-            title: payload.tipo_registro === 'mediacion'
-              ? 'Mediación cargada correctamente'
-              : 'Expediente cargado correctamente',
-            timer: 1500,
-            showConfirmButton: false
-          });
-
-          this.cargarExpedientes(); // refrescá la tabla
-        },
-        error: (err) => {
-          Swal.fire({
-            icon: 'error',
-            title: 'Hubo un error',
-            text: err?.error?.message || 'No se pudo guardar el registro'
-          });
-        }
-      });
+        this.cargarExpedientes();
+      },
+      error: (err) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al guardar',
+          text: err?.error?.message || 'Revisá los datos'
+        });
+      }
     });
   });
 }
