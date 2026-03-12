@@ -24,6 +24,9 @@ export class InformesEnrePage {
   informes: any[] = [];
   informesOriginales: any[] = [];
 
+  informesAgrupados: any[] = [];
+  informesAgrupadosOriginales: any[] = [];
+
   busqueda = '';
   empresaSeleccionada = '';
 
@@ -38,11 +41,11 @@ cargar() {
 
   this.expedientesService.getInformeEnre().subscribe({
     next: (data: any[]) => {
-      console.log('INFORME ENRE DATA:', data);
-      console.log('INFORME ENRE LENGTH:', data?.length);
+      this.informesOriginales = data || [];
+      this.informes = data || [];
 
-      this.informesOriginales = Array.isArray(data) ? data : [];
-      this.informes = [...this.informesOriginales];
+      this.informesAgrupadosOriginales = this.agruparPorExpediente(this.informesOriginales);
+      this.informesAgrupados = [...this.informesAgrupadosOriginales];
 
       this.cargando = false;
     },
@@ -53,24 +56,64 @@ cargar() {
   });
 }
 
-  filtrar() {
-    const texto = this.busqueda.toLowerCase();
+filtrar() {
+  const texto = (this.busqueda || '').toLowerCase().trim();
 
-    this.informes = this.informesOriginales.filter(item => {
-      const empresaOk = this.empresaSeleccionada
-        ? item.empresa_id === +this.empresaSeleccionada
-        : true;
+  this.informesAgrupados = this.informesAgrupadosOriginales.filter(item => {
 
-      const numeroOk = item.numero?.toString().includes(texto);
-      const anioOk = item.anio?.toString().includes(texto);
+    const empresaOk = this.empresaSeleccionada
+      ? Number(item.empresa_id) === Number(this.empresaSeleccionada)
+      : true;
 
-      const clienteOk =
-        (item.nombre && item.nombre.toLowerCase().includes(texto)) ||
-        (item.apellido && item.apellido.toLowerCase().includes(texto));
+    const numeroOk = item.numero?.toString().includes(texto);
+    const anioOk = item.anio?.toString().includes(texto);
 
-      const busquedaOk = texto === '' || numeroOk || anioOk || clienteOk;
+    const clienteOk = item.clientes?.some((cliente: any) =>
+      (`${cliente.nombre || ''} ${cliente.apellido || ''}`)
+        .toLowerCase()
+        .includes(texto)
+    );
 
-      return empresaOk && busquedaOk;
+    const busquedaOk = !texto || numeroOk || anioOk || clienteOk;
+
+    return empresaOk && busquedaOk;
+  });
+}
+
+  agruparPorExpediente(data: any[]) {
+  const mapa = new Map<string, any>();
+
+  data.forEach(item => {
+    const key = `${item.numero}-${item.anio}-${item.empresa_id}-${item.fecha_inicio}`;
+
+    if (!mapa.has(key)) {
+      mapa.set(key, {
+        numero: item.numero,
+        anio: item.anio,
+        empresa_id: item.empresa_id,
+        empresa: item.empresa,
+        fecha_inicio: item.fecha_inicio,
+        clientes: []
+      });
+    }
+
+    mapa.get(key).clientes.push({
+      cliente_id: item.cliente_id,
+      nombre: item.nombre,
+      apellido: item.apellido
     });
+  });
+
+  return Array.from(mapa.values());
+}
+
+getTituloClientes(item: any): string {
+  if (!item.clientes || item.clientes.length === 0) return '';
+
+  if (item.clientes.length === 1) {
+    return `${item.clientes[0].nombre} ${item.clientes[0].apellido}`;
   }
+
+  return `${item.clientes[0].nombre} ${item.clientes[0].apellido} y otros`;
+}
 }

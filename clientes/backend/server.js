@@ -5338,6 +5338,41 @@ app.get("/expedientes/informes", async (req, res) => {
     });
   }
 });
+
+app.get("/expedientes/control-anio", async (req, res) => {
+  try {
+    const query = `
+      select
+        e.id,
+        e.numero,
+        e.anio,
+        e.fecha_inicio,
+        e.caratula,
+        extract(year from e.fecha_inicio) as anio_real,
+        string_agg(c.nombre || ' ' || c.apellido, ', ') as clientes
+      from expedientes e
+      left join clientes_expedientes ce
+        on ce.id_expediente = e.id
+      left join clientes c
+        on c.id = ce.id_cliente
+      where e.fecha_inicio is not null
+        and e.anio <> extract(year from e.fecha_inicio)
+        and e.estado <> 'eliminado'
+      group by e.id, e.numero, e.anio, e.fecha_inicio
+      order by e.fecha_inicio desc
+    `;
+
+    const { rows } = await pgPool.query(query);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("ERROR OBTENIENDO CONTROL ANIO:", err);
+    res.status(500).json({
+      error: "Error obteniendo control de año",
+      detalle: err.message
+    });
+  }
+});
 module.exports = router;
 
 

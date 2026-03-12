@@ -684,4 +684,8 @@ getInformeEnre() {
   console.log('GET informe ENRE =>', url);
   return this.http.get<any[]>(url);
 }
+
+getControlAnioExpedientes() {
+  return this.http.get<any[]>(`${this.apiUrl}/control-anio`);
+}
 }

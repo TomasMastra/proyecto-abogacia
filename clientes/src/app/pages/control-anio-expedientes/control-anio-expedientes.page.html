@@ -1,0 +1,61 @@
+<div class="content mat-elevation-z8" [class.blur-content]="cargando">
+
+  <div class="toolbar">
+
+    <input
+      style="color: white; font-weight: bold;"
+      placeholder="Buscar cliente, número, año cargado o año real"
+      class="input-busqueda"
+      [(ngModel)]="busqueda"
+      (ngModelChange)="filtrar()"
+    >
+
+  </div>
+
+  <div *ngIf="cargando" class="fullscreen-loader">
+    <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
+  </div>
+
+  <div class="table-container" *ngIf="!cargando">
+    <table>
+      <thead>
+        <tr>
+          <th>Clientes</th>
+          <th>Expediente</th>
+          <th>Fecha inicio</th>
+          <th>Año cargado</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <ng-container *ngFor="let item of expedientes">
+          <tr>
+            <td style="background-color: #07295c;">
+              {{ item.caratula }}
+            </td>
+
+            <td style="background-color: #07295c;">
+              {{ item.numero }}/{{ item.anio }}
+            </td>
+
+            <td style="background-color: #07295c;">
+              {{ item.fecha_inicio | date:'dd/MM/yyyy' }}
+            </td>
+
+            <td style="background-color: #07295c; font-weight: bold; color: #ffeb3b;">
+              {{ item.anio }}
+            </td>
+
+            <td style="background-color: #07295c;">
+              <button mat-button class="list-button" (click)="abrirModificar(item)">
+                <mat-icon style="color: #ffffff;">edit</mat-icon>
+              </button>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+
+</div>

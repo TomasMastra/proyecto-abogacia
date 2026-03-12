@@ -128,9 +128,9 @@
 
         <mat-divider></mat-divider>
 
-        <button mat-button class="menu-button">
+        <button mat-button class="menu-button" mat-menu-item [class.active-route]="isActive('control-anio-expedientes')" (click)="goTo('control-anio-expedientes')">
           <mat-icon style="color: #ffffff">settings</mat-icon>
-          <span style="color: #ffffff">Ajustes</span>
+          <span style="color: #ffffff">correcciones enre</span>
         </button>
 
     <!--   <button mat-button class="menu-button" (click)="descargar()">

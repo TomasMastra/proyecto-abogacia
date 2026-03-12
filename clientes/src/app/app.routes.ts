@@ -145,6 +145,10 @@ export const routes: Routes = [
 
   },
   {
+  path: 'control-anio-expedientes',
+  loadComponent: () => import('./pages/control-anio-expedientes/control-anio-expedientes.page').then(m => m.ControlAnioExpedientesPage),
+  },
+  {
   path: '**',
   redirectTo: 'login',
   },

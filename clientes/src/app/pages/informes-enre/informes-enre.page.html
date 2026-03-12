@@ -36,26 +36,26 @@
       </thead>
 
       <tbody>
-        <ng-container *ngFor="let item of informes">
-          <tr>
-            <td style="background-color: #07295c;">
-              {{ item.nombre }} {{ item.apellido }}
-            </td>
+  <ng-container *ngFor="let item of informesAgrupados">
+    <tr>
+      <td style="background-color: #07295c;">
+        {{ getTituloClientes(item) }}
+      </td>
 
-            <td style="background-color: #07295c;">
-              {{ item.numero }}/{{ item.anio }}
-            </td>
+      <td style="background-color: #07295c;">
+        {{ item.numero }}/{{ item.anio }}
+      </td>
 
-            <td style="background-color: #07295c;">
-              {{ item.empresa }}
-            </td>
+      <td style="background-color: #07295c;">
+        {{ item.empresa }}
+      </td>
 
-            <td style="background-color: #07295c;">
-              {{ item.fecha_inicio | date:'dd/MM/yyyy' }}
-            </td>
-          </tr>
-        </ng-container>
-      </tbody>
+      <td style="background-color: #07295c;">
+        {{ item.fecha_inicio | date:'dd/MM/yyyy' }}
+      </td>
+    </tr>
+  </ng-container>
+</tbody>
     </table>
   </div>
 
