@@ -1488,7 +1488,7 @@ WHERE id = $63::int;
   toNullIfEmpty(data.fecha_inicio),
   data.juicio ?? null,
   toNullIfEmpty(data.fecha_sentencia),
-  toIntOrNull(data.monto),
+  //toIntOrNull(data.monto),
   keepBoolIfUndefined(data.apela, actual.apela),
   toNullIfEmpty(data.ultimo_movimiento),
   toFloatOrNull(data.porcentaje),
