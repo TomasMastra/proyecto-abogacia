@@ -639,8 +639,6 @@ buscar() {
     
       actualizarEstado() {
 
-
-
         if (this.estadoSeleccionado == 'Sentencia') {
           const hoy = new Date().toISOString().split('T')[0];
         this.actualizarCobrado();

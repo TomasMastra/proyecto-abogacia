@@ -1340,7 +1340,7 @@ const toFloatOrNull = (v) => {
   return Number.isFinite(n) ? n : null;
 };
 
-const ToBool = (nuevo, actual) => {
+const keepBoolIfUndefined = (nuevo, actual) => {
   if (nuevo === undefined) return actual;
   if (nuevo === null) return null;
   return !!nuevo;
@@ -1559,15 +1559,15 @@ WHERE id = $63::int;
     // =========================
     // 3) Reemplazo de relaciones + recalcular carátula
     // =========================
-    if (nuevosDatos.recalcular_caratula === true) {
+    if (data.recalcular_caratula === true) {
       // DEMANDADOS MIXTOS
-      if (Array.isArray(nuevosDatos.demandados)) {
+      if (Array.isArray(data.demandados)) {
         await client.query(
           `DELETE FROM public.expedientes_demandados WHERE id_expediente = $1::int`,
           [expedienteIdNum]
         );
 
-        for (const d of nuevosDatos.demandados) {
+        for (const d of data.demandados) {
           const tipoD = String(d?.tipo || "").toLowerCase();
           const entidadId = d?.id != null && d?.id !== "" ? Number(d.id) : null;
 
@@ -1593,13 +1593,13 @@ WHERE id = $63::int;
       }
 
       // ACTORAS MIXTAS
-      if (Array.isArray(nuevosDatos.actoras)) {
+      if (Array.isArray(data.actoras)) {
         await client.query(
           `DELETE FROM public.clientes_expedientes WHERE id_expediente = $1::int`,
           [expedienteIdNum]
         );
 
-        for (const a of nuevosDatos.actoras) {
+        for (const a of data.actoras) {
           const tipoA = String(a?.tipo || "").toLowerCase();
           const entidadId = a?.id != null && a?.id !== "" ? Number(a.id) : null;
 
