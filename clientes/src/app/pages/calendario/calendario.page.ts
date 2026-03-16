@@ -202,6 +202,54 @@ seleccionarExpediente(expediente: ExpedienteModel) {
   }
 
   private guardarEventoFinal(evento: EventoModel) {
+  const fechaBase = new Date(evento.fecha_evento);
+  const fechaStr = this.keyDiaLocalDesdeDate(fechaBase);
+  const horaStr = evento.hora_evento || '00:00';
+
+  evento.fecha_evento = `${fechaStr} ${horaStr}:00`;
+  evento.hora_evento = null;
+  evento.clientes = this.clientesAgregados;
+
+  if (this.eventoParaEditar) {
+    this.editando = false;
+
+    evento.id = this.eventoParaEditar.id;
+    this.eventosService.editarEvento(evento).subscribe({
+      next: () => {
+        Swal.fire('Actualizado', 'El evento fue actualizado.', 'success');
+        this.resetFormulario();
+        this.cargarEventos();
+        this.mostrarFormulario = false;
+        this.eventoParaEditar = null;
+      },
+      error: () => {
+        Swal.fire('Error', 'No se pudo actualizar el evento.', 'error');
+      }
+    });
+  } else {
+    this.eventosService.addEvento(evento).subscribe({
+      next: (response) => {
+        const eventoConId = { ...evento, id: response.id };
+        this.eventos.push(eventoConId);
+        this.resetFormulario();
+        this.cargarEventos();
+        this.mostrarFormulario = false;
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Evento agregado con éxito',
+          confirmButtonText: 'Entendido',
+        });
+      },
+      error: (error) => {
+        console.error('Error al guardar el evento:', error);
+        alert('Ocurrió un error al guardar el evento');
+      }
+    });
+  }
+}
+/*
+  private guardarEventoFinal(evento: EventoModel) {
   const fecha = new Date(evento.fecha_evento); // Convertimos a Date real
 
   // Si tiene hora, se la seteamos a la fecha
@@ -255,7 +303,7 @@ seleccionarExpediente(expediente: ExpedienteModel) {
       }
     });
   }
-}
+}*/
 
 
   resetFormulario() {
@@ -287,17 +335,35 @@ seleccionarExpediente(expediente: ExpedienteModel) {
     const filtro = value.toLowerCase();
     return this.listaClientes.filter(c => (`${c.nombre} ${c.apellido}`).toLowerCase().includes(filtro));
   }
+
 cargarEventos() {
   this.eventosService.getEventos().subscribe(eventos => {
     this.eventos = eventos;
     this.actualizarCalendario();
+
     if (this.fechaSeleccionada) {
-      const fechaStr = this.fechaSeleccionada.toISOString().slice(0, 10);
-      this.eventosSeleccionados = eventos.filter(e => 
-        new Date(e.fecha_evento).toISOString().slice(0, 10) === fechaStr
+      const fechaStr = this.keyDiaLocalDesdeDate(this.fechaSeleccionada);
+      this.eventosSeleccionados = eventos.filter(e =>
+        this.keyDiaEvento(e.fecha_evento) === fechaStr
       );
     }
   });
+}
+
+obtenerHoraEvento(fecha_evento: any): string {
+  if (!fecha_evento) return '';
+
+  if (typeof fecha_evento === 'string') {
+    if (fecha_evento.includes(' ')) {
+      return fecha_evento.split(' ')[1]?.slice(0, 5) || '';
+    }
+
+    if (fecha_evento.includes('T')) {
+      return fecha_evento.split('T')[1]?.slice(0, 5) || '';
+    }
+  }
+
+  return '';
 }
 
 
@@ -373,8 +439,8 @@ if (expediente) {
 }
 
   const fecha = new Date(evento.fecha_evento);
-  const hora = fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-
+  const hora = this.obtenerHoraEvento(evento.fecha_evento);
+  
   const clientes = (evento.clientes?.length ? evento.clientes : evento.expediente?.clientes || [])
     .map(c => `${c.nombre} ${c.apellido}`)
     .join(', ') || 'No especificado';

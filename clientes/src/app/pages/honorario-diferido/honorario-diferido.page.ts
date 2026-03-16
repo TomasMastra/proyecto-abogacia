@@ -385,7 +385,9 @@ case 'caratula':
     default:
       return '';
   }
-}async cobrar(
+}
+
+async cobrar(
   tipo: 'capital' | 'honorario' | 'alzada' | 'ejecucion' | 'diferencia',
   expediente: ExpedienteModel
 ) {
@@ -573,7 +575,7 @@ getCapitalParcial(item: ExpedienteModel) {
   const completo = total > 0 ? pagado >= total : !!item.capitalCobrado;
   return { pagado, total, completo };
 }
-
+/*
 finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
   const montoCapital = expediente.montoLiquidacionCapital ?? 0;
   const capitalPagado = expediente.capitalPagoParcial ?? 0;
@@ -630,12 +632,83 @@ finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
       });
     }
   });
+}*/
+
+
+
+finalizarCobro(expediente: ExpedienteModel, tipo: string, tipoTexto: string) {
+  this.expedienteService.getExpedientePorId(expediente.id).subscribe({
+    next: (expCompleto) => {
+      const actualizado: ExpedienteModel = {
+        ...expCompleto,
+        ...expediente,
+        recalcular_caratula: false
+      };
+
+      const montoCapital = actualizado.montoLiquidacionCapital ?? 0;
+      const capitalPagado = actualizado.capitalPagoParcial ?? 0;
+
+      const capitalListo = actualizado.capitalCobrado;
+      const honorarioListo = actualizado.honorarioCobrado;
+      const alzadaListo = actualizado.honorarioAlzadaCobrado || actualizado.montoAcuerdo_alzada == null;
+      const ejecucionListo = actualizado.honorarioEjecucionCobrado || actualizado.montoHonorariosEjecucion == null;
+      const diferenciaListo = actualizado.honorarioDiferenciaCobrado || actualizado.montoHonorariosDiferencia == null;
+
+      const todosCobrados = capitalListo && honorarioListo && alzadaListo && ejecucionListo && diferenciaListo;
+      if (todosCobrados) actualizado.estado = 'Cobrado';
+
+      this.expedienteService.actualizarExpediente(actualizado.id, actualizado).subscribe({
+        next: () => {
+          this.cargarPorEstado('sentencia');
+
+          let tituloToast = '';
+          if (todosCobrados) {
+            tituloToast = 'Todos los rubros cobrados. Estado actualizado a COBRADO.';
+          } else if (tipo === 'capital' && montoCapital > 0 && capitalPagado < montoCapital && !actualizado.capitalCobrado) {
+            tituloToast = `${tipoTexto}: pago parcial registrado.`;
+          } else {
+            tituloToast = `${tipoTexto} cobrado correctamente.`;
+          }
+
+          this.honorariosDiferidos = todosCobrados
+            ? this.honorariosDiferidos.filter(e => e.id !== actualizado.id)
+            : this.honorariosDiferidos;
+
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: tituloToast,
+            showConfirmButton: false,
+            timer: 3000
+          });
+        },
+        error: (err) => {
+          console.error('Error al actualizar el expediente:', err);
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'error',
+            title: 'Error al cobrar. Intentalo nuevamente.',
+            showConfirmButton: false,
+            timer: 3000
+          });
+        }
+      });
+    },
+    error: (err) => {
+      console.error('Error al obtener expediente completo:', err);
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'error',
+        title: 'No se pudo obtener el expediente completo.',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  });
 }
-
-
-
-
-
 
 // Muestra el renglón si el expediente corresponde al estado seleccionado
 /*esVisible(item: any): boolean {

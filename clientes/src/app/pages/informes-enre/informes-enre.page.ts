@@ -116,4 +116,18 @@ getTituloClientes(item: any): string {
 
   return `${item.clientes[0].nombre} ${item.clientes[0].apellido} y otros`;
 }
+
+mostrarFecha(fecha: string | null | undefined): string {
+  if (!fecha) return '';
+
+  const soloFecha = fecha.split('T')[0].split(' ')[0];
+
+  if (soloFecha === '1900-01-01') return '';
+
+  const partes = soloFecha.split('-');
+  if (partes.length !== 3) return '';
+
+  const [anio, mes, dia] = partes;
+  return `${dia}/${mes}/${anio}`;
+}
 }

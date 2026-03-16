@@ -136,6 +136,7 @@ export class CalendarioAvanzadoComponent implements OnInit {
     this.clientesAgregados = [...(evento.clientes || [])];
     this.actualizarCalendario();
   }
+  
 guardarEvento() {
   if (this.nuevoEvento.fecha_evento && this.nuevoEvento.tipo_evento) {
     const esEdicion = !!this.eventoParaEditar;

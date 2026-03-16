@@ -1327,18 +1327,24 @@ app.put("/expedientes/modificar/:id", async (req, res) => {
 
   // helpers
   const toNullIfEmpty = (v) => (v === "" || v === undefined ? null : v);
-  const toIntOrNull = (v) => {
-    if (v === "" || v === null || v === undefined) return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
 
-  const toFloatOrNull = (v) => {
-    if (v === "" || v === null || v === undefined) return null;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
-  };
-  const toBool = (v) => !!v;
+const toIntOrNull = (v) => {
+  if (v === "" || v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+const toFloatOrNull = (v) => {
+  if (v === "" || v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
+const ToBool = (nuevo, actual) => {
+  if (nuevo === undefined) return actual;
+  if (nuevo === null) return null;
+  return !!nuevo;
+};
 
   const client = await pgPool.connect();
 
@@ -1372,6 +1378,21 @@ app.put("/expedientes/modificar/:id", async (req, res) => {
         error: "Ya existe un expediente con el mismo número, año y juzgado.",
       });
     }
+
+
+
+    const actualRes = await client.query(
+      `SELECT * FROM public.expedientes WHERE id = $1::int`,
+      [expedienteIdNum]
+    );
+
+    if (actualRes.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ mensaje: "Expediente no encontrado" });
+    }
+
+    const actual = actualRes.rows[0];
+    const data = { ...actual, ...nuevosDatos };
 
     // =========================
     // 2) UPDATE expediente (gigante)
@@ -1455,83 +1476,84 @@ SET
   codigo_id = $62::int
 WHERE id = $63::int;
       `,
-      [
-        nuevosDatos.titulo ?? null,
-        nuevosDatos.descripcion ?? null,
-        toIntOrNull(nuevosDatos.numero),
-        toIntOrNull(nuevosDatos.anio),
-        toIntOrNull(nuevosDatos.juzgado_id),
-        nuevosDatos.estado ?? null,
-        toIntOrNull(nuevosDatos.juez_id),
-        nuevosDatos.honorario ?? null,
-        toNullIfEmpty(nuevosDatos.fecha_inicio),
-        nuevosDatos.juicio ?? null,
-        toNullIfEmpty(nuevosDatos.fecha_sentencia),
-        toBool(nuevosDatos.apela),
-        toNullIfEmpty(nuevosDatos.ultimo_movimiento),
-        toFloatOrNull(nuevosDatos.porcentaje),
-        toIntOrNull(nuevosDatos.usuario_id),
-        toNullIfEmpty(nuevosDatos.fecha_cobro),
-        toNullIfEmpty(nuevosDatos.fecha_cobro_capital),
-        toIntOrNull(nuevosDatos.procurador_id),
-        toIntOrNull(nuevosDatos.valorUMA),
-        nuevosDatos.sala ?? null,
-        toBool(nuevosDatos.requiere_atencion),
-        toNullIfEmpty(nuevosDatos.fecha_atencion),
+[
+  data.titulo ?? null,
+  data.descripcion ?? null,
+  toIntOrNull(data.numero),
+  toIntOrNull(data.anio),
+  toIntOrNull(data.juzgado_id),
+  data.estado ?? null,
+  toIntOrNull(data.juez_id),
+  data.honorario ?? null,
+  toNullIfEmpty(data.fecha_inicio),
+  data.juicio ?? null,
+  toNullIfEmpty(data.fecha_sentencia),
+  toIntOrNull(data.monto),
+  keepBoolIfUndefined(data.apela, actual.apela),
+  toNullIfEmpty(data.ultimo_movimiento),
+  toFloatOrNull(data.porcentaje),
+  toIntOrNull(data.usuario_id),
+  toNullIfEmpty(data.fecha_cobro),
+  toNullIfEmpty(data.fecha_cobro_capital),
+  toIntOrNull(data.procurador_id),
+  toIntOrNull(data.valorUMA),
+  data.sala ?? null,
+  keepBoolIfUndefined(data.requiere_atencion, actual.requiere_atencion),
+  toNullIfEmpty(data.fecha_atencion),
 
-        // Capital
-        nuevosDatos.estadoCapitalSeleccionado ?? null,
-        nuevosDatos.subEstadoCapitalSeleccionado ?? null,
-        toNullIfEmpty(nuevosDatos.fechaCapitalSubestado),
-        nuevosDatos.estadoLiquidacionCapitalSeleccionado ?? null,
-        toNullIfEmpty(nuevosDatos.fechaLiquidacionCapital),
-        toFloatOrNull(nuevosDatos.montoLiquidacionCapital),
-        toBool(nuevosDatos.capitalCobrado),
+  // Capital
+  data.estadoCapitalSeleccionado ?? null,
+  data.subEstadoCapitalSeleccionado ?? null,
+  toNullIfEmpty(data.fechaCapitalSubestado),
+  data.estadoLiquidacionCapitalSeleccionado ?? null,
+  toNullIfEmpty(data.fechaLiquidacionCapital),
+  toFloatOrNull(data.montoLiquidacionCapital),
+  keepBoolIfUndefined(data.capitalCobrado, actual.capitalCobrado),
 
-        // Honorarios
-        nuevosDatos.estadoHonorariosSeleccionado ?? null,
-        nuevosDatos.subEstadoHonorariosSeleccionado ?? null,
-        toNullIfEmpty(nuevosDatos.fechaHonorariosSubestado),
-        nuevosDatos.estadoLiquidacionHonorariosSeleccionado ?? null,
-        toNullIfEmpty(nuevosDatos.fechaLiquidacionHonorarios),
-        toFloatOrNull(nuevosDatos.montoLiquidacionHonorarios),
-        toBool(nuevosDatos.honorarioCobrado),
-        toFloatOrNull(nuevosDatos.cantidadUMA),
+  // Honorarios
+  data.estadoHonorariosSeleccionado ?? null,
+  data.subEstadoHonorariosSeleccionado ?? null,
+  toNullIfEmpty(data.fechaHonorariosSubestado),
+  data.estadoLiquidacionHonorariosSeleccionado ?? null,
+  toNullIfEmpty(data.fechaLiquidacionHonorarios),
+  toFloatOrNull(data.montoLiquidacionHonorarios),
+  keepBoolIfUndefined(data.honorarioCobrado, actual.honorarioCobrado),
+  toFloatOrNull(data.cantidadUMA),
 
-        // Alzada
-        nuevosDatos.estadoHonorariosAlzadaSeleccionado ?? null,
-        nuevosDatos.subEstadoHonorariosAlzadaSeleccionado ?? null,
-        toNullIfEmpty(nuevosDatos.fechaHonorariosAlzada),
-        toIntOrNull(nuevosDatos.umaSeleccionado_alzada),
-        toFloatOrNull(nuevosDatos.cantidadUMA_alzada),
-        toFloatOrNull(nuevosDatos.montoAcuerdo_alzada),
-        toBool(nuevosDatos.honorarioAlzadaCobrado),
-        toNullIfEmpty(nuevosDatos.fechaCobroAlzada),
+  // Alzada
+  data.estadoHonorariosAlzadaSeleccionado ?? null,
+  data.subEstadoHonorariosAlzadaSeleccionado ?? null,
+  toNullIfEmpty(data.fechaHonorariosAlzada),
+  toIntOrNull(data.umaSeleccionado_alzada),
+  toFloatOrNull(data.cantidadUMA_alzada),
+  toFloatOrNull(data.montoAcuerdo_alzada),
+  keepBoolIfUndefined(data.honorarioAlzadaCobrado, actual.honorarioAlzadaCobrado),
+  toNullIfEmpty(data.fechaCobroAlzada),
 
-        // Ejecución
-        nuevosDatos.estadoHonorariosEjecucionSeleccionado ?? null,
-        nuevosDatos.subEstadoHonorariosEjecucionSeleccionado ?? null,
-        toNullIfEmpty(nuevosDatos.fechaHonorariosEjecucion),
-        toFloatOrNull(nuevosDatos.montoHonorariosEjecucion),
-        toBool(nuevosDatos.honorarioEjecucionCobrado),
-        toNullIfEmpty(nuevosDatos.fechaCobroEjecucion),
-        toFloatOrNull(nuevosDatos.cantidadUMA_ejecucion),
-        toIntOrNull(nuevosDatos.umaSeleccionado_ejecucion),
+  // Ejecución
+  data.estadoHonorariosEjecucionSeleccionado ?? null,
+  data.subEstadoHonorariosEjecucionSeleccionado ?? null,
+  toNullIfEmpty(data.fechaHonorariosEjecucion),
+  toFloatOrNull(data.montoHonorariosEjecucion),
+  keepBoolIfUndefined(data.honorarioEjecucionCobrado, actual.honorarioEjecucionCobrado),
+  toNullIfEmpty(data.fechaCobroEjecucion),
+  toFloatOrNull(data.cantidadUMA_ejecucion),
+  toIntOrNull(data.umaSeleccionado_ejecucion),
 
-        // Diferencia
-        nuevosDatos.estadoHonorariosDiferenciaSeleccionado ?? null,
-        nuevosDatos.subEstadoHonorariosDiferenciaSeleccionado ?? null,
-        toNullIfEmpty(nuevosDatos.fechaHonorariosDiferencia),
-        toFloatOrNull(nuevosDatos.montoHonorariosDiferencia),
-        toBool(nuevosDatos.honorarioDiferenciaCobrado),
-        toNullIfEmpty(nuevosDatos.fechaCobroDiferencia),
+  // Diferencia
+  data.estadoHonorariosDiferenciaSeleccionado ?? null,
+  data.subEstadoHonorariosDiferenciaSeleccionado ?? null,
+  toNullIfEmpty(data.fechaHonorariosDiferencia),
+  toFloatOrNull(data.montoHonorariosDiferencia),
+  keepBoolIfUndefined(data.honorarioDiferenciaCobrado, actual.honorarioDiferenciaCobrado),
+  toNullIfEmpty(data.fechaCobroDiferencia),
 
-        toFloatOrNull(nuevosDatos.capitalPagoParcial),
-        toBool(nuevosDatos.esPagoParcial),
-        toIntOrNull(nuevosDatos.codigo_id),
+  toFloatOrNull(data.capitalPagoParcial),
+  keepBoolIfUndefined(data.esPagoParcial, actual.esPagoParcial),
+  toIntOrNull(data.codigo_id),
 
-        expedienteIdNum,
-      ]
+  expedienteIdNum,
+]
     );
 
     // =========================

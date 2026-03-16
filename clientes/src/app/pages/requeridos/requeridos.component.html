@@ -120,7 +120,7 @@
 
         <td style="background-color: #07295c;">{{ getNombreAbogado(item.procurador_id) }}</td>
         <td style="background-color: #07295c;">
-          {{ item.fecha_atencion | date: 'dd-MM-yyyy' }}
+          {{ item.fecha_atencion?.split('T')[0].split('-').reverse().join('-') }}
         </td>
         <td style="background-color: #07295c;">
           {{item.juicio}}

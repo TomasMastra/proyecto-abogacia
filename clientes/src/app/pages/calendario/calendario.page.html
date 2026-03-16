@@ -39,7 +39,7 @@
 
 
   <div class="hora-evento">
-    {{ evento.fecha_evento | date:'HH:mm' }}
+    {{ obtenerHoraEvento(evento.fecha_evento) }}
   </div>
     <div class="linea-vertical"></div>
 
@@ -47,9 +47,9 @@
     <div class="titulo-evento">
       {{ evento.tipo_evento }}
     </div>
-    <div class="rango-horario">
-      {{ evento.fecha_evento | date:'HH:mm' }} - {{ sumarUnaHoraDesdeFecha(evento.fecha_evento) }}
-    </div>
+<div class="rango-horario">
+  {{ obtenerHoraEvento(evento.fecha_evento) }}
+</div>
   </div>
 </div>
 

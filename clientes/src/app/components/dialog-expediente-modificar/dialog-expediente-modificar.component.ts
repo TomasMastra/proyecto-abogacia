@@ -544,57 +544,65 @@ export class DialogExpedienteModificarComponent implements OnInit, OnDestroy {
   // =========================
   // GUARDAR / CERRAR
   // =========================
-  acceptDialog(): void {
-    if (!this.form.valid) {
-      Swal.fire({ icon: 'warning', title: 'Faltan datos obligatorios' });
-      return;
-    }
-    if (this.actorasAgregadas.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'Agregá al menos una actora' });
-      return;
-    }
-    if (this.demandadosAgregados.length === 0) {
-      Swal.fire({ icon: 'warning', title: 'Agregá al menos un demandado' });
-      return;
-    }
-
-    const esMed = this.mode === 'mediacion';
-
-    const payload: any = {
-      id: (this.expediente as any)?.id ?? this.data.id,
-
-      anio: this.form.value.anio,
-      estado: this.form.value.estado,
-      porcentaje: this.form.value.porcentaje,
-      fecha_inicio: this.form.value.fechaInicio,
-
-      usuario_id: this.form.value.abogado?.id ?? null,
-      procurador_id: this.form.value.procurador?.id ?? null,
-
-      actoras: this.actorasAgregadas,
-      demandados: this.demandadosAgregados,
-
-      recalcular_caratula: true,
-      tipo_registro: esMed ? 'mediacion' : 'expediente',
-    };
-
-    if (esMed) {
-      payload.montoLiquidacionCapital  = this.form.value.montoLiquidacionCapital ;
-      payload.montoLiquidacionHonorarios = this.form.value.montoLiquidacionHonorarios;
-
-      payload.numero = null;
-      payload.juzgado_id = null;
-      payload.juicio = null;
-      payload.codigo_id = null;
-    } else {
-      payload.numero = this.form.value.numero;
-      payload.juicio = this.form.value.juicio;
-      payload.juzgado_id = this.form.value.juzgado?.id ?? null;
-      payload.codigo_id = this.form.value.codigo?.id ?? null;
-    }
-
-    this.dialogRef.close(payload);
+acceptDialog(): void {
+  if (!this.form.valid) {
+    Swal.fire({ icon: 'warning', title: 'Faltan datos obligatorios' });
+    return;
   }
+
+  if (this.actorasAgregadas.length === 0) {
+    Swal.fire({ icon: 'warning', title: 'Agregá al menos una actora' });
+    return;
+  }
+
+  if (this.demandadosAgregados.length === 0) {
+    Swal.fire({ icon: 'warning', title: 'Agregá al menos un demandado' });
+    return;
+  }
+
+  const esMed = this.mode === 'mediacion';
+  const baseExpediente = this.expediente ?? {};
+
+  const payload: any = {
+    ...baseExpediente,
+
+    id: baseExpediente.id ?? this.data.id,
+
+    anio: this.form.value.anio,
+    estado: this.form.value.estado,
+    porcentaje: this.form.value.porcentaje,
+    fecha_inicio: this.form.value.fechaInicio,
+
+    usuario_id: this.form.value.abogado?.id ?? baseExpediente.usuario_id ?? null,
+    procurador_id: this.form.value.procurador?.id ?? baseExpediente.procurador_id ?? null,
+
+    actoras: this.actorasAgregadas,
+    demandados: this.demandadosAgregados,
+
+    recalcular_caratula: true,
+    tipo_registro: esMed ? 'mediacion' : 'expediente',
+  };
+
+  if (esMed) {
+    payload.montoLiquidacionCapital =
+      this.form.value.montoLiquidacionCapital ?? baseExpediente.montoLiquidacionCapital ?? null;
+
+    payload.montoLiquidacionHonorarios =
+      this.form.value.montoLiquidacionHonorarios ?? baseExpediente.montoLiquidacionHonorarios ?? null;
+
+    payload.numero = null;
+    payload.juzgado_id = null;
+    payload.juicio = null;
+    payload.codigo_id = null;
+  } else {
+    payload.numero = this.form.value.numero;
+    payload.juicio = this.form.value.juicio;
+    payload.juzgado_id = this.form.value.juzgado?.id ?? baseExpediente.juzgado_id ?? null;
+    payload.codigo_id = this.form.value.codigo?.id ?? baseExpediente.codigo_id ?? null;
+  }
+
+  this.dialogRef.close(payload);
+}
 
   closeDialog(): void {
     this.dialogRef.close();

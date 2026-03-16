@@ -364,7 +364,10 @@ async calcularDiasHabilesConFeriados(fechaStr: string, cantidad: number): Promis
   return fecha.toLocaleDateString('es-AR');
 }
 
-
+formatearFecha(fecha: string): Date {
+  const [anio, mes, dia] = fecha.split('-').map(Number);
+  return new Date(anio, mes - 1, dia);
+}
 
 
 

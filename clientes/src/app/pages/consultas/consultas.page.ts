@@ -459,6 +459,16 @@ estadoVencimiento(expediente: any): string {
   return `${dias} días`;
 }
 
+mostrarFecha(fecha: string | null | undefined): string {
+  if (!fecha) return '';
 
+  const soloFecha = fecha.split(' ')[0].split('T')[0];
+
+  const partes = soloFecha.split('-');
+  if (partes.length !== 3) return '';
+
+  const [anio, mes, dia] = partes;
+  return `${dia}/${mes}/${anio}`;
+}
 
 }

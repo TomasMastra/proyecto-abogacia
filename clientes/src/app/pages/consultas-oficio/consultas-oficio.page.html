@@ -64,8 +64,9 @@
           <td>{{ oficio.demandadoModel?.nombre }}</td>
           <td>{{ oficio.parte }}</td>
           <td>{{ oficio.estado }}</td>
-          <td>{{ oficio.fecha_diligenciado ? (oficio.fecha_diligenciado | date:'dd/MM/yyyy') : '-' }}</td>
-          <td>
+          <td style="background-color: #07295c;">
+            {{ mostrarFecha(oficio.fecha_diligenciado) || 'Sin fecha' }}
+          </td>          <td>
             <button *ngIf="oficio.tipo === 'oficio'" 
                       mat-button class="list-button" 
                       (click)="modificarOficio(oficio)">

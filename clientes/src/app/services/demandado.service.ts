@@ -72,13 +72,6 @@ getDemandadoPorId(id: number) {
     return this.http.post(`${this.apiUrl}/agregar`, demandado);
   }
 
-/*
-  actualizarExpediente(id: string, expediente: ExpedienteModel): Observable<ExpedienteModel> {
-    const url = `${this.apiUrl}/modificar/${id}`;   
-      return this.http.put<ExpedienteModel>(url, expediente);
-    }
-*/
-
   searchDemandados(texto: string): Observable<DemandadoModel[]> {
     const textoLower = texto.toLowerCase();
     const url = `${this.apiUrl}/buscar?texto=${textoLower}`;
