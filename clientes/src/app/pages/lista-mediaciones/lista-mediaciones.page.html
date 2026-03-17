@@ -68,8 +68,8 @@
             {{ item.caratula }}
           </td>
 
-          <td>
-            {{ item.fecha_inicio | date:'dd/MM/yyyy' }}
+          <td style="background-color: #07295c;">
+        {{ mostrarFecha(item.fecha_inicio) || 'Sin fecha' }}
           </td>
           <td>
             {{ item.estado }}

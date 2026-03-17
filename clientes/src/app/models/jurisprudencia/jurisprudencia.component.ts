@@ -4,10 +4,18 @@ import { JuezModel } from '../juez/juez.component';
 import { CodigoModel } from '../codigo/codigo.component';
 import { DemandadoModel } from '../demandado/demandado.component';
 
-
 export interface JurisprudenciaModel {
   id: string;
-  expediente_id: number;
+
+  // caso expediente propio
+  expediente_id?: number | null;
+
+  // caso expediente ajeno
+  tipo_expediente?: 'propio' | 'ajeno';
+  numero?: number | null;
+  anio?: number | null;
+  objeto?: string | null;
+
   fuero: string;
   demandado_id: number;
   juzgado_id: number;
@@ -15,12 +23,12 @@ export interface JurisprudenciaModel {
   juez_id: number;
   camara: string | null;
   codigo_id: number;
-  estado?: string
+  estado?: string;
 
   // Models
-   expedienteModel?: ExpedienteModel | null;
-   demandadoModel?: DemandadoModel | null;
-   juzgadoModel?: JuzgadoModel | null;
-   juezModel?: JuezModel | null;
-   codigoModel?: CodigoModel | null;
+  expedienteModel?: ExpedienteModel | null;
+  demandadoModel?: DemandadoModel | null;
+  juzgadoModel?: JuzgadoModel | null;
+  juezModel?: JuezModel | null;
+  codigoModel?: CodigoModel | null;
 }

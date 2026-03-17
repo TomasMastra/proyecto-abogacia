@@ -39,6 +39,8 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { MatDialogModule } from '@angular/material/dialog';
 import { DialogTipoAltaComponent, AltaMode } from '../../components/dialog-tipo-alta/dialog-tipo-alta.component';
 
+import { UsuarioService } from 'src/app/services/usuario.service';
+
 
 // clientes\src\app\components\dialog-tipo-alta.component.ts\dialog-tipo-alta.component.ts
 // clientes\src\app\components\dialog-expediente\dialog-expediente.component.html
@@ -68,7 +70,7 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
 
   constructor(
     private expedienteService: ExpedientesService,
-    private demandadoService: DemandadosService,
+    private usuarioService: UsuarioService,
     private dialog: MatDialog,
     private router: Router
   ) {
@@ -87,21 +89,20 @@ export class ListaExpedientesPage implements OnInit, OnDestroy {
   }, 0);
 }
 
-  cargarExpedientes() {
-    this.expedienteService.getExpedientes()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(
-        (expedientes) => {
-          this.expedientes = expedientes!;
-          this.expedientesOriginales = [...expedientes!];
-          this.hayExpedientes = this.expedientes.length > 0;
-
-        },
-        (error) => {
-          console.error('Error al obtener expedientes:', error);
-        }
-      );
-  }
+cargarExpedientes() {
+  this.expedienteService.getExpedientes()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (expedientes) => {
+        this.expedientes = expedientes!;
+        this.expedientesOriginales = [...expedientes!];
+        this.hayExpedientes = this.expedientes.length > 0;
+      },
+      (error) => {
+        console.error('Error al obtener expedientes:', error);
+      }
+    );
+}
 
   ngOnDestroy() {
     this.destroy$.next(); // Emite un valor para cancelar las suscripciones
@@ -309,5 +310,11 @@ filtrar() {
   this.hayExpedientes = this.expedientes.length > 0;
 }
 
+  verificarRol(): boolean{
+    if(this.usuarioService.usuarioLogeado!.rol == 'admin'){
+      return true;
+    }
+    return false;   
+  }
 
 }

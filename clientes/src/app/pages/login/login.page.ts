@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { UsuarioService } from 'src/app/services/usuario.service';
 import { environment } from '../../../environments/environment';
 
+import Swal from 'sweetalert2';
 @Component({
   selector: 'app-login',
   templateUrl: './login.page.html',
@@ -47,21 +48,39 @@ export class LoginPage implements OnInit {
   ngOnInit() {
   }
 
-login() {
-this.http.post(this.apiUrl, {
-      email: this.email,
-      contraseña: this.password
-    }).subscribe({
-      next: (res: any) => {
-        console.log('Login OK:', res);
-        this.usuarioService.usuarioLogeado = res.usuario;
-        this.usuarioService.setLogeado(true);
-        this.router.navigate(['home']);
-      },
-      error: (err) => {
-        console.error('Error al loguear:', err);
-      }
-    });
-  }
+  login() {
+  this.http.post(this.apiUrl, {
+    email: this.email,
+    contraseña: this.password
+  }).subscribe({
+    next: (res: any) => {
+      console.log('Login OK:', res);
+
+      this.usuarioService.usuarioLogeado = res.usuario;
+      this.usuarioService.setLogeado(true);
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Bienvenido',
+        text: `Hola ${res.usuario.nombre}`,
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      this.router.navigate(['home']);
+    },
+    error: (err) => {
+      console.error('Error al loguear:', err);
+
+      const mensaje = err?.error?.error || 'Error al iniciar sesión';
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: mensaje
+      });
+    }
+  });
+}
 
 }

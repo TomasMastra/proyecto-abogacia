@@ -93,6 +93,7 @@ async function iniciarServidor() {
 
 app.post("/login", async (req, res) => {
   const { email, contraseña } = req.body;
+  const emailNormalizado = String(email).trim().toLowerCase();
 
   try {
     const result = await pgPool.query(
@@ -106,11 +107,11 @@ app.post("/login", async (req, res) => {
         fecha_creacion,
         password_hash
       FROM public."usuario"
-      WHERE email = $1
+      WHERE LOWER(email) = $1
         AND estado = 'activo'
       LIMIT 1
       `,
-      [email]
+      [emailNormalizado]
     );
 
     if (result.rows.length === 0) {
@@ -218,7 +219,57 @@ app.post("/register", async (req, res) => {
   }
 });
 
+app.put("/usuarios/:id/password", async (req, res) => {
+  try {
+    const usuarioId = Number(req.params.id);
+    const { nuevaContraseña } = req.body;
 
+    if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+      return res.status(400).json({ error: "ID de usuario inválido" });
+    }
+
+    if (!nuevaContraseña || String(nuevaContraseña).trim().length < 6) {
+      return res.status(400).json({
+        error: "La nueva contraseña es obligatoria y debe tener al menos 6 caracteres",
+      });
+    }
+
+    const existe = await pgPool.query(
+      `SELECT id, nombre, email FROM public."usuario" WHERE id = $1 LIMIT 1`,
+      [usuarioId]
+    );
+
+    if (!existe.rows.length) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    const password_hash = await hashPassword(String(nuevaContraseña).trim());
+
+    await pgPool.query(
+      `
+      UPDATE public."usuario"
+      SET password_hash = $1
+      WHERE id = $2
+      `,
+      [password_hash, usuarioId]
+    );
+
+    return res.status(200).json({
+      message: "Contraseña actualizada correctamente",
+      usuario: {
+        id: existe.rows[0].id,
+        nombre: existe.rows[0].nombre,
+        email: existe.rows[0].email,
+      },
+    });
+  } catch (err) {
+    console.error("PUT /usuarios/:id/password error:", err);
+    return res.status(500).json({
+      error: "Error al cambiar la contraseña",
+      message: err.message,
+    });
+  }
+});
 
 async function hashPassword(plainPassword) {
   return await argon2.hash(plainPassword, {
@@ -246,7 +297,7 @@ app.get("/clientes", async (req, res) => {
 
   try {
     const params = [];
-    let sqlText = `SELECT * FROM public.clientes WHERE estado <> 'eliminado'`;
+    let sqlText = `  SELECT * FROM public.clientes WHERE estado <> 'eliminado' ORDER BY nombre ASC, apellido ASC`;
 
  /*   if (rol !== "admin") {
       params.push(usuario_id);
@@ -276,7 +327,7 @@ app.get("/expedientes", async (req, res) => {
 
     if (rol !== "admin") {
       params.push(usuario_id);
-      filtroUsuario = ` AND e.usuario_id = $1`;
+      filtroUsuario = ` AND (e.usuario_id = $1 OR e.procurador_id = $1)`;
     }
 
     const query = `
@@ -292,12 +343,16 @@ app.get("/expedientes", async (req, res) => {
             FROM public.clientes_expedientes ce
             JOIN public.clientes c ON c.id = ce.id_cliente
             WHERE ce.id_expediente = e.id
+
             UNION ALL
+
             SELECT btrim(d.nombre) AS nombre_completo
             FROM public.expedientes_demandados ed
             JOIN public.demandados d ON d.id = ed.id_demandado
             WHERE ed.id_expediente = e.id
+
             UNION ALL
+
             SELECT btrim(c2.nombre || ' ' || c2.apellido) AS nombre_completo
             FROM public.expedientes_demandados ed2
             JOIN public.clientes c2 ON c2.id = ed2.id_cliente
@@ -306,7 +361,6 @@ app.get("/expedientes", async (req, res) => {
         ), '') AS busqueda
       FROM public.expedientes e
       WHERE e.estado <> 'eliminado'
-        -- AGREGAMOS ESTA LÍNEA PARA FILTRAR:
         AND (LOWER(e.tipo_registro) <> 'mediacion' OR e.tipo_registro IS NULL)
         ${filtroUsuario}
       ORDER BY e.id DESC;
@@ -316,7 +370,7 @@ app.get("/expedientes", async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error("Error al obtener expedientes:", err);
-    res.status(500).send(err);
+    res.status(500).json({ error: "Error al obtener expedientes" });
   }
 });
 
@@ -2302,7 +2356,7 @@ app.get("/localidades/partidos", async (req, res) => {
 app.get("/demandados", async (req, res) => {
   try {
     const { rows } = await pgPool.query(
-      "SELECT * FROM public.demandados WHERE estado <> 'eliminado'"
+      "SELECT * FROM public.demandados WHERE estado <> 'eliminado' ORDER BY CASE WHEN id = 1 THEN 0 ELSE 1 END, nombre ASC"
     );
     return res.json(rows);
   } catch (err) {
@@ -4961,137 +5015,290 @@ const FUEROS = ['CCF', 'COM', 'CIV', 'CC'];
 // postgres
 app.get("/jurisprudencias", async (req, res) => {
   try {
-    const { expedienteId } = req.query;
-
-    let query = `
-      SELECT 
+    const { rows } = await pgPool.query(`
+      SELECT
         j.id,
         j.expediente_id,
+        j.tipo_expediente,
+        j.numero,
+        j.anio,
+        j.objeto,
         j.fuero,
-        j.demandado_id,
-        d.nombre      AS demandado_nombre,
         j.juzgado_id,
-        juz.nombre    AS juzgado_nombre,
+        juz.nombre AS juzgado_nombre,
         j.sentencia,
         j.juez_id,
-        jue.nombre    AS juez_nombre,
+        jue.nombre AS juez_nombre,
         j.camara,
         j.codigo_id,
-        c.codigo      AS codigo,
-        c.descripcion AS codigo_descripcion
+        c.codigo,
+        c.descripcion,
+        j.estado,
+        e.caratula,
+
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', CASE
+                        WHEN jd.tipo = 'empresa' THEN jd.id_demandado
+                        WHEN jd.tipo = 'cliente' THEN jd.id_cliente
+                        ELSE NULL
+                      END,
+                'tipo', jd.tipo,
+                'nombre', CASE
+                            WHEN jd.tipo = 'empresa' THEN d.nombre
+                            WHEN jd.tipo = 'cliente' THEN trim(coalesce(cli.nombre,'') || ' ' || coalesce(cli.apellido,''))
+                            ELSE ''
+                          END
+              )
+            )
+            FROM public.jurisprudencias_demandados jd
+            LEFT JOIN public.demandados d
+              ON jd.tipo = 'empresa' AND d.id = jd.id_demandado
+            LEFT JOIN public.clientes cli
+              ON jd.tipo = 'cliente' AND cli.id = jd.id_cliente
+            WHERE jd.id_jurisprudencia = j.id
+          ),
+          '[]'::json
+        ) AS demandados
+
       FROM public.jurisprudencias j
-      LEFT JOIN public.demandados d ON d.id = j.demandado_id
-      LEFT JOIN public.juzgados   juz ON juz.id = j.juzgado_id
-      LEFT JOIN public.juez       jue ON jue.id = j.juez_id
-      LEFT JOIN public.codigos    c   ON c.id = j.codigo_id
-      WHERE 1=1
-    `;
+      LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
+      LEFT JOIN public.juez jue ON jue.id = j.juez_id
+      LEFT JOIN public.codigos c ON c.id = j.codigo_id
 
-    const params = [];
-    if (expedienteId) {
-      const eid = Number(expedienteId);
-      if (!Number.isInteger(eid) || eid <= 0) {
-        return res.status(400).json({ error: "expedienteId inválido" });
-      }
-      params.push(eid);
-      query += ` AND j.expediente_id = $${params.length}`;
-    }
+      LEFT JOIN LATERAL (
+        SELECT e.id, e.caratula
+        FROM public.expedientes e
+        WHERE e.id = j.expediente_id
+        LIMIT 1
+      ) e ON true
 
-    query += ` ORDER BY j.id DESC`;
+      WHERE COALESCE(j.estado, '') <> 'eliminado'
+      ORDER BY j.id DESC
+    `);
 
-    const { rows } = await pgPool.query(query, params);
     return res.json(rows);
   } catch (err) {
     console.error("GET /jurisprudencias error:", err);
-    return res.status(500).json({ error: "Error al obtener jurisprudencias", message: err.message });
+    return res.status(500).json({
+      error: "Error al obtener jurisprudencias",
+      message: err.message
+    });
   }
 });
 
-
 // postgres
 app.post("/jurisprudencias", async (req, res) => {
+  const client = await pgPool.connect();
+
+  const nextId = async (seq) => {
+    const { rows } = await client.query(
+      `SELECT nextval($1::regclass) AS id`,
+      [seq]
+    );
+    return Number(rows[0].id);
+  };
+
   try {
     const {
       expediente_id,
+      tipo_expediente,
+      numero,
+      anio,
+      objeto,
       fuero,
-      demandado_id,
+      demandados,
       juzgado_id,
       sentencia,
       juez_id,
       camara,
-      codigo_id,
+      codigo_id
     } = req.body || {};
 
-    if (!expediente_id || !fuero || !demandado_id || !juzgado_id || !juez_id || !camara || !codigo_id) {
+    const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
+    const fueroNorm = String(fuero || "").toUpperCase().trim();
+
+    if (!["propio", "ajeno"].includes(tipoExp)) {
       return res.status(400).json({
-        error: "Faltan datos obligatorios: expediente_id, fuero, demandado_id, juzgado_id, juez_id, camara, codigo_id",
+        error: "tipo_expediente inválido (propio | ajeno)"
       });
     }
 
-    const fueroNorm = String(fuero).toUpperCase().trim();
     if (!FUEROS.includes(fueroNorm)) {
-      return res.status(400).json({ error: "Fuero inválido. Use: CCF, COM, CIV o CC." });
+      return res.status(400).json({
+        error: "Fuero inválido"
+      });
     }
 
-    const id = await generarNuevoId(pgPool, "jurisprudencias", "id");
+    if (
+      juzgado_id === undefined || juzgado_id === null || juzgado_id === "" ||
+      juez_id === undefined || juez_id === null || juez_id === "" ||
+      !camara ||
+      codigo_id === undefined || codigo_id === null || codigo_id === ""
+    ) {
+      return res.status(400).json({
+        error: "Faltan datos obligatorios"
+      });
+    }
 
-    const { rows: ins } = await pgPool.query(
+    if (tipoExp === "propio" && (expediente_id === undefined || expediente_id === null || expediente_id === "")) {
+      return res.status(400).json({
+        error: "expediente_id es obligatorio para expediente propio"
+      });
+    }
+
+    if (
+      tipoExp === "ajeno" &&
+      (
+        numero === undefined || numero === null || numero === "" ||
+        anio === undefined || anio === null || anio === ""
+      )
+    ) {
+      return res.status(400).json({
+        error: "numero y anio son obligatorios"
+      });
+    }
+
+    if (!Array.isArray(demandados) || demandados.length === 0) {
+      return res.status(400).json({
+        error: "Debe enviar al menos un demandado"
+      });
+    }
+
+    let demandadosFinal = demandados
+      .map((d) => ({
+        id: d?.id !== undefined && d?.id !== null && d?.id !== "" ? Number(d.id) : null,
+        tipo: String(d?.tipo || "").toLowerCase().trim()
+      }))
+      .filter((d) => d.id && !Number.isNaN(d.id));
+
+    if (demandadosFinal.length === 0) {
+      return res.status(400).json({
+        error: "Los demandados enviados no son válidos"
+      });
+    }
+
+    for (const d of demandadosFinal) {
+      if (d.tipo !== "empresa" && d.tipo !== "cliente") {
+        return res.status(400).json({
+          error: `Tipo de demandado inválido: ${d.tipo}`
+        });
+      }
+    }
+
+    const usados = new Set();
+    demandadosFinal = demandadosFinal.filter((d) => {
+      const key = `${d.tipo}-${d.id}`;
+      if (usados.has(key)) return false;
+      usados.add(key);
+      return true;
+    });
+
+    await client.query("BEGIN");
+
+    const jurisprudenciaId = await nextId("public.seq_jurisprudencias");
+
+    await client.query(
       `
       INSERT INTO public.jurisprudencias (
-        id, expediente_id, fuero, demandado_id, juzgado_id, sentencia, juez_id, camara, codigo_id
+        id,
+        expediente_id,
+        tipo_expediente,
+        numero,
+        anio,
+        objeto,
+        fuero,
+        juzgado_id,
+        sentencia,
+        juez_id,
+        camara,
+        codigo_id
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-      RETURNING id
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
       `,
       [
-        Number(id),
-        Number(expediente_id),
+        jurisprudenciaId,
+        tipoExp === "propio" ? Number(expediente_id) : null,
+        tipoExp,
+        tipoExp === "ajeno" ? Number(numero) : null,
+        tipoExp === "ajeno" ? Number(anio) : null,
+        objeto ?? null,
         fueroNorm,
-        Number(demandado_id),
         Number(juzgado_id),
         sentencia ? new Date(sentencia) : null,
         Number(juez_id),
-        String(camara),
-        Number(codigo_id),
+        String(camara).trim(),
+        Number(codigo_id)
       ]
     );
 
-    const newId = ins[0].id;
+    for (const d of demandadosFinal) {
+      const idRel = await nextId("public.seq_jurisprudencias_demandados");
 
-    const { rows } = await pgPool.query(
+      await client.query(
+        `
+        INSERT INTO public.jurisprudencias_demandados
+          (id, id_jurisprudencia, id_demandado, id_cliente, tipo)
+        VALUES
+          (
+            $1,
+            $2,
+            CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
+            CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
+            $3
+          )
+        `,
+        [idRel, jurisprudenciaId, d.tipo, d.id]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    const { rows } = await client.query(
       `
-      SELECT 
+      SELECT
         j.id,
         j.expediente_id,
+        j.tipo_expediente,
+        j.numero,
+        j.anio,
+        j.objeto,
         j.fuero,
-        j.demandado_id,
-        d.nombre      AS demandado_nombre,
         j.juzgado_id,
-        juz.nombre    AS juzgado_nombre,
+        juz.nombre AS juzgado_nombre,
         j.sentencia,
         j.juez_id,
-        jue.nombre    AS juez_nombre,
+        jue.nombre AS juez_nombre,
         j.camara,
         j.codigo_id,
-        c.codigo      AS codigo,
-        c.descripcion AS codigo_descripcion
+        c.codigo,
+        c.descripcion
       FROM public.jurisprudencias j
-      LEFT JOIN public.demandados d ON d.id = j.demandado_id
-      LEFT JOIN public.juzgados   juz ON juz.id = j.juzgado_id
-      LEFT JOIN public.juez       jue ON jue.id = j.juez_id
-      LEFT JOIN public.codigos    c   ON c.id = j.codigo_id
+      LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
+      LEFT JOIN public.juez jue ON jue.id = j.juez_id
+      LEFT JOIN public.codigos c ON c.id = j.codigo_id
       WHERE j.id = $1
       `,
-      [newId]
+      [jurisprudenciaId]
     );
 
     return res.status(201).json(rows[0]);
+
   } catch (err) {
+    try { await client.query("ROLLBACK"); } catch {}
+
     console.error("POST /jurisprudencias error:", err);
-    return res.status(500).json({ error: "Error al crear jurisprudencia", message: err.message });
+
+    return res.status(500).json({
+      error: "Error al crear jurisprudencia",
+      message: err.message
+    });
+  } finally {
+    client.release();
   }
 });
-
 
 // 🔢 Método genérico para generar un nuevo ID para cualquier tabla (POSTGRES)
 async function generarNuevoId(pgPool, tabla, columna = "id") {
@@ -5235,132 +5442,237 @@ app.post("/pagos-capital/agregar", async (req, res) => {
 
 // postgres
 app.put("/jurisprudencias/:id", async (req, res) => {
+  const client = await pgPool.connect();
+
+  const nextId = async (seq) => {
+    const { rows } = await client.query(
+      `SELECT nextval($1::regclass) AS id`,
+      [seq]
+    );
+    return Number(rows[0].id);
+  };
+
   try {
     const id = Number(req.params.id);
+
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ error: "ID inválido" });
     }
 
     const {
       expediente_id,
+      tipo_expediente,
+      numero,
+      anio,
+      objeto,
       fuero,
-      demandado_id,
+      demandados,
       juzgado_id,
-      juez_id,
       sentencia,
+      juez_id,
       camara,
       codigo_id,
+      estado
     } = req.body || {};
 
-    if (
-      expediente_id === undefined &&
-      fuero === undefined &&
-      demandado_id === undefined &&
-      juzgado_id === undefined &&
-      juez_id === undefined &&
-      sentencia === undefined &&
-      camara === undefined &&
-      codigo_id === undefined
-    ) {
-      return res.status(400).json({ error: "No hay datos para actualizar." });
-    }
-
-    const { rows: current } = await pgPool.query(
-      `SELECT * FROM public.jurisprudencias WHERE id = $1 LIMIT 1`,
+    const existe = await client.query(
+      `SELECT id FROM public.jurisprudencias WHERE id = $1`,
       [id]
     );
-    if (current.length === 0) {
+
+    if (!existe.rowCount) {
       return res.status(404).json({ error: "Jurisprudencia no encontrada" });
     }
 
-    const sets = [];
-    const params = [];
-    let p = 1;
+    const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
+    const fueroNorm = String(fuero || "").toUpperCase().trim();
+    const estadoFinal = estado ?? null;
 
-    if (expediente_id !== undefined) {
-      sets.push(`expediente_id = $${p++}`);
-      params.push(Number(expediente_id));
+    if (!["propio", "ajeno"].includes(tipoExp)) {
+      return res.status(400).json({
+        error: "tipo_expediente inválido (propio | ajeno)"
+      });
     }
-    if (fuero !== undefined) {
-      const fueroNorm = String(fuero).toUpperCase().trim();
-      if (!FUEROS.includes(fueroNorm)) {
-        return res.status(400).json({ error: "Fuero inválido. Use: CCF, COM, CIV o CC." });
+
+    if (!FUEROS.includes(fueroNorm)) {
+      return res.status(400).json({
+        error: "Fuero inválido"
+      });
+    }
+
+    if (
+      juzgado_id === undefined || juzgado_id === null || juzgado_id === "" ||
+      juez_id === undefined || juez_id === null || juez_id === "" ||
+      !camara ||
+      codigo_id === undefined || codigo_id === null || codigo_id === ""
+    ) {
+      return res.status(400).json({
+        error: "Faltan datos obligatorios"
+      });
+    }
+
+    if (
+      tipoExp === "propio" &&
+      (expediente_id === undefined || expediente_id === null || expediente_id === "")
+    ) {
+      return res.status(400).json({
+        error: "expediente_id es obligatorio para expediente propio"
+      });
+    }
+
+    if (
+      tipoExp === "ajeno" &&
+      (
+        numero === undefined || numero === null || numero === "" ||
+        anio === undefined || anio === null || anio === ""
+      )
+    ) {
+      return res.status(400).json({
+        error: "numero y anio son obligatorios"
+      });
+    }
+
+    if (!Array.isArray(demandados) || demandados.length === 0) {
+      return res.status(400).json({
+        error: "Debe enviar al menos un demandado"
+      });
+    }
+
+    let demandadosFinal = demandados
+      .map((d) => ({
+        id: d?.id !== undefined && d?.id !== null && d?.id !== "" ? Number(d.id) : null,
+        tipo: String(d?.tipo || "").toLowerCase().trim()
+      }))
+      .filter((d) => d.id && !Number.isNaN(d.id));
+
+    if (demandadosFinal.length === 0) {
+      return res.status(400).json({
+        error: "Los demandados enviados no son válidos"
+      });
+    }
+
+    for (const d of demandadosFinal) {
+      if (d.tipo !== "empresa" && d.tipo !== "cliente") {
+        return res.status(400).json({
+          error: `Tipo de demandado inválido: ${d.tipo}`
+        });
       }
-      sets.push(`fuero = $${p++}`);
-      params.push(fueroNorm);
-    }
-    if (demandado_id !== undefined) {
-      sets.push(`demandado_id = $${p++}`);
-      params.push(demandado_id == null ? null : Number(demandado_id));
-    }
-    if (juzgado_id !== undefined) {
-      sets.push(`juzgado_id = $${p++}`);
-      params.push(juzgado_id == null ? null : Number(juzgado_id));
-    }
-    if (juez_id !== undefined) {
-      sets.push(`juez_id = $${p++}`);
-      params.push(juez_id == null ? null : Number(juez_id));
-    }
-    if (sentencia !== undefined) {
-      sets.push(`sentencia = $${p++}`);
-      params.push(sentencia ? new Date(sentencia) : null);
-    }
-    if (camara !== undefined) {
-      sets.push(`camara = $${p++}`);
-      params.push(camara == null ? null : String(camara));
-    }
-    if (codigo_id !== undefined) {
-      sets.push(`codigo_id = $${p++}`);
-      params.push(codigo_id == null ? null : Number(codigo_id));
     }
 
-    params.push(id);
+    const usados = new Set();
+    demandadosFinal = demandadosFinal.filter((d) => {
+      const key = `${d.tipo}-${d.id}`;
+      if (usados.has(key)) return false;
+      usados.add(key);
+      return true;
+    });
 
-    const { rows } = await pgPool.query(
+    await client.query("BEGIN");
+
+    await client.query(
       `
       UPDATE public.jurisprudencias
-      SET ${sets.join(", ")}
-      WHERE id = $${p}
-      RETURNING *
+      SET
+        expediente_id = $2,
+        tipo_expediente = $3,
+        numero = $4,
+        anio = $5,
+        objeto = $6,
+        fuero = $7,
+        juzgado_id = $8,
+        sentencia = $9,
+        juez_id = $10,
+        camara = $11,
+        codigo_id = $12,
+        estado = $13
+      WHERE id = $1
       `,
-      params
+      [
+        id,
+        tipoExp === "propio" ? Number(expediente_id) : null,
+        tipoExp,
+        tipoExp === "ajeno" ? Number(numero) : null,
+        tipoExp === "ajeno" ? Number(anio) : null,
+        objeto ?? null,
+        fueroNorm,
+        Number(juzgado_id),
+        sentencia ? new Date(sentencia) : null,
+        Number(juez_id),
+        String(camara).trim(),
+        Number(codigo_id),
+        estadoFinal
+      ]
+    );
+
+    await client.query(
+      `DELETE FROM public.jurisprudencias_demandados WHERE id_jurisprudencia = $1`,
+      [id]
+    );
+
+    for (const d of demandadosFinal) {
+      const idRel = await nextId("public.seq_jurisprudencias_demandados");
+
+      await client.query(
+        `
+        INSERT INTO public.jurisprudencias_demandados
+          (id, id_jurisprudencia, id_demandado, id_cliente, tipo)
+        VALUES
+          (
+            $1,
+            $2,
+            CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
+            CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
+            $3
+          )
+        `,
+        [idRel, id, d.tipo, d.id]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    const { rows } = await client.query(
+      `
+      SELECT
+        j.id,
+        j.expediente_id,
+        j.tipo_expediente,
+        j.numero,
+        j.anio,
+        j.objeto,
+        j.fuero,
+        j.juzgado_id,
+        juz.nombre AS juzgado_nombre,
+        j.sentencia,
+        j.juez_id,
+        jue.nombre AS juez_nombre,
+        j.camara,
+        j.codigo_id,
+        j.estado,
+        c.codigo,
+        c.descripcion
+      FROM public.jurisprudencias j
+      LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
+      LEFT JOIN public.juez jue ON jue.id = j.juez_id
+      LEFT JOIN public.codigos c ON c.id = j.codigo_id
+      WHERE j.id = $1
+      `,
+      [id]
     );
 
     return res.json(rows[0]);
+
   } catch (err) {
+    try { await client.query("ROLLBACK"); } catch {}
     console.error("PUT /jurisprudencias/:id error:", err);
-    return res.status(500).json({ error: "Error al actualizar jurisprudencia", message: err.message });
-  }
-});
-
-app.get("/expedientes/informes", async (req, res) => {
-  try {
-    const query = `
-      select
-        cliente_id,
-        nombre,
-        apellido,
-        numero,
-        anio,
-        fecha_inicio,
-        empresa_id,
-        empresa
-      from public.clientes_energia_ultimo_expediente
-      order by apellido asc, nombre asc
-    `;
-
-    const { rows } = await pgPool.query(query);
-
-    res.json(rows);
-  } catch (err) {
-    console.error("ERROR OBTENIENDO INFORME ENRE:", err);
-    res.status(500).json({
-      error: "Error obteniendo informe ENRE",
-      detalle: err.message
+    return res.status(500).json({
+      error: "Error al modificar jurisprudencia",
+      message: err.message
     });
+  } finally {
+    client.release();
   }
 });
-
 app.get("/expedientes/control-anio", async (req, res) => {
   try {
     const query = `

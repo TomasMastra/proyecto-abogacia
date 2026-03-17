@@ -20,7 +20,7 @@
       </button>
     
       <!-- Resto de botones -->
-      <button mat-button class="list-button" (click)="abrirDialog()">
+      <button mat-button class="list-button" (click)="abrirDialog()" *ngIf="verificarRol()">
         <mat-icon style="color: #ffffff">person_add</mat-icon>
       </button>
     
@@ -49,11 +49,11 @@
   
 
       <div class="acciones">
-        <button mat-icon-button class="list-button" (click)="eliminarExpediente(expediente); $event.stopPropagation()">
+        <button mat-icon-button class="list-button" (click)="eliminarExpediente(expediente); $event.stopPropagation()" *ngIf="verificarRol()">
           <mat-icon style="color: #ffffff">delete</mat-icon>
         </button>
 
-        <button mat-icon-button class="list-button" (click)="abrirModificar(expediente); $event.stopPropagation()">
+        <button mat-icon-button class="list-button" (click)="abrirModificar(expediente); $event.stopPropagation()" *ngIf="verificarRol()">
           <mat-icon style="color: #ffffff">edit</mat-icon>
         </button>
       </div>

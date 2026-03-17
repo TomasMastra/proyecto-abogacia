@@ -10,7 +10,7 @@
     <mat-sidenav #sidenav mode="side" opened>
       <div class="sidebar-content">
         <!-- <img class="avatar mat-elevation-z8" src="../../../assets/botones/user.png" /> -->
-        <h4 class="name">Andres Mastrapasqua</h4>
+       <!--  <h4 class="name">Andres Mastrapasqua</h4> -->
         <p class="designation">Abogado</p>
 
         <mat-divider></mat-divider>
@@ -45,7 +45,7 @@
             <mat-icon>paid</mat-icon>
             <span>Honorarios</span>
           </button>
-          <button mat-menu-item [class.active-route]="isActive('consultas')" (click)="goTo('consultas')" *ngIf="verificarRol()">
+          <button mat-menu-item [class.active-route]="isActive('consultas')" (click)="goTo('consultas')">
             <mat-icon>upcoming</mat-icon>
             <span>Consultas expediente</span>
           </button>
@@ -128,7 +128,7 @@
 
         <mat-divider></mat-divider>
 
-        <button mat-button class="menu-button" mat-menu-item [class.active-route]="isActive('control-anio-expedientes')" (click)="goTo('control-anio-expedientes')">
+        <button mat-button class="menu-button" mat-menu-item [class.active-route]="isActive('control-anio-expedientes')" (click)="goTo('control-anio-expedientes')" *ngIf="verificarRol()">
           <mat-icon style="color: #ffffff">settings</mat-icon>
           <span style="color: #ffffff">correcciones enre</span>
         </button>

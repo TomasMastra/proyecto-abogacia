@@ -96,13 +96,13 @@ export class DemandadoPage implements OnInit {
 
 
 
-          ngOnInit() {
-            if(this.busqueda == ''){
-              this.cargarDemandados(); 
-              this.obtenerLocalidades(); 
+    ngOnInit() {
+      if(this.busqueda == ''){
+        this.cargarDemandados(); 
+        this.obtenerLocalidades(); 
 
-            }
-          }
+      }
+    }
         
           cargarDemandados() {
             this.demandadosService.getDemandados().subscribe(

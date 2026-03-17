@@ -35,6 +35,7 @@ import { UsuarioService } from 'src/app/services/usuario.service';
 import Swal from 'sweetalert2'
 
 
+
 @Component({
   selector: 'app-consultas',
   templateUrl: './consultas.page.html',
@@ -68,12 +69,11 @@ listaJuzgados: any[] = []; // después la cargás desde tu servicio
 
 tipoSeleccionado: string = '';
 juzgadoSeleccionado: string = '';
-
+juicioSeleccionado: string = '';
 abogadoSeleccionado: string = '';
 procuradorSeleccionado: string = '';
 
 tiposJuicio: string[] = ['sumarisimo', 'ordinario', 'a definir'];
-juicioSeleccionado: any;
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -470,5 +470,12 @@ mostrarFecha(fecha: string | null | undefined): string {
   const [anio, mes, dia] = partes;
   return `${dia}/${mes}/${anio}`;
 }
+
+  verificarRol(): boolean{
+    if(this.usuarioService.usuarioLogeado!.rol == 'admin'){
+      return true;
+    }
+    return false;   
+  }
 
 }

@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, throwError, of, forkJoin } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, switchMap } from 'rxjs/operators';
 import { JurisprudenciaModel } from 'src/app/models/jurisprudencia/jurisprudencia.component';
 import { environment } from '../../environments/environment';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
+
 
 @Injectable({ providedIn: 'root' })
 export class JurisprudenciasService {
@@ -43,51 +44,9 @@ export class JurisprudenciasService {
       catchError(this.handleError)
     );
   }*/
-
-     getJurisprudencias(): Observable<JurisprudenciaModel[]> {
-    return new Observable<JurisprudenciaModel[]>(observer => {
-      this.http.get<JurisprudenciaModel[]>(this.apiUrl, this.httpOptions).subscribe({
-        next: (jurisprudencias) => {
-          const lista = jurisprudencias ?? [];
-
-          // inicializo el campo para no tener undefined
-          lista.forEach(j => {
-            (j as any).expedienteModel = null;
-          });
-
-          // emito inmediatamente (para que la UI pinte algo rápido)
-          this.jurisprudenciasSubject.next(lista);
-          observer.next(lista);
-
-          // ahora, por cada jurisprudencia, traigo el expediente
-          lista.forEach(j => {
-            if (!j.expediente_id) { return; }
-
-            this.expedientesService.getExpedientePorId(j.expediente_id).subscribe({
-              next: (exp) => {
-                (j as any).expedienteModel = exp || null;
-
-                // opcional: vuelvo a emitir la lista actualizada
-                this.jurisprudenciasSubject.next([...lista]);
-                observer.next([...lista]);
-              },
-              error: () => {
-                // si falla el expediente, no rompo nada, solo lo dejo en null
-              }
-            });
-          });
-        },
-        error: (err) => {
-          console.error('JurisprudenciasService error:', err);
-          this.jurisprudenciasSubject.next([]);
-          observer.error(err);
-        },
-        complete: () => {
-          observer.complete();
-        }
-      });
-    });
-  }
+getJurisprudencias(): Observable<JurisprudenciaModel[]> {
+  return this.http.get<JurisprudenciaModel[]>(this.apiUrl, this.httpOptions);
+}
 
   // POST: crear jurisprudencia
   addJurisprudencia(jurisprudencia: JurisprudenciaModel): Observable<JurisprudenciaModel> {

@@ -162,7 +162,7 @@
                   id="monto">
                 </ion-input> -->
 
-                <input *ngIf="expediente.honorarioCobrado == 0 && umaSeleccionado != 'acuerdo'"
+                <input *ngIf="expediente.honorarioCobrado != 1 && umaSeleccionado != 'acuerdo'"
                 placeholder="Cantidad de UMA" 
                 formControlName="cantidadUMA"
                 class="input-busqueda"
@@ -170,7 +170,7 @@
                 [(ngModel)]="cantidadUMA"
                 (ngModelChange)="calcularMontoUMA()">
 
-            <mat-form-field appearance="outline" *ngIf="expediente.honorarioCobrado == 0">
+            <mat-form-field appearance="outline" *ngIf="expediente.honorarioCobrado != 1">
               <mat-label style="color: white">Seleccioná UMA</mat-label>
               <mat-select
                 formControlName="umaSeleccionado"
@@ -183,7 +183,7 @@
               </mat-select>
             </mat-form-field>
 
-              <input *ngIf="umaSeleccionado == 'acuerdo' && expediente.honorarioCobrado == 0"
+              <input *ngIf="umaSeleccionado == 'acuerdo' && expediente.honorarioCobrado != 1"
                 placeholder="Monto" 
                 formControlName="montoAcuerdo"
                 class="input-busqueda"
@@ -375,7 +375,7 @@
 
 </div>
 
-<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.capitalCobrado != 0">
+<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.capitalCobrado">
   CAPITAL COBRADO.
 </div>
 
@@ -387,7 +387,7 @@
 </div>
 
 <!-- Contenedor general -->
-<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.honorarioCobrado!= 1">
+<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="!expediente.honorarioCobrado">
 
   <!-- Fila de selectores -->
   <div style="display: flex; gap: 16px;">
@@ -523,7 +523,7 @@
 
 </div>
 
-<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.honorarioCobrado!= 0">
+<div style="display: flex; flex-direction: column; gap: 16px;" *ngIf="expediente.honorarioCobrado">
   HONORARIO COBRADO.
 </div>
 
