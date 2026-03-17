@@ -5673,6 +5673,35 @@ app.put("/jurisprudencias/:id", async (req, res) => {
     client.release();
   }
 });
+
+app.get("/expedientes/informes", async (req, res) => {
+  try {
+    const query = `
+      select
+        cliente_id,
+        nombre,
+        apellido,
+        numero,
+        anio,
+        fecha_inicio,
+        empresa_id,
+        empresa
+      from public.clientes_energia_ultimo_expediente
+      order by apellido asc, nombre asc
+    `;
+
+    const { rows } = await pgPool.query(query);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("ERROR OBTENIENDO INFORME ENRE:", err);
+    res.status(500).json({
+      error: "Error obteniendo informe ENRE",
+      detalle: err.message
+    });
+  }
+});
+
 app.get("/expedientes/control-anio", async (req, res) => {
   try {
     const query = `
