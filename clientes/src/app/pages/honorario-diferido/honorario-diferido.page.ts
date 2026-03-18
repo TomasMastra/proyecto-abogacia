@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntil } from 'rxjs/operators';
 import { Subscription, Observable, forkJoin, Subject, of } from 'rxjs';
-
+import { ScrollingModule } from '@angular/cdk/scrolling';
 
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatButtonModule } from '@angular/material/button';
@@ -71,6 +71,9 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
 
   usuariosCargados = false;
   expedientesCargados = false;
+
+  cantidadVisible = 30;
+
 
   //usuariosCargados = false;
   //expedientesCargados = false;
@@ -158,46 +161,15 @@ ngOnInit() {
         }
       );
     }
-  
-    /*
-  cargarPorEstado(estado: string) {
+    cargarPorEstado(estado: string) {
   this.cargando = true;
-
-  this.expedienteService.getExpedientesPorEstado(estado)
-    .pipe(takeUntil(this.destroy$))
-    .subscribe(
-      (honorarios) => {
-        this.honorariosOriginales = honorarios!;
-        this.hayHonorarios = this.honorariosOriginales.length > 0;
-
-        // reaplica la búsqueda actual
-        this.filtrar();
-
-        this.ordenarPor('giro');
-
-        this.cargando = false;
-      },
-      (error) => {
-        console.error('Error al obtener expedientes:', error);
-        this.cargando = false;
-      }
-    );
-}*/
-cargarPorEstado(estado: string) {
-  const idActual = ++this.cargaId;
-
-  this.expedientesCargados = false;
-  this.setLoading();
 
   this.expedienteService.getExpedientesPorEstado(estado)
     .pipe(takeUntil(this.destroy$))
     .subscribe({
       next: (honorarios) => {
-        if (idActual !== this.cargaId) return;
-
         this.honorariosOriginales = (honorarios || []).filter((item: any) => {
           const esMediacion = (item.tipo_registro ?? '').toString().toLowerCase() === 'mediacion';
-
           if (!esMediacion) return true;
 
           return !!(
@@ -210,31 +182,15 @@ cargarPorEstado(estado: string) {
         });
 
         this.hayHonorarios = this.honorariosOriginales.length > 0;
-
-        this.expedientesCargados = true;
-        this.setLoading();
-
-        // limpiar búsqueda
-        this.busqueda = '';
-
-        // cargar lista visible directamente
-        this.honorariosDiferidos = [...this.honorariosOriginales];
-
-        // ordenar por giro
-        this.ordenCampo = 'giro';
-        this.ordenAscendente = true;
+        this.aplicarFiltros();
+        this.cargando = false;
       },
-      error: (error) => {
-        if (idActual !== this.cargaId) return;
-
-        console.error('Error al obtener expedientes:', error);
-
+      error: (err) => {
+        console.error('Error al obtener honorarios:', err);
         this.honorariosOriginales = [];
         this.honorariosDiferidos = [];
         this.hayHonorarios = false;
-
-        this.expedientesCargados = true;
-        this.setLoading();
+        this.cargando = false;
       }
     });
 }
@@ -248,20 +204,6 @@ setLoading() {
     this.router.navigate([path], { replaceUrl: true });
   }
 
-
-/*
-cargarUsuarios() {
-  this.usuarioService.getUsuarios()
-    .pipe(takeUntil(this.destroy$))
-    .subscribe(
-      (usuarios) => {
-        this.listaUsuarios = usuarios;
-      },
-      (error) => {
-        console.error('Error al obtener usuarios:', error);
-      }
-    );
-}*/
 
 cargarUsuarios() {
   this.usuariosCargados = false;
@@ -288,6 +230,7 @@ cargarUsuarios() {
       }
     });
 }
+
 cambiarEstado(selectedValue: 'sentencia' | 'cobrado') {
   this.estado = selectedValue;
   this.cargaId++;
@@ -325,7 +268,7 @@ cambiarEstado(selectedValue: 'sentencia' | 'cobrado') {
   }
 }
 
-
+/*
 get honorariosDiferidosOrdenados() {
   return [...this.honorariosDiferidos].sort((a, b) => {
     const campo = this.ordenCampo;
@@ -338,7 +281,7 @@ get honorariosDiferidosOrdenados() {
     return 0;
   });
    return [];
-}
+}*/
 
 ordenarPor(campo: string) {
   if (this.ordenCampo === campo) {
@@ -347,7 +290,15 @@ ordenarPor(campo: string) {
     this.ordenCampo = campo;
     this.ordenAscendente = true;
   }
+
+  this.aplicarFiltros();
 }
+
+
+trackByExpediente(index: number, item: any): number {
+  return item.id;
+}
+
 obtenerValorOrden(item: any, campo: string): any {
   switch (campo) {
     case 'numero':
@@ -838,41 +789,81 @@ getCantidadColumnas(item: any): number {
 existeCapital(item: any): boolean {
   return item.capitalCobrado || this.mostrarCapital(item);
 }
-/*
-filtrar() {
-  const texto = this.busqueda.toLowerCase();
 
-  this.honorariosDiferidos = this.honorariosOriginales.filter(expediente => {
+filtrar() {
+  this.aplicarFiltros();
+}
+
+aplicarFiltros() {
+  const texto = (this.busqueda || '').toLowerCase().trim();
+
+  this.honorariosDiferidos = this.honorariosOriginales.filter((expediente: any) => {
+
     const estadoBuscado = this.estadoHonorarioSeleccionado?.toLowerCase();
 
-    const coincideEstado = (estado: string | null | undefined, fechaCobro: string | null | undefined) => {
-      return estado?.toLowerCase() === estadoBuscado && !fechaCobro;
-    };
+    const procuradorOk = this.procuradorSeleccionado
+      ? expediente.procurador_id === +this.procuradorSeleccionado
+      : true;
+
+    const coincideEstado = (estado: string | null | undefined, fechaCobro: string | null | undefined) =>
+      estado?.toLowerCase() === estadoBuscado && (!fechaCobro || `${fechaCobro}`.trim() === '');
 
     const estadoCoincide = this.estadoHonorarioSeleccionado
       ? (
-        coincideEstado(expediente.subEstadoHonorariosSeleccionado, expediente.fecha_cobro) ||
-        coincideEstado(expediente.subEstadoCapitalSeleccionado, expediente.fecha_cobro_capital) ||
-        coincideEstado(expediente.subEstadoAlzadaSeleccionado, expediente.fechaCobroAlzada) ||
-        coincideEstado(expediente.subEstadoEjecucionSeleccionado, expediente.fechaCobroEjecucion) ||
-        coincideEstado(expediente.subEstadoDiferenciaSeleccionado, expediente.fechaCobroDiferencia)
-      )
+          coincideEstado(expediente.subEstadoHonorariosSeleccionado, expediente.fecha_cobro) ||
+          coincideEstado(expediente.subEstadoCapitalSeleccionado, expediente.fecha_cobro_capital) ||
+          coincideEstado(expediente.subEstadoHonorariosAlzadaSeleccionado, expediente.fechaCobroAlzada) ||
+          coincideEstado(expediente.subEstadoHonorariosEjecucionSeleccionado, expediente.fechaCobroEjecucion) ||
+          coincideEstado(expediente.subEstadoHonorariosDiferenciaSeleccionado, expediente.fechaCobroDiferencia)
+        )
       : true;
 
     const numeroOk = expediente.numero?.toString().includes(texto);
     const anioOk = expediente.anio?.toString().includes(texto);
 
-    const clienteOk = expediente.clientes?.some((cliente: any) =>
-      (cliente.nombre && cliente.nombre.toLowerCase().includes(texto)) ||
-      (cliente.apellido && cliente.apellido.toLowerCase().includes(texto))
-    ) ?? false;
+    const matchParte = (p: any) => {
+      if (!p) return false;
+      const n = p?.nombre?.toLowerCase() || '';
+      const a = p?.apellido?.toLowerCase() || '';
+      const rs = (p?.razonSocial ?? p?.razon_social ?? '').toLowerCase();
+      const nf = (p?.nombreFantasia ?? p?.nombre_fantasia ?? '').toLowerCase();
+      const den = (p?.denominacion ?? '').toLowerCase();
 
-    const busquedaOk = texto === '' || numeroOk || anioOk || clienteOk;
+      return (
+        n.includes(texto) ||
+        a.includes(texto) ||
+        rs.includes(texto) ||
+        nf.includes(texto) ||
+        den.includes(texto) ||
+        `${n} ${a}`.trim().includes(texto)
+      );
+    };
 
-    return estadoCoincide && busquedaOk;
+    const actoraOk =
+      (expediente.clientes?.some(matchParte) ?? false) ||
+      ((expediente as any).actoras?.some(matchParte) ?? false) ||
+      ((expediente as any).actorasEmpresas?.some(matchParte) ?? false) ||
+      matchParte((expediente as any).actora) ||
+      matchParte((expediente as any).actoraEmpresa) ||
+      ['actoraNombre','actora_razon_social','actoraRazonSocial','actora_empresa','caratula','carátula']
+        .some(k => (expediente as any)[k]?.toLowerCase?.().includes(texto));
+
+    const demandadoOk =
+      (expediente.demandados?.some(matchParte) ?? false) ||
+      ((expediente as any).demandadosClientes?.some(matchParte) ?? false) ||
+      matchParte((expediente as any).demandado) ||
+      ['demandadoNombre','demandado_razon_social','demandadoRazonSocial']
+        .some(k => (expediente as any)[k]?.toLowerCase?.().includes(texto));
+
+    const caratulaOk = expediente.caratula?.toLowerCase?.().includes(texto);
+
+    const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
+
+    return estadoCoincide && busquedaOk && procuradorOk && this.esVisible(expediente);
   });
-}*/
+}
 
+/*
 filtrar() {
   const texto = (this.busqueda || '').toLowerCase().trim();
 
@@ -897,12 +888,7 @@ filtrar() {
     const numeroOk = expediente.numero?.toString().includes(texto);
     const anioOk   = expediente.anio?.toString().includes(texto);
     const tipoRegistro = (expediente.tipo_registro ?? '').toString().toLowerCase();
-    /*const esMediacion = tipoRegistro === 'mediacion';
 
-    const tipoRegistroOk =
-      texto !== '' && ('mediacion'.includes(texto) || 'expediente'.includes(texto))
-        ? (esMediacion ? 'mediacion' : 'expediente').includes(texto)
-        : false;*/
 
     const matchParte = (p: any) => {
       if (!p) return false;
@@ -943,7 +929,7 @@ filtrar() {
 
     return estadoCoincide && busquedaOk && procuradorOk;
   });
-}
+}*/
 
 tieneEstadoGiroPorTipo(item: any, tipo: string): boolean {
   const revisar = (estado?: string) => (estado ?? '').toLowerCase() === 'giro';
@@ -1055,6 +1041,14 @@ restaurarCobro(item: any) {
       }
     });
   });
+}
+
+get honorariosVisibles() {
+  return this.honorariosDiferidos.slice(0, this.cantidadVisible);
+}
+
+cargarMas() {
+  this.cantidadVisible += 30;
 }
 
 }

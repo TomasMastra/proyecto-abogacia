@@ -32,9 +32,15 @@
           class="cliente-container"
         >
           <div class="cliente-header">
-            <h2>{{ j.expedienteModel?.caratula }}</h2>
-
-            <div class="acciones">
+            <h2>
+                {{
+                  (j.tipo_expediente?.toLowerCase() === 'propio')
+                    ? (j.caratula || 'Sin carátula')
+                    : ((j.numero && j.anio) ? (j.numero + '/' + j.anio) : 'Sin datos')
+                }}
+              </h2>            
+              
+              <div class="acciones">
               <button
                 mat-icon-button
                 class="list-button"

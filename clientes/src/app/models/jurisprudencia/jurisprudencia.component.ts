@@ -24,6 +24,7 @@ export interface JurisprudenciaModel {
   camara: string | null;
   codigo_id: number;
   estado?: string;
+  caratula?: string;
 
   // Models
   expedienteModel?: ExpedienteModel | null;

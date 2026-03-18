@@ -159,17 +159,6 @@ export class ListaMediacionesPage implements OnInit, OnDestroy {
     return procurador ? `${procurador.nombre}` : 'Sin procurador';
   }
 
-  get mediacionesOrdenadas() {
-    return [...this.mediaciones].sort((a, b) => {
-      const valorA = this.obtenerValorOrden(a, this.ordenCampo);
-      const valorB = this.obtenerValorOrden(b, this.ordenCampo);
-
-      if (valorA < valorB) return this.ordenAscendente ? -1 : 1;
-      if (valorA > valorB) return this.ordenAscendente ? 1 : -1;
-      return 0;
-    });
-  }
-
   ordenarPor(campo: string) {
     if (this.ordenCampo === campo) {
       this.ordenAscendente = !this.ordenAscendente;

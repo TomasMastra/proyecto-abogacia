@@ -2867,33 +2867,12 @@ app.get("/expedientes/buscarPorNumeroAnioTipo", async (req, res) => {
 
 
 
-//TRAE EXPEDIENTES FILTRADOS POR UN ESTADO
-/*
-app.get("/expedientes/estado", async (req, res) => {
-  try {
-      const { estado } = req.query; 
-
-      if (!estado ) {
-          return res.status(400).json({ error: "Se requiere estado." });
-      }
-
-      const result = await pool
-          .request()
-          .input("estado", sql.NVarChar, estado)
-
-          .query("SELECT * FROM expedientes WHERE estado = @estado");
-
-      res.json(result.recordset);
-  } catch (err) {
-      console.error("Error al obtener expedientes:", err);
-      res.status(500).send(err);
-  }
-});*/
 
 //postgres
 app.get("/expedientes/estado", async (req, res) => {
   try {
     const estado = (req.query.estado ?? "").toString().trim();
+
     if (!estado) {
       return res.status(400).json({ error: "Se requiere estado." });
     }
@@ -2902,20 +2881,67 @@ app.get("/expedientes/estado", async (req, res) => {
       SELECT *
       FROM public.expedientes
       WHERE estado = $1
+      ORDER BY anio DESC, numero DESC
     `;
-    let params = [estado];
+    const params = [estado];
 
-    if (estado.toLowerCase() === 'sentencia') {
+    if (estado.toLowerCase() === "sentencia") {
       query = `
-      SELECT *
-      FROM public.expedientes
-      WHERE LOWER(TRIM(estado)) = LOWER(TRIM($1))
-        OR LOWER(TRIM(estado)) = 'cerrado con acuerdo'
+        SELECT *
+        FROM public.expedientes
+        WHERE LOWER(TRIM(estado)) = LOWER(TRIM($1))
+           OR LOWER(TRIM(estado)) = 'cerrado con acuerdo'
+        ORDER BY
+          CASE
+            WHEN (
+              (
+                (
+                  LOWER(COALESCE("subEstadoCapitalSeleccionado", '')) = 'giro'
+                  OR LOWER(COALESCE("estadoLiquidacionCapitalSeleccionado", '')) = 'giro'
+                )
+                AND COALESCE("capitalCobrado", false) = false
+              )
+
+              OR
+
+              (
+                (
+                  LOWER(COALESCE("subEstadoHonorariosSeleccionado", '')) = 'giro'
+                  OR LOWER(COALESCE("estadoLiquidacionHonorariosSeleccionado", '')) = 'giro'
+                )
+                AND COALESCE("honorarioCobrado", false) = false
+              )
+
+              OR
+
+              (
+                LOWER(COALESCE("subEstadoHonorariosAlzadaSeleccionado", '')) = 'giro'
+                AND COALESCE("honorarioAlzadaCobrado", false) = false
+              )
+
+              OR
+
+              (
+                LOWER(COALESCE("subEstadoHonorariosEjecucionSeleccionado", '')) = 'giro'
+                AND COALESCE("honorarioEjecucionCobrado", false) = false
+              )
+
+              OR
+
+              (
+                LOWER(COALESCE("subEstadoHonorariosDiferenciaSeleccionado", '')) = 'giro'
+                AND COALESCE("honorarioDiferenciaCobrado", false) = false
+              )
+            )
+            THEN 0
+            ELSE 1
+          END,
+          anio DESC,
+          numero DESC
       `;
     }
 
     const { rows } = await pgPool.query(query, params);
-
     return res.json(rows);
   } catch (err) {
     console.error("Error al obtener expedientes por estado:", err);
@@ -2925,7 +2951,6 @@ app.get("/expedientes/estado", async (req, res) => {
     });
   }
 });
-
 
 /* postgres */
 app.get("/expedientes/juzgados/:id", async (req, res) => {
@@ -5066,10 +5091,16 @@ app.get("/jurisprudencias", async (req, res) => {
       FROM public.jurisprudencias j
       LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
       LEFT JOIN public.juez jue ON jue.id = j.juez_id
-      LEFT JOIN public.codigos c ON c.id = j.codigo_id
 
       LEFT JOIN LATERAL (
-        SELECT e.id, e.caratula
+        SELECT c.id, c.codigo, c.descripcion
+        FROM public.codigos c
+        WHERE c.id = j.codigo_id
+        LIMIT 1
+      ) c ON true
+
+      LEFT JOIN LATERAL (
+        SELECT e.caratula
         FROM public.expedientes e
         WHERE e.id = j.expediente_id
         LIMIT 1

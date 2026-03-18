@@ -45,6 +45,7 @@ export class JurisprudenciasService {
     );
   }*/
 getJurisprudencias(): Observable<JurisprudenciaModel[]> {
+      console.log("GET /jurisprudencias");
   return this.http.get<JurisprudenciaModel[]>(this.apiUrl, this.httpOptions);
 }
 
