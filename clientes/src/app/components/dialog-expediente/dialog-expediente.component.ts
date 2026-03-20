@@ -82,10 +82,7 @@ export class DialogExpedienteComponent {
   mensajeSelectJuzgado = 'Filtrar juzgado';
   tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
   juicios: any[] = ['ordinario', 'sumarisimo', 'a definir'];
-  estados: any[] = [
-    'Sorteado', 'Inicio - Previo', 'Se resuelva',
-    'Sentencia - Previo', 'Sentencia - Solicita'
-  ];
+
 
   juzgadoElegido: any = null;
   abogadoSeleccionado: any = null;
@@ -199,52 +196,48 @@ private configurarModo() {
     c.updateValueAndValidity({ emitEvent: false });
   };
 
-  if (this.mode === 'mediacion') {
-    // ❌ campos que no van en mediación
-    disableNoMediacion('numero');
-    disableNoMediacion('tipo');
-    disableNoMediacion('juzgado');
-    disableNoMediacion('codigo');
-    disableNoMediacion('juicio');
+ if (this.mode === 'mediacion') {
+  disableNoMediacion('numero');
+  disableNoMediacion('tipo');
+  disableNoMediacion('juzgado');
+  disableNoMediacion('codigo');
+  disableNoMediacion('juicio');
 
-    // ✅ estado fijo
-    this.form.get('estado')?.setValue('Mediacion', { emitEvent: false });
-    this.form.get('estado')?.disable({ emitEvent: false });
-    this.form.get('estado')?.clearValidators();
-    this.form.get('estado')?.updateValueAndValidity({ emitEvent: false });
+  this.form.get('estado')?.setValue('Mediacion', { emitEvent: false });
+  this.form.get('estado')?.disable({ emitEvent: false });
+  this.form.get('estado')?.clearValidators();
+  this.form.get('estado')?.updateValueAndValidity({ emitEvent: false });
 
-    // ✅ campos que sí van
-    enableWith('anio', [Validators.required]);
-    enableWith('porcentaje', [Validators.required, Validators.min(0)]);
-    enableWith('fechaInicio', [Validators.required]);
+  enableWith('anio', [Validators.required]);
+  enableWith('porcentaje', [Validators.required, Validators.min(0)]);
+  enableWith('fechaInicio', [Validators.required]);
+  enableWith('abogado', [Validators.required]);
+  enableWith('procurador', [Validators.required]);
+  enableWith('monto_capital', [Validators.required, Validators.min(0)]);
+  enableWith('monto_honorarios', [Validators.required, Validators.min(0)]);
+} else {
+  enableWith('numero', [Validators.required, Validators.min(0)]);
+  enableWith('anio', [Validators.required]);
 
-    enableWith('abogado', [Validators.required]);
-    enableWith('procurador', [Validators.required]);
+  // 👇 estado fijo para expediente
+  this.form.get('estado')?.setValue('Sorteado', { emitEvent: false });
+  this.form.get('estado')?.disable({ emitEvent: false });
+  this.form.get('estado')?.clearValidators();
+  this.form.get('estado')?.updateValueAndValidity({ emitEvent: false });
 
-    enableWith('monto_capital', [Validators.required, Validators.min(0)]);
-    enableWith('monto_honorarios', [Validators.required, Validators.min(0)]);
+  enableWith('porcentaje', [Validators.required]);
+  enableWith('juicio', [Validators.required]);
+  enableWith('fechaInicio', [Validators.required]);
+  enableWith('tipo', [Validators.required]);
+  enableWith('juzgado', [Validators.required]);
+  enableWith('abogado', [Validators.required]);
+  enableWith('procurador', [Validators.required]);
 
-  } else {
-    // ✅ EXPEDIENTE normal (restauro validadores)
-    enableWith('numero', [Validators.required, Validators.min(0)]);
-    enableWith('anio', [Validators.required]);
-    enableWith('estado', [Validators.required]);
-    enableWith('porcentaje', [Validators.required]);
-    enableWith('juicio', [Validators.required]);
-    enableWith('fechaInicio', [Validators.required]);
+  enableWith('codigo', null);
 
-    enableWith('tipo', [Validators.required]);
-    enableWith('juzgado', [Validators.required]);
-    enableWith('abogado', [Validators.required]);
-    enableWith('procurador', [Validators.required]);
-
-    // codigo no es required (dejalo opcional)
-    enableWith('codigo', null);
-
-    // ❌ montos no aplican en expediente
-    disableNoMediacion('monto_capital');
-    disableNoMediacion('monto_honorarios');
-  }
+  disableNoMediacion('monto_capital');
+  disableNoMediacion('monto_honorarios');
+}
 }
 
 private cargarCatalogos() {
@@ -541,7 +534,7 @@ if (this.mode !== 'mediacion') {
   : {
       ...base,
       numero: this.form.value['numero'],
-      estado: this.form.value['estado'],
+      estado: 'Sorteado',
       juicio: this.form.value['juicio'],
       tipo: this.form.value['tipo'],
       juzgado_id: this.form.value['juzgado']?.id ?? null,

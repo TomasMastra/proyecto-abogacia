@@ -74,22 +74,7 @@ export class DialogExpedienteModificarComponent implements OnInit, OnDestroy {
 
   // estados
   estadosMediacion = ['Pendiente','Continua','Cerrado con acuerdo','Cerrado sin acuerdo'];
-  estados: string[] = [
-    'Sorteado','Inicio - Previo','Inicio - Plantea Revocatoria','Inicio - Da Cumplimiento',
-    'Inicio - Solicita','Inicio - Apela','Inicio - Recusa','Inicio - Plantea Nulidad','Inicio - Se Eleve',
-    'Traslado demanda - Se Ordena','Traslado demanda - Cedula Confronte','Traslado demanda - Cedula Liberada',
-    'Traslado demanda - Cedula Notificada','Traslado demanda - Cedula Sin Notificar','Traslado demanda - Notificado',
-    'Traslado demanda - Previo Rebeldia','Contesta demanda - Traslado','Contesta demanda - Cedula','Contesta Traslado',
-    'Se resuelva','Apertura a Prueba - Solicita','Apertura a Prueba - Cedula','Apertura a Prueba - Audiencia 360',
-    'Pruebas - Se provean','Pruebas - Se provee','Prueba - Cedula Perito','Prueba - Cedula Parte','Prueba - Oficio deox',
-    'Prueba - Oficio acredita','Prueba - Oficio solicita reiteratorio','Prueba - Oficio solicita Astreinte',
-    'Prueba - Testimonial hace saber','Prueba - Acredita Testimonial','Prueba - Desiste','Prueba - Impugna',
-    'Prueba - Se intime parte','Prueba - Se intime perito','Clausura periodo Prueba - Solicita',
-    'Clausura periodo Prueba - Pase a certificar','Alegatos - Solicita','Alegatos - Cedula','Alegatos - Presenta',
-    'Fiscal - Solicita','Fiscal - Cedula','Fiscal - Previo','Fiscal - Se ordena','Fiscal - Contesta traslado',
-    'Defensor Oficial - Solicita','Defensor Oficial - Cedula','Defensor Oficial - Ratifica lo actuado',
-    'Sentencia - Previo','Sentencia - Solicita','Sentencia - Pasen autos a Sentencia','Sentencia','Archivo','Caducidad'
-  ];
+
   estadosVisibles: string[] = [];
 
   // combos
@@ -197,61 +182,75 @@ export class DialogExpedienteModificarComponent implements OnInit, OnDestroy {
   }
 
   private setEstadosVisibles(): void {
-    this.estadosVisibles = this.mode === 'mediacion' ? this.estadosMediacion : this.estados;
+    this.estadosVisibles = this.mode === 'mediacion'
+      ? this.estadosMediacion
+      : [];
   }
 
   private configurarModo(): void {
-    const esMed = this.mode === 'mediacion';
+  const esMed = this.mode === 'mediacion';
 
-    const numero = this.form.get('numero');
-    const juicio = this.form.get('juicio');
-    const tipo = this.form.get('tipo');
-    const juzgado = this.form.get('juzgado');
-    const codigo = this.form.get('codigo');
+  const numero = this.form.get('numero');
+  const estado = this.form.get('estado');
+  const juicio = this.form.get('juicio');
+  const tipo = this.form.get('tipo');
+  const juzgado = this.form.get('juzgado');
+  const codigo = this.form.get('codigo');
 
-    const montoCap = this.form.get('montoLiquidacionCapital');
-    const montoHon = this.form.get('montoLiquidacionHonorarios');
+  const montoCap = this.form.get('montoLiquidacionCapital');
+  const montoHon = this.form.get('montoLiquidacionHonorarios');
 
-    if (esMed) {
-      // NO van
-      [numero, juicio, tipo, juzgado, codigo].forEach(c => {
-        c?.clearValidators();
-        c?.setValue(null, { emitEvent: false });
-        c?.disable({ emitEvent: false });
-        c?.updateValueAndValidity({ emitEvent: false });
-      });
+  if (esMed) {
+    // NO van
+    [numero, juicio, tipo, juzgado, codigo].forEach(c => {
+      c?.clearValidators();
+      c?.setValue(null, { emitEvent: false });
+      c?.disable({ emitEvent: false });
+      c?.updateValueAndValidity({ emitEvent: false });
+    });
 
-      // SI van (obligatorios)
-      montoCap ?.setValidators([Validators.required, Validators.min(0)]);
-      montoHon?.setValidators([Validators.required, Validators.min(0)]);
-      montoCap ?.enable({ emitEvent: false });
-      montoHon?.enable({ emitEvent: false });
-      montoCap ?.updateValueAndValidity({ emitEvent: false });
-      montoHon?.updateValueAndValidity({ emitEvent: false });
-    } else {
-      // SI van
-      numero?.setValidators([Validators.required, Validators.min(0)]);
-      juicio?.setValidators([Validators.required]);
-      tipo?.setValidators([Validators.required]);
-      juzgado?.setValidators([Validators.required]);
+    // estado sí va en mediación
+    estado?.enable({ emitEvent: false });
+    estado?.setValidators([Validators.required]);
+    estado?.updateValueAndValidity({ emitEvent: false });
 
-      [numero, juicio, tipo, juzgado, codigo].forEach(c => {
-        c?.enable({ emitEvent: false });
-        c?.updateValueAndValidity({ emitEvent: false });
-      });
+    // SI van (obligatorios)
+    montoCap?.setValidators([Validators.required, Validators.min(0)]);
+    montoHon?.setValidators([Validators.required, Validators.min(0)]);
+    montoCap?.enable({ emitEvent: false });
+    montoHon?.enable({ emitEvent: false });
+    montoCap?.updateValueAndValidity({ emitEvent: false });
+    montoHon?.updateValueAndValidity({ emitEvent: false });
 
-      // NO van
-      montoCap ?.clearValidators();
-      montoHon?.clearValidators();
-      montoCap ?.setValue(null, { emitEvent: false });
-      montoHon?.setValue(null, { emitEvent: false });
-      montoCap ?.disable({ emitEvent: false });
-      montoHon?.disable({ emitEvent: false });
-      montoCap ?.updateValueAndValidity({ emitEvent: false });
-      montoHon?.updateValueAndValidity({ emitEvent: false });
-    }
+  } else {
+    // SI van
+    numero?.setValidators([Validators.required, Validators.min(0)]);
+    juicio?.setValidators([Validators.required]);
+    tipo?.setValidators([Validators.required]);
+    juzgado?.setValidators([Validators.required]);
+
+    [numero, juicio, tipo, juzgado, codigo].forEach(c => {
+      c?.enable({ emitEvent: false });
+      c?.updateValueAndValidity({ emitEvent: false });
+    });
+
+    // estado fijo en expediente
+    estado?.clearValidators();
+    estado?.setValue('Sorteado', { emitEvent: false });
+    estado?.disable({ emitEvent: false });
+    estado?.updateValueAndValidity({ emitEvent: false });
+
+    // NO van
+    montoCap?.clearValidators();
+    montoHon?.clearValidators();
+    montoCap?.setValue(null, { emitEvent: false });
+    montoHon?.setValue(null, { emitEvent: false });
+    montoCap?.disable({ emitEvent: false });
+    montoHon?.disable({ emitEvent: false });
+    montoCap?.updateValueAndValidity({ emitEvent: false });
+    montoHon?.updateValueAndValidity({ emitEvent: false });
   }
-
+}
 
   // =========================
   // CARGAS
@@ -569,7 +568,7 @@ acceptDialog(): void {
     id: baseExpediente.id ?? this.data.id,
 
     anio: this.form.value.anio,
-    estado: this.form.value.estado,
+    estado: esMed ? this.form.value.estado : this.expediente.estado,
     porcentaje: this.form.value.porcentaje,
     fecha_inicio: this.form.value.fechaInicio,
 

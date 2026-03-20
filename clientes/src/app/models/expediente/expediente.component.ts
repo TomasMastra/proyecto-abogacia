@@ -33,74 +33,91 @@ export interface ExpedienteModel {
   procurador_id: number | null,
   sala: string | null,
 
-    // 📌 Capital
-    estadoCapitalSeleccionado: string | null,
-    subEstadoCapitalSeleccionado: string | null,
-    fechaCapitalSubestado: string | null,
-    estadoLiquidacionCapitalSeleccionado: string | null,
-    fechaLiquidacionCapital: string | null,
-    montoLiquidacionCapital: number | null,
-    capitalCobrado: boolean | null,
+  // 📌 Capital
+  estadoCapitalSeleccionado: string | null,
+  subEstadoCapitalSeleccionado: string | null,
+  fechaCapitalSubestado: string | null,
+  estadoLiquidacionCapitalSeleccionado: string | null,
+  fechaLiquidacionCapital: string | null,
+  montoLiquidacionCapital: number | null,
+  capitalCobrado: boolean | null,
 
-    // 📌 Honorarios
-    estadoHonorariosSeleccionado: string | null,
-    subEstadoHonorariosSeleccionado: string | null,
-    fechaHonorariosSubestado: string | null,
-    estadoLiquidacionHonorariosSeleccionado: string | null,
-    fechaLiquidacionHonorarios: string | null,
-    montoLiquidacionHonorarios: number | null,
-    honorarioCobrado: boolean | null,
-    cantidadUMA: Number | null,
-    numeroCliente: string | null,
-    minutosSinLuz: string | null,
-    periodoCorte: string | null,
-    porcentaje: number | null,
-    fecha_cobro: string | null,
-    fecha_cobro_capital: string | null,
-    valorUMA: number | null,
-    requiere_atencion: boolean,
-    fecha_atencion: Date | null;
+  // 📌 Honorarios
+  estadoHonorariosSeleccionado: string | null,
+  subEstadoHonorariosSeleccionado: string | null,
+  fechaHonorariosSubestado: string | null,
+  estadoLiquidacionHonorariosSeleccionado: string | null,
+  fechaLiquidacionHonorarios: string | null,
+  montoLiquidacionHonorarios: number | null,
+  honorarioCobrado: boolean | null,
+  cantidadUMA: Number | null,
+  porcentaje: number | null,
+  fecha_cobro: string | null,
+  fecha_cobro_capital: string | null,
+  valorUMA: number | null,
+  requiere_atencion: boolean,
+  fecha_atencion: Date | null;
 
-    estadoHonorariosAlzadaSeleccionado?: string | null;
-    subEstadoHonorariosAlzadaSeleccionado?: string | null;
-    fechaHonorariosAlzada?: string | null;
-    umaSeleccionado_alzada?: number | null;
-    cantidadUMA_alzada?: number | null;
-    montoAcuerdo_alzada?: number | null;
+  // Alzada
+  estadoHonorariosAlzadaSeleccionado?: string | null;
+  subEstadoHonorariosAlzadaSeleccionado?: string | null;
+  fechaHonorariosAlzada?: string | null;
+  umaSeleccionado_alzada?: number | null;
+  cantidadUMA_alzada?: number | null;
+  montoAcuerdo_alzada?: number | null;
 
-    // Honorarios Ejecución
-    estadoHonorariosEjecucionSeleccionado?: string | null;
-    subEstadoHonorariosEjecucionSeleccionado?: string | null;
-    fechaHonorariosEjecucion?: string | null;
-    umaSeleccionado_ejecucion?: number | null;
-    cantidadUMA_ejecucion?: number | null;
-    montoHonorariosEjecucion?: number | null;
+  // Honorarios Ejecución
+  estadoHonorariosEjecucionSeleccionado?: string | null;
+  subEstadoHonorariosEjecucionSeleccionado?: string | null;
+  fechaHonorariosEjecucion?: string | null;
+  umaSeleccionado_ejecucion?: number | null;
+  cantidadUMA_ejecucion?: number | null;
+  montoHonorariosEjecucion?: number | null;
 
-    // Honorarios Diferencia
-    estadoHonorariosDiferenciaSeleccionado?: string | null;
-    subEstadoHonorariosDiferenciaSeleccionado?: string | null;
-    fechaHonorariosDiferencia?: string | null;
-    montoHonorariosDiferencia?: number | null;
+  // Honorarios Diferencia
+  estadoHonorariosDiferenciaSeleccionado?: string | null;
+  subEstadoHonorariosDiferenciaSeleccionado?: string | null;
+  fechaHonorariosDiferencia?: string | null;
+  montoHonorariosDiferencia?: number | null;
 
-    // Cobro honorarios extra
-    honorarioAlzadaCobrado: boolean;
-    fechaCobroAlzada: string | null;
+  // Cobro honorarios extra
+  honorarioAlzadaCobrado: boolean;
+  fechaCobroAlzada: string | null;
 
-    honorarioEjecucionCobrado: boolean;
-    fechaCobroEjecucion: string | null;
+  honorarioEjecucionCobrado: boolean;
+  fechaCobroEjecucion: string | null;
 
-    honorarioDiferenciaCobrado: boolean;
-    fechaCobroDiferencia: string | null;
+  honorarioDiferenciaCobrado: boolean;
+  fechaCobroDiferencia: string | null;
 
-    capitalPagoParcial: number | null;
-    esPagoParcial: boolean | null;
-    caratula?: any;
-    recalcular_caratula?: boolean;
+  capitalPagoParcial: number | null;
+  esPagoParcial: boolean | null;
+  caratula?: any;
+  recalcular_caratula?: boolean;
 
-    codigo_id: number;
+  // Codigo
+  codigo_id: number;
 
-    busqueda?: string;
-    tipo_registro: string
+  // campos 
+  busqueda?: string;
+
+  // Expediente o Mediacion
+  tipo_registro: string
+
+  // EDESUR / cortes
+  numero_cliente_edesur?: string | null;
+  fecha_pedido_informe?: string | null;
+  fecha_respuesta_informe?: string | null;
+  tiene_cortes?: boolean | null;
+  dias_cortes?: number | null;
+  observaciones?: string | null;
+  estado_reclamo?: string | null;
+
+
+  // borrar
+  numeroCliente: string | null,
+  minutosSinLuz: string | null,
+  periodoCorte: string | null,
 
   }
   

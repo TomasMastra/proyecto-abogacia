@@ -1,11 +1,11 @@
 <div class="content mat-elevation-z8" [class.blur-content]="cargando">
 
+  <!-- HEADER -->
   <div class="toolbar">
-
     <input
-      style="color: white; font-weight: bold;"
-      placeholder="Buscar cliente o expediente"
       class="input-busqueda"
+      style="color: white; font-weight: bold;"
+      placeholder="Buscar cliente, carátula o expediente"
       [(ngModel)]="busqueda"
       (ngModelChange)="filtrar()"
     >
@@ -17,46 +17,328 @@
         <option [value]="7">EDENOR</option>
       </select>
     </label>
-
   </div>
 
+  <!-- LOADER -->
   <div *ngIf="cargando" class="fullscreen-loader">
     <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
   </div>
 
-  <div class="table-container" *ngIf="!cargando">
-    <table>
-      <thead>
-        <tr>
-          <th>Cliente</th>
-          <th>Nº expediente</th>
-          <th>Empresa</th>
-          <th>Fecha inicio</th>
-        </tr>
-      </thead>
+  <div *ngIf="!cargando" class="contenedor-general">
 
-      <tbody>
-  <ng-container *ngFor="let item of informesAgrupados">
-    <tr>
-      <td style="background-color: #07295c;">
-        {{ getTituloClientes(item) }}
-      </td>
+    <h1 class="titulo-principal">Gestión de reclamos por nuevos cortes</h1>
 
-      <td style="background-color: #07295c;">
-        {{ item.numero }}/{{ item.anio }}
-      </td>
+    <!-- TABS -->
+    <div class="tabs-estados">
+      <button
+        class="tab-btn"
+        [class.tab-activo]="tabActiva === 'para-reactivar'"
+        (click)="tabActiva = 'para-reactivar'">
+        Para reactivar ({{ listaParaReactivar.length }})
+      </button>
 
-      <td style="background-color: #07295c;">
-        {{ item.empresa }}
-      </td>
+      <button
+        class="tab-btn"
+        [class.tab-activo]="tabActiva === 'en-tramite'"
+        (click)="tabActiva = 'en-tramite'">
+        En trámite ({{ listaEnTramite.length }})
+      </button>
 
-      <td style="background-color: #07295c;">
-        {{ mostrarFecha(item.fecha_inicio) || 'Sin fecha' }}
-      </td>
-    </tr>
-  </ng-container>
-</tbody>
-    </table>
+      <button
+        class="tab-btn"
+        [class.tab-activo]="tabActiva === 'con-cortes'"
+        (click)="tabActiva = 'con-cortes'">
+        Con cortes ({{ listaConCortes.length }})
+      </button>
+
+      <button
+        class="tab-btn"
+        [class.tab-activo]="tabActiva === 'sin-cortes'"
+        (click)="tabActiva = 'sin-cortes'">
+        Sin cortes ({{ listaSinCortes.length }})
+      </button>
+    </div>
+
+    <!-- TAB 1 -->
+    <div class="table-container" *ngIf="tabActiva === 'para-reactivar'">
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Expediente</th>
+            <th>Fecha inicio</th>
+            <th>Antigüedad</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of listaParaReactivar">
+            <td>{{ getTituloClientes(item) }}</td>
+            <td>{{ item.numero }}/{{ item.anio }}</td>
+            <td>{{ mostrarFecha(item.fecha_inicio) || 'Sin fecha' }}</td>
+            <td>{{ calcularAntiguedad(item.fecha_inicio) }}</td>
+            <td>
+              <button class="btn-accion" (click)="iniciar(item)">
+                Iniciar
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="listaParaReactivar.length === 0">
+            <td colspan="5" class="sin-resultados">No hay expedientes para mostrar</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 2 -->
+    <div class="table-container" *ngIf="tabActiva === 'en-tramite'">
+      <table>
+        <thead>
+          <tr>
+            <th>Carátula</th>
+            <th>Nro. Cliente EDESUR</th>
+            <th>Fecha pedido informe</th>
+            <th>Fecha respuesta informe</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of listaEnTramite">
+            <td>{{ item.caratula }}</td>
+            <td>{{ item.numero_cliente_edesur || '-' }}</td>
+            <td>{{ mostrarFecha(item.fecha_pedido_informe) || '-' }}</td>
+            <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '-' }}</td>
+            <td>
+              <span class="badge-estado estado-tramite">{{ item.estado_descripcion }}</span>
+            </td>
+            <td>
+               <div class="acciones">
+                <button class="btn-accion editar" (click)="abrirModalEditar(item)">
+                  Editar
+                </button>
+
+                <button class="btn-deshacer" (click)="deshacerCambios(item)">
+                  Deshacer
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="listaEnTramite.length === 0">
+            <td colspan="6" class="sin-resultados">No hay registros en trámite</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 3 -->
+    <div class="table-container" *ngIf="tabActiva === 'con-cortes'">
+      <table>
+        <thead>
+          <tr>
+            <th>Carátula</th>
+            <th>Nro. Cliente EDESUR</th>
+            <th>Fecha pedido</th>
+            <th>Fecha respuesta</th>
+            <th>Días</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of listaConCortes">
+            <td>{{ item.caratula }}</td>
+            <td>{{ item.numero_cliente_edesur || '-' }}</td>
+            <td>{{ mostrarFecha(item.fecha_pedido_informe) || '-' }}</td>
+            <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '-' }}</td>
+            <td>{{ item.dias_cortes || '-' }}</td>
+            <td>
+              <div class="acciones">
+                <button class="btn-accion editar" (click)="abrirModalEditar(item)">
+                  Editar
+                </button>
+
+                <button class="btn-deshacer" (click)="deshacerCambios(item)">
+                  Deshacer
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="listaConCortes.length === 0">
+            <td colspan="6" class="sin-resultados">No hay expedientes con cortes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 4 -->
+    <div class="table-container" *ngIf="tabActiva === 'sin-cortes'">
+      <table>
+        <thead>
+          <tr>
+            <th>Carátula</th>
+            <th>Nro. Cliente EDESUR</th>
+            <th>Fecha pedido</th>
+            <th>Fecha respuesta</th>
+            <th>Tiene cortes</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let item of listaSinCortes">
+            <td>{{ item.caratula }}</td>
+            <td>{{ item.numero_cliente_edesur || '-' }}</td>
+            <td>{{ mostrarFecha(item.fecha_pedido_informe) || '-' }}</td>
+            <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '-' }}</td>
+            <td>
+              <span class="badge-estado estado-no">No</span>
+            </td>
+            <td>
+              <div class="acciones">
+                <button class="btn-accion editar" (click)="abrirModalEditar(item)">
+                  Editar
+                </button>
+
+                <button class="btn-deshacer" (click)="deshacerCambios(item)">
+                  Deshacer
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="listaSinCortes.length === 0">
+            <td colspan="6" class="sin-resultados">No hay expedientes sin cortes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-backdrop" *ngIf="modalAbierto">
+    <div class="modal-reclamo">
+
+      <div class="modal-header">
+        <h2>{{ modoEdicion ? 'Editar relevamiento' : 'Nuevo relevamiento' }}</h2>
+        <button class="btn-cerrar" (click)="cerrarModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="bloque-datos">
+          <div class="fila-dato">
+            <span class="label">Carátula:</span>
+            <span class="valor">{{ expedienteSeleccionado?.caratula || '-' }}</span>
+          </div>
+
+          <div class="fila-dato">
+            <span class="label">Expediente:</span>
+            <span class="valor">
+              {{ expedienteSeleccionado?.numero }}/{{ expedienteSeleccionado?.anio }}
+            </span>
+          </div>
+
+          <div class="fila-dato">
+            <span class="label">Cliente:</span>
+            <span class="valor">{{ getTituloClientes(expedienteSeleccionado) }}</span>
+          </div>
+
+          <div class="fila-dato">
+            <span class="label">Fecha inicio expediente:</span>
+            <span class="valor">{{ mostrarFecha(expedienteSeleccionado?.fecha_inicio) }}</span>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nro. de Cliente EDESUR</label>
+            <input
+              type="text"
+              [(ngModel)]="formModal.numero_cliente_edesur"
+              placeholder="Ingrese número de cliente"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Fecha de pedido de informe</label>
+            <input
+              type="date"
+              [(ngModel)]="formModal.fecha_pedido_informe"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Fecha de respuesta de informe</label>
+            <input
+              type="date"
+              [(ngModel)]="formModal.fecha_respuesta_informe"
+            >
+          </div>
+
+          <div class="form-group grupo-radio">
+            <label>¿Tiene cortes?</label>
+
+            <div class="radio-opciones">
+              <label>
+                <input
+                  type="radio"
+                  name="tieneCortes"
+                  [value]="true"
+                  [(ngModel)]="formModal.tiene_cortes"
+                  [disabled]="!formModal.fecha_respuesta_informe"
+                >
+                Sí
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  name="tieneCortes"
+                  [value]="false"
+                  [(ngModel)]="formModal.tiene_cortes"
+                  [disabled]="!formModal.fecha_respuesta_informe"
+                >
+                No
+              </label>
+            </div>
+
+            <small *ngIf="!formModal.fecha_respuesta_informe" class="mensaje-ayuda">
+              Para indicar si hubo cortes, primero cargá la fecha de respuesta del informe.
+            </small>
+          </div>
+
+          <div class="form-group" *ngIf="formModal.tiene_cortes === true">
+            <label>Días reclamables</label>
+            <input
+              type="number"
+              min="1"
+              [(ngModel)]="formModal.dias_cortes"
+              placeholder="Ingrese cantidad de días"
+            >
+          </div>
+
+          <div class="form-group full-width">
+            <label>Observaciones</label>
+            <textarea
+              rows="3"
+              [(ngModel)]="formModal.observaciones"
+              placeholder="Observaciones internas..."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secundario" (click)="cerrarModal()">Cancelar</button>
+        <button class="btn-principal" (click)="guardarModal()">Guardar</button>
+      </div>
+
+    </div>
   </div>
 
 </div>

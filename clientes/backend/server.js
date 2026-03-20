@@ -1527,9 +1527,15 @@ SET
 
   "capitalPagoParcial" = $60::double precision,
   "esPagoParcial" = $61::boolean,
-  codigo_id = $62::int
-WHERE id = $63::int;
-      `,
+  codigo_id = $62::int,
+  numero_cliente_edesur = $63,
+  fecha_pedido_informe = $64::date,
+  fecha_respuesta_informe = $65::date,
+  tiene_cortes = $66::boolean,
+  dias_cortes = $67::int,
+  observaciones_reclamo = $68,
+  estado_reclamo = $69
+  WHERE id = $70::int;`,
 [
   data.titulo ?? null,
   data.descripcion ?? null,
@@ -1605,6 +1611,15 @@ WHERE id = $63::int;
   toFloatOrNull(data.capitalPagoParcial),
   keepBoolIfUndefined(data.esPagoParcial, actual.esPagoParcial),
   toIntOrNull(data.codigo_id),
+
+  // Edesur
+  data.numero_cliente_edesur ?? null,
+  toNullIfEmpty(data.fecha_pedido_informe),
+  toNullIfEmpty(data.fecha_respuesta_informe),
+  keepBoolIfUndefined(data.tiene_cortes, actual.tiene_cortes),
+  toIntOrNull(data.dias_cortes),
+  data.observaciones_reclamo ?? null,
+  data.estado_reclamo ?? null,
 
   expedienteIdNum,
 ]
@@ -5704,25 +5719,66 @@ app.put("/jurisprudencias/:id", async (req, res) => {
     client.release();
   }
 });
-
 app.get("/expedientes/informes", async (req, res) => {
   try {
     const query = `
-      select
+      WITH expedientes_energia AS (
+        SELECT
+          c.id AS cliente_id,
+          c.nombre,
+          c.apellido,
+          e.id AS expediente_id,
+          e.caratula,
+          e.numero,
+          e.anio,
+          e.fecha_inicio,
+          e.numero_cliente_edesur,
+          e.fecha_pedido_informe,
+          e.fecha_respuesta_informe,
+          e.tiene_cortes,
+          e.dias_cortes,
+          e.observaciones_reclamo,
+          e.estado_reclamo,
+          d.id AS empresa_id,
+          d.nombre AS empresa,
+          row_number() OVER (
+            PARTITION BY c.id
+            ORDER BY e.fecha_inicio DESC, e.id DESC
+          ) AS rn
+        FROM clientes c
+        JOIN clientes_expedientes ce ON ce.id_cliente = c.id
+        JOIN expedientes e ON e.id = ce.id_expediente
+        JOIN expedientes_demandados ed ON ed.id_expediente = e.id
+        JOIN demandados d ON d.id = ed.id_demandado
+        WHERE (d.id = ANY (ARRAY[1, 7]))
+          AND e.fecha_inicio IS NOT NULL
+      )
+      SELECT
+        expediente_id AS id,
+        expediente_id,
         cliente_id,
         nombre,
         apellido,
+        caratula,
         numero,
         anio,
         fecha_inicio,
         empresa_id,
-        empresa
-      from public.clientes_energia_ultimo_expediente
-      order by apellido asc, nombre asc
+        empresa,
+        numero_cliente_edesur,
+        fecha_pedido_informe,
+        fecha_respuesta_informe,
+        tiene_cortes,
+        dias_cortes,
+        observaciones_reclamo,
+        estado_reclamo
+      FROM expedientes_energia
+      WHERE rn = 1
+        AND fecha_inicio <= (CURRENT_DATE - '2 years 6 mons'::interval)
+      ORDER BY apellido ASC, nombre ASC
     `;
 
     const { rows } = await pgPool.query(query);
-
     res.json(rows);
   } catch (err) {
     console.error("ERROR OBTENIENDO INFORME ENRE:", err);

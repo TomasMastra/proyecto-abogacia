@@ -15,17 +15,6 @@
         <input matInput formControlName="anio" type="number" />
       </mat-form-field>
 
-      <ng-container *ngIf="mode === 'expediente'; else estadoMediacion">
-        <mat-form-field appearance="outline">
-          <mat-label>Estado</mat-label>
-          <mat-select formControlName="estado">
-            <mat-option *ngFor="let estado of estados" [value]="estado">
-              {{ estado }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </ng-container>
-
     <ng-template #estadoMediacion>
       <mat-form-field appearance="outline">
         <mat-label>Estado de Mediación</mat-label>
