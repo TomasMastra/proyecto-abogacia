@@ -1,101 +1,101 @@
-<div class="content mat-elevation-z8" [class.blur-content]="cargando">
+<div class="page-wrapper">
 
-  <div class="toolbar">
-    <input
-      style="color: white; font-weight: bold;"
-      placeholder="Buscar por número o año"
-      class="input-busqueda"
-      [(ngModel)]="busqueda"
-      (ngModelChange)="filtrar()"
-    />
-
-    <mat-form-field appearance="fill" class="custom-mat-select">
-      <mat-label>Procurador</mat-label>
-      <mat-select [(value)]="procuradorSeleccionado" (selectionChange)="filtrar()">
-        <mat-option value="">Todos los Procuradores</mat-option>
-        <mat-option *ngFor="let abogado of listaUsuarios" [value]="abogado.id">
-          {{ abogado.nombre }}
-        </mat-option>
-      </mat-select>
-    </mat-form-field>
-    
-
-    <mat-form-field appearance="fill" class="custom-mat-select">
-      <mat-label>Estado</mat-label>
-      <mat-select [(value)]="estadoSeleccionado" (selectionChange)="filtrar()">
-        <mat-option value="">Todos</mat-option>
-        <mat-option value="Pendiente">Pendiente</mat-option>
-        <mat-option value="Continua">Continua</mat-option>
-        <mat-option value="Cerrado sin acuerdo">Cerrado sin acuerdo</mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <button class="btn-nueva-mediacion" (click)="abrirDialog()">
-      <mat-icon>add</mat-icon>
-      <span>Nueva Mediación</span>
-    </button>
+  <div class="page-header">
+    <h1 class="page-title">Mediaciones</h1>
   </div>
 
+  <div class="list-card">
 
+    <div class="toolbar">
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input class="search-input" placeholder="Buscar por número, año o carátula..."
+          [(ngModel)]="busqueda" (ngModelChange)="filtrar()" />
+      </div>
 
-  <div *ngIf="cargando" class="fullscreen-loader">
-    <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="procuradorSeleccionado" (change)="filtrar()">
+          <option value="">Todos los procuradores</option>
+          <option *ngFor="let u of listaUsuarios" [value]="u.id">{{ u.nombre }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
+          <option value="">Todos los estados</option>
+          <option *ngFor="let e of estadosMediacion" [value]="e">{{ e }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="abrirDialog()">
+          <mat-icon>add</mat-icon>
+          <span>Nueva mediación</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Carátula</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Abogado</th>
+            <th>Procurador</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-md"></div></td>
+            <td><div class="skeleton-cell sk-md"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando && listaPaginada.length > 0">
+            <tr *ngFor="let item of listaPaginada">
+              <td class="td-caratula">{{ item.caratula }}</td>
+              <td>{{ mostrarFecha(item.fecha_inicio) || '—' }}</td>
+              <td><span class="estado-chip">{{ item.estado }}</span></td>
+              <td>{{ getNombreAbogado(item.usuario_id) }}</td>
+              <td>{{ getNombreAbogado(item.procurador_id) }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar" (click)="abrirModificar(item); $event.stopPropagation()">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar" (click)="eliminarExpediente(item); $event.stopPropagation()">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="listaPaginada.length === 0 && !cargando">
+              <td colspan="6" class="empty-row">
+                <mat-icon>gavel</mat-icon>
+                No se encontraron mediaciones
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="mediaciones.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
   </div>
-
-  <div class="table-container" *ngIf="!cargando">
-    <table>
-      <thead>
-        <tr>
-          <th>Carátula</th>
-          <th>Fecha</th>
-          <th>Estado</th>
-          <th>Abogado</th>
-          <th>Procurador</th>
-          <th>Accion</th>
-
-        </tr>
-      </thead>
-
-      <tbody>
-        <tr
-          *ngFor="let item of mediaciones"
-          (mouseenter)="item.hover = true"
-          (mouseleave)="item.hover = false"
-          [class.hover]="item.hover"
-          style="background-color: #07295c"
-        >
-          <td>
-            {{ item.caratula }}
-          </td>
-
-          <td style="background-color: #07295c;">
-        {{ mostrarFecha(item.fecha_inicio) || 'Sin fecha' }}
-          </td>
-          <td>
-            {{ item.estado }}
-          </td>
-
-          <td>
-            {{ getNombreAbogado(item.usuario_id) }}
-          </td>
-
-          <td>
-            {{ getNombreAbogado(item.procurador_id) }}
-          </td>
-          <td>
-            <div class="acciones">
-              <button mat-icon-button class="list-button" (click)="eliminarExpediente(item); $event.stopPropagation()">
-                <mat-icon style="color: #ffffff">delete</mat-icon>
-              </button>
-
-              <button mat-icon-button class="list-button" (click)="abrirModificar(item); $event.stopPropagation()">
-                <mat-icon style="color: #ffffff">edit</mat-icon>
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
 </div>

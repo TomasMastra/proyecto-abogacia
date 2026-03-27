@@ -1,52 +1,72 @@
-<div class="content mat-elevation-z8">
-  <ion-list class="lista-clientes">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Localidades</h1>
+  </div>
+
+  <div class="list-card">
 
     <div class="toolbar">
-      <input
-        placeholder="Buscar localidad"
-        class="input-busqueda"
-        [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()">
-
-      <button mat-button class="list-button" (click)="abrirDialog()">
-        <mat-icon style="color:#ffffff">add_location</mat-icon>
-        <span style="color:#ffffff">Agregar localidad</span>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color:#ffffff">download</mat-icon>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color:#ffffff">more_vert</mat-icon>
-      </button>
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input class="search-input" placeholder="Buscar localidad..."
+          [(ngModel)]="busqueda" (ngModelChange)="buscar()" />
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="abrirDialog()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar localidad</span>
+        </button>
+      </div>
     </div>
 
-    <div>
-      <ion-item-sliding *ngFor="let localidad of localidades" class="cliente">
-        <ion-item class="cliente" *ngIf="hayLocalidades && localidades.length > 0">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Localidad</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
 
-          <div style="width:100%; display:flex; justify-content:space-between; align-items:center">
-            <h1 style="margin:0">{{ localidad.localidad }}</h1>
-
-            <div style="display:flex; gap:8px">
-              <button mat-button class="list-button" (click)="eliminarLocalidad(localidad)">
-                <mat-icon style="color:#ffffff">delete</mat-icon>
-              </button>
-
-              <button mat-button class="list-button" (click)="abrirModificar(localidad)">
-                <mat-icon style="color:#ffffff">edit</mat-icon>
-              </button>
-            </div>
-          </div>
-
-        </ion-item>
-      </ion-item-sliding>
-
-      <ion-item *ngIf="!hayLocalidades && localidades.length <= 0" class="cliente">
-        <ion-label text-center>{{ texto }}</ion-label>
-      </ion-item>
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let localidad of listaPaginada">
+              <td class="td-nombre">{{ localidad.localidad }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar" (click)="abrirModificar(localidad)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar" (click)="eliminarLocalidad(localidad)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="2" class="empty-row">
+                <mat-icon>location_on</mat-icon>
+                No se encontraron localidades
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
     </div>
 
-  </ion-list>
+    <mat-paginator
+      [length]="localidades.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
 </div>

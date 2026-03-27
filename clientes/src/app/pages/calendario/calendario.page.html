@@ -1,224 +1,210 @@
-<div class="calendario-avanzado">
-  <h1 class="titulo">
-    <mat-icon style="color: white" class="titulo-icono">calendar_month</mat-icon>
-    Calendario de Mediaciones y Audiencias
-  </h1>
+<div class="page-wrapper">
 
-
-  <!-- Encabezado de mes -->
-  <div class="encabezado">
-    <button mat-icon-button (click)="mesAnterior()">
-      <mat-icon>chevron_left</mat-icon>
-    </button>
-    <h2>{{ nombreMes[mesActual] }} {{ anioActual }}</h2>
-    <button mat-icon-button (click)="mesSiguiente()">
-      <mat-icon>chevron_right</mat-icon>
-    </button>
+  <div class="page-header">
+    <h1 class="page-title">Calendario</h1>
   </div>
 
-  <!-- Días de la semana -->
-  <div class="dias-semana">
-    <div *ngFor="let d of ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']" class="dia-semana">{{ d }}</div>
-  </div>
+  <div class="cal-layout">
 
-  <!-- Días del mes -->
-<!-- Días del mes -->
-<div class="dias-mes">
-  <div *ngFor="let dia of diasDelMes" 
-       [ngClass]="{ 'dia': true, 'evento': dia?.tieneEvento }"
-       (click)="seleccionarDia(dia.dia)">
-    {{ dia?.dia || '' }}
-  </div>
-</div>
+    <!-- ── Columna izquierda: calendario ── -->
+    <div class="cal-col">
+      <div class="cal-card">
 
+        <!-- Header mes -->
+        <div class="cal-header">
+          <button class="cal-nav-btn" (click)="mesAnterior()">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <span class="cal-mes-label">{{ nombreMes[mesActual] }} {{ anioActual }}</span>
+          <button class="cal-nav-btn" (click)="mesSiguiente()">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
 
-<div *ngFor="let evento of eventosSeleccionados" 
-     [ngClass]="'evento-seleccionado ' + obtenerColorTipo(evento.tipo_evento)"
-     class="evento-item-horario flex"
-    (click)="mostrarDetallesEvento(evento)">
+        <!-- Días semana -->
+        <div class="cal-grid cal-grid--header">
+          <div class="cal-dow" *ngFor="let d of ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']">{{ d }}</div>
+        </div>
 
+        <!-- Días mes -->
+        <div class="cal-grid">
+          <div
+            *ngFor="let dia of diasDelMes"
+            class="cal-dia"
+            [class.cal-dia--evento]="dia.tieneEvento"
+            [class.cal-dia--vacio]="!dia.dia"
+            [class.cal-dia--hoy]="dia.dia === currentDate.getDate() && mesActual === currentDate.getMonth() && anioActual === currentDate.getFullYear()"
+            (click)="seleccionarDia(dia.dia)">
+            <span *ngIf="dia.dia">{{ dia.dia }}</span>
+            <span class="cal-dot" *ngIf="dia.tieneEvento"></span>
+          </div>
+        </div>
 
-  <div class="hora-evento">
-    {{ obtenerHoraEvento(evento.fecha_evento) }}
-  </div>
-    <div class="linea-vertical"></div>
+      </div>
 
-  <div class="detalle-evento">
-    <div class="titulo-evento">
-      {{ evento.tipo_evento }}
+      <!-- Leyenda -->
+      <div class="cal-leyenda">
+        <span class="leyenda-item"><span class="dot dot--evento"></span> Con eventos</span>
+        <span class="leyenda-item"><span class="dot dot--hoy"></span> Hoy</span>
+      </div>
     </div>
-<div class="rango-horario">
-  {{ obtenerHoraEvento(evento.fecha_evento) }}
-</div>
+
+    <!-- ── Columna derecha: eventos del día + formulario ── -->
+    <div class="cal-col cal-col--right">
+
+      <!-- Eventos del día seleccionado -->
+      <div class="eventos-card" *ngIf="eventosSeleccionados.length > 0">
+        <div class="eventos-header">
+          <mat-icon>event</mat-icon>
+          <span>Eventos del día</span>
+        </div>
+        <div
+          *ngFor="let evento of eventosSeleccionados"
+          class="evento-item"
+          [class]="'evento-item--' + obtenerColorTipo(evento.tipo_evento)"
+          (click)="mostrarDetallesEvento(evento)">
+          <div class="evento-hora">{{ obtenerHoraEvento(evento.fecha_evento) || '—' }}</div>
+          <div class="evento-info">
+            <span class="evento-tipo">{{ evento.tipo_evento }}</span>
+            <span class="evento-desc" *ngIf="evento.descripcion">{{ evento.descripcion }}</span>
+          </div>
+          <mat-icon class="evento-arrow">chevron_right</mat-icon>
+        </div>
+      </div>
+
+      <div class="empty-eventos" *ngIf="eventosSeleccionados.length === 0">
+        <mat-icon>event_busy</mat-icon>
+        <p>Seleccioná un día para ver sus eventos</p>
+      </div>
+
+      <!-- Botón agregar -->
+      <button class="btn-agregar" (click)="mostrarFormulario = !mostrarFormulario">
+        <mat-icon>{{ mostrarFormulario ? 'close' : 'add' }}</mat-icon>
+        {{ mostrarFormulario ? 'Cerrar formulario' : 'Agregar evento' }}
+      </button>
+
+      <!-- Formulario -->
+      <div class="form-card" *ngIf="mostrarFormulario">
+        <h3 class="form-title">{{ eventoParaEditar ? 'Editar evento' : 'Nuevo evento' }}</h3>
+        <form class="form-grid">
+
+          <!-- Fecha -->
+          <div class="form-field">
+            <label class="form-label">Fecha</label>
+            <mat-form-field appearance="outline" class="mat-field">
+              <input matInput [matDatepicker]="picker" [(ngModel)]="nuevoEvento.fecha_evento" name="fecha_evento">
+              <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+            </mat-form-field>
+          </div>
+
+          <!-- Hora -->
+          <div class="form-field">
+            <label class="form-label">Hora</label>
+            <input class="field-input" type="time" [(ngModel)]="nuevoEvento.hora_evento" name="hora_evento">
+          </div>
+
+          <!-- Tipo -->
+          <div class="form-field form-field--full">
+            <label class="form-label">Tipo de evento</label>
+            <mat-form-field appearance="outline" class="mat-field">
+              <mat-select [(ngModel)]="nuevoEvento.tipo_evento" name="tipo_evento" [disabled]="editando">
+                <mat-option value="Audiencia 360 virtual">Audiencia 360 virtual</mat-option>
+                <mat-option value="Audiencia 360 personal">Audiencia 360 personal</mat-option>
+                <mat-option value="Mediación">Mediación</mat-option>
+                <mat-option value="Otro">Otro</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <!-- Descripción (Otro) -->
+          <div class="form-field form-field--full" *ngIf="nuevoEvento.tipo_evento === 'Otro'">
+            <label class="form-label">Descripción</label>
+            <input class="field-input" type="text" [(ngModel)]="nuevoEvento.descripcion" name="descripcion" placeholder="Descripción del evento">
+          </div>
+
+          <!-- Campos Mediación -->
+          <ng-container *ngIf="nuevoEvento.tipo_evento === 'Mediación'">
+
+            <div class="form-field">
+              <label class="form-label">Nº de mediación</label>
+              <input class="field-input" [(ngModel)]="nuevaMediacion.numero" name="numero_mediacion" placeholder="Número">
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">Abogado</label>
+              <mat-form-field appearance="outline" class="mat-field">
+                <mat-select [(ngModel)]="nuevaMediacion.abogado_id" name="abogado_id">
+                  <mat-option *ngFor="let a of listaAbogados" [value]="a.id">{{ a.nombre }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="form-field form-field--full">
+              <label class="form-label">Clientes</label>
+              <mat-form-field appearance="outline" class="mat-field">
+                <input matInput [formControl]="clienteCtrl" [matAutocomplete]="auto" placeholder="Buscar cliente...">
+                <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayCliente" (optionSelected)="seleccionarCliente($event.option.value)">
+                  <mat-option *ngFor="let c of filteredClientes | async" [value]="c">{{ c.nombre }} {{ c.apellido }}</mat-option>
+                </mat-autocomplete>
+              </mat-form-field>
+              <div class="clientes-chips" *ngIf="clientesAgregados.length > 0">
+                <span class="cliente-chip" *ngFor="let c of clientesAgregados">
+                  {{ c.nombre }} {{ c.apellido }}
+                  <button class="chip-remove" (click)="eliminarCliente(c)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </span>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">Demandado</label>
+              <mat-form-field appearance="outline" class="mat-field">
+                <mat-select [(ngModel)]="nuevaMediacion.demandado_id" name="demandado_id">
+                  <mat-option *ngFor="let d of listaDemandados" [value]="d.id">{{ d.nombre }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <div class="form-field">
+              <label class="form-label">Mediadora</label>
+              <input class="field-input" [(ngModel)]="nuevaMediacion.mediadora" name="mediadora" placeholder="Nombre de la mediadora">
+            </div>
+
+          </ng-container>
+
+          <!-- Campos Audiencia -->
+          <ng-container *ngIf="nuevoEvento.tipo_evento === 'Audiencia 360 virtual' || nuevoEvento.tipo_evento === 'Audiencia 360 personal'">
+            <div class="form-field form-field--full">
+              <label class="form-label">Expediente</label>
+              <mat-form-field appearance="outline" class="mat-field">
+                <input type="text" matInput [formControl]="expedienteCtrl" [matAutocomplete]="autoExp" placeholder="Buscar expediente...">
+                <mat-autocomplete #autoExp="matAutocomplete" [displayWith]="displayExpediente" (optionSelected)="seleccionarExpediente($event.option.value)">
+                  <mat-option *ngFor="let e of filteredExpedientes | async" [value]="e">
+                    {{ e.numero }}/{{ e.anio }} {{ e.caratula }}
+                  </mat-option>
+                </mat-autocomplete>
+              </mat-form-field>
+            </div>
+          </ng-container>
+
+          <div class="form-field form-field--full" *ngIf="nuevoEvento.tipo_evento === 'Audiencia 360 virtual'">
+            <label class="form-label">Link virtual</label>
+            <input class="field-input" [(ngModel)]="nuevoEvento.link_virtual" name="link_virtual" placeholder="https://...">
+          </div>
+
+          <!-- Guardar -->
+          <div class="form-field form-field--full">
+            <button class="btn-guardar" type="button" (click)="guardarEvento()">
+              <mat-icon>save</mat-icon>
+              {{ eventoParaEditar ? 'Actualizar evento' : 'Guardar evento' }}
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
   </div>
 </div>
-
-</div>
-
-<div class="calendario-container">
-  <!-- Botón para mostrar el formulario -->
-  <div class="toolbar">
-    <button mat-raised-button color="accent" (click)="mostrarFormulario = !mostrarFormulario">
-      <mat-icon>{{ mostrarFormulario ? 'close' : 'add' }}</mat-icon>
-      {{ mostrarFormulario ? 'Cerrar formulario' : 'Agregar evento' }}
-    </button>
-  </div>
-
-    <div class="formulario-container" *ngIf="mostrarFormulario">
-  <mat-card class="calendar-card">
-    <mat-card-title>Cargar nuevo evento</mat-card-title>
-    <mat-card-content>
-      <form class="formulario-evento">       
-        <mat-form-field appearance="outline" style="color: white;">
-          <mat-label style="color: white;">Fecha del evento</mat-label>
-          <input matInput [matDatepicker]="picker" [(ngModel)]="nuevoEvento.fecha_evento" name="fecha_evento" style="color: white;">
-          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-        </mat-form-field>
-        
-        <mat-form-field appearance="outline" style="color: white;">
-          <mat-label style="color: white;">Hora</mat-label>
-          <input matInput type="time" [(ngModel)]="nuevoEvento.hora_evento" name="hora_evento" style="color: white;">
-        </mat-form-field>
-        
-        <mat-form-field appearance="outline" style="color: white;">
-          <mat-label style="color: white;">Tipo</mat-label>
-          <mat-select [(ngModel)]="nuevoEvento.tipo_evento" name="tipo_evento" style="color: white;"[disabled]="editando">
->
-            <mat-option value="Audiencia 360 virtual">Audiencia 360 virtual</mat-option>
-            <mat-option value="Audiencia 360 personal">Audiancia 360 personal</mat-option>
-            <mat-option value="Mediación">Mediación</mat-option>
-            <mat-option value="Otro">Otro</mat-option>
-
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field *ngIf="nuevoEvento.tipo_evento == 'Otro'" appearance="outline" style="color: white;">
-          <mat-label style="color: white;">Descripcion</mat-label>
-          <input matInput type="text" [(ngModel)]="nuevoEvento.descripcion" name="descripcion" style="color: white;">
-        </mat-form-field>
-
-        <!-- Campos adicionales si el tipo es Mediación -->
-        <!-- <div *ngIf="nuevoEvento.tipo_evento == 'Mediación'"> -->
-
-        <mat-form-field *ngIf="nuevoEvento.tipo_evento == 'Mediación'" appearance="outline">
-          <mat-label style="color: white;">Número de mediación</mat-label>
-          <input matInput [(ngModel)]="nuevaMediacion.numero" name="numero_mediacion" style="color: white;">
-        </mat-form-field>
-
-        <mat-form-field *ngIf="nuevoEvento.tipo_evento == 'Mediación'" appearance="outline">
-          <mat-label style="color: white;">Abogado</mat-label>
-          <mat-select [(ngModel)]="nuevaMediacion.abogado_id" name="abogado_id" style="color: white;">
-            <mat-option *ngFor="let abogado of listaAbogados" [value]="abogado.id">
-              {{ abogado.nombre }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-       <!--  <mat-form-field *ngIf="nuevoEvento.tipo_evento == 'Mediación' || nuevoEvento.tipo_evento == 'Audiencia 360 personal' || nuevoEvento.tipo_evento == 'Audiencia 360 virtual'" appearance="outline">
-          <mat-label style="color: white;">Cliente</mat-label>
-          <mat-select [(ngModel)]="nuevaMediacion.cliente_id" (optionSelected)="seleccionarCliente($event.option.value)" name="cliente_id" style="color: white;">
-            <mat-option *ngFor="let cliente of listaClientes" [value]="cliente.id">
-              {{ cliente.nombre }} {{ cliente.apellido }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field> -->
-
-
-
-<mat-form-field appearance="outline" class="full-width" *ngIf="nuevoEvento.tipo_evento == 'Mediación'">
-  <mat-label style="color: white;">Clientes</mat-label>
-  <input
-    matInput
-    [formControl]="clienteCtrl"
-    [matAutocomplete]="auto"
-    placeholder="Busca por nombre o apellido"
-    style="color: white;"
-  />
-  <mat-autocomplete
-    #auto="matAutocomplete"
-    [displayWith]="displayCliente"
-    (optionSelected)="seleccionarCliente($event.option.value)">
-    <mat-option *ngFor="let cliente of filteredClientes | async" [value]="cliente">
-      {{ cliente.nombre }} {{ cliente.apellido }}
-    </mat-option>
-  </mat-autocomplete>
-</mat-form-field>
-
-
-<div class="clientes-agregados" *ngIf="nuevoEvento.tipo_evento == 'Mediación'">
-  <h3 style="color:aliceblue">Clientes Agregados</h3>
-  <div *ngFor="let cliente of clientesAgregados" class="cliente-item">
-    {{ cliente.nombre }} {{ cliente.apellido }}
-    <button mat-icon-button color="warn" (click)="eliminarCliente(cliente)">
-      <mat-icon>delete</mat-icon>
-    </button>
-  </div>
-</div>
-
-
-    
-
-        
-
-        <mat-form-field *ngIf="nuevoEvento.tipo_evento == 'Mediación'" appearance="outline">
-          <mat-label style="color: white;">Demandado</mat-label>
-          <mat-select [(ngModel)]="nuevaMediacion.demandado_id" name="demandado_id" style="color: white;">
-            <mat-option *ngFor="let demandado of listaDemandados" [value]="demandado.id">
-              {{ demandado.nombre }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <mat-form-field *ngIf="nuevoEvento.tipo_evento == 'Mediación'" appearance="outline">
-          <mat-label style="color: white;">Mediadora</mat-label>
-          <input matInput [(ngModel)]="nuevaMediacion.mediadora" name="mediadora" style="color: white;">
-        </mat-form-field>
-
-  <!--      <mat-form-field *ngIf=" nuevoEvento.tipo_evento == 'Audiencia 360 personal'" appearance="outline">
-          <mat-label style="color: white;">Ubicación</mat-label>
-          <input matInput [(ngModel)]="nuevoEvento.ubicacion" name="ubicacion" style="color: white;">
-        </mat-form-field> -->
-
-<mat-form-field appearance="outline" *ngIf="nuevoEvento.tipo_evento === 'Audiencia 360 virtual' || nuevoEvento.tipo_evento === 'Audiencia 360 personal'">
-  <mat-label style="color: white;">Expediente</mat-label>
-  
-  <input
-    type="text"
-    matInput
-    [formControl]="expedienteCtrl"
-    [matAutocomplete]="autoExp"
-    placeholder="Buscar por número, año o cliente"
-    style="color: white;" />
-
-  <mat-autocomplete 
-    #autoExp="matAutocomplete" 
-    [displayWith]="displayExpediente"
-    (optionSelected)="seleccionarExpediente($event.option.value)">
-    
-    <mat-option *ngFor="let expediente of filteredExpedientes | async" [value]="expediente">
-      {{ expediente.numero }}/{{ expediente.anio }} {{expediente.caratula}}
-
-    </mat-option>
-  </mat-autocomplete>
-</mat-form-field>
-
-
-
-
-
-        <mat-form-field appearance="outline" *ngIf="nuevoEvento.tipo_evento === 'Audiencia 360 virtual'">
-        <mat-label style="color: white;">Link virtual (Zoom, Meet, etc.)</mat-label>
-        <input matInput [(ngModel)]="nuevoEvento.link_virtual" name="link_virtual" placeholder="https://..." style="color: white;" />
-        </mat-form-field>
-
-
-      <!--  </div> -->
-
-        <button mat-raised-button color="primary" (click)="guardarEvento()">Guardar evento</button>
-      </form>
-    </mat-card-content>
-  </mat-card>
-</div>
-
-  <!-- Formulario de carga -->

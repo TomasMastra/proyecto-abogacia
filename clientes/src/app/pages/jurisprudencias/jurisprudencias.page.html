@@ -1,74 +1,89 @@
-<div class="content mat-elevation-z8">
+<div class="page-wrapper">
 
-  <ion-list class="lista-clientes">
+  <div class="page-header">
+    <h1 class="page-title">Jurisprudencias</h1>
+  </div>
+
+  <div class="list-card">
 
     <div class="toolbar">
-      <input
-        placeholder="Buscar por numero/año"
-        class="input-busqueda"
-        [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()"
-      />
-
-      <button mat-button class="list-button" (click)="agregarJurisprudencias()">
-        <mat-icon style="color: #ffffff">add_location</mat-icon>
-        <span style="color: #ffffff">Agregar jurisprudencia</span>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff">download</mat-icon>
-      </button>
-
-      <button mat-button class="list-button" (click)="cargarJurisprudencias()">
-        <mat-icon style="color: #ffffff">more_vert</mat-icon>
-      </button>
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input class="search-input" placeholder="Buscar por número, año o demandado..."
+          [(ngModel)]="busqueda" (ngModelChange)="buscar()" />
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="agregarJurisprudencias()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar jurisprudencia</span>
+        </button>
+      </div>
     </div>
 
-    <div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Expediente / Carátula</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
 
-      <ng-container *ngIf="hayJurisprudencias && (jurisprudencias?.length ?? 0) > 0; else sinJuris">
-        <div
-          *ngFor="let j of jurisprudencias"
-          class="cliente-container"
-        >
-          <div class="cliente-header">
-            <h2>
-                {{
-                  (j.tipo_expediente?.toLowerCase() === 'propio')
-                    ? (j.caratula || 'Sin carátula')
-                    : ((j.numero && j.anio) ? (j.numero + '/' + j.anio) : 'Sin datos')
-                }}
-              </h2>            
-              
-              <div class="acciones">
-              <button
-                mat-icon-button
-                class="list-button"
-                (click)="eliminarJurisprudencia(j); $event.stopPropagation()"
-              >
-                <mat-icon style="color: #ffffff">delete</mat-icon>
-              </button>
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let j of listaPaginada">
+              <td class="td-caratula">
+                    <ng-container *ngIf="j.tipo_expediente?.toLowerCase() === 'propio'; else expedienteAjeno">
+                      {{ j.caratula ? j.caratula : 'Sin carátula' }}
+                    </ng-container>
 
-              <button
-                mat-icon-button
-                class="list-button"
-                (click)="modificarJurisprudencia(j); $event.stopPropagation()"
-              >
-                <mat-icon style="color: #ffffff">edit</mat-icon>
-              </button>
-            </div>
-          </div>
-        </div>
-      </ng-container>
-
-      <ng-template #sinJuris>
-        <ion-item class="cliente">
-          <ion-label class="ion-text-center">{{ texto }}</ion-label>
-        </ion-item>
-      </ng-template>
-
+                    <!-- Si NO es propio -->
+                    <ng-template #expedienteAjeno>
+                      {{
+                        j.numero && j.anio
+                          ? (j.numero + '/' + j.anio)
+                          : 'Sin datos'
+                      }}
+                    </ng-template>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar"
+                    (click)="modificarJurisprudencia(j); $event.stopPropagation()">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar"
+                    (click)="eliminarJurisprudencia(j, $event)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="5" class="empty-row">
+                <mat-icon>menu_book</mat-icon>
+                No se encontraron jurisprudencias
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
     </div>
 
-  </ion-list>
+    <mat-paginator
+      [length]="jurisprudencias.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
 
+  </div>
 </div>

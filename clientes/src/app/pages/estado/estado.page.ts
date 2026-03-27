@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators, ValidatorFn, AbstractControl, ValidationErrors  } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonImg, IonCard, IonCardContent, IonText, IonItem, IonItemOption, IonItemOptions, IonLabel, IonItemSliding, IonList, IonIcon, IonButton, IonButtons, IonInput } from '@ionic/angular/standalone';
 
-import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
@@ -36,6 +35,28 @@ import { Subject } from 'rxjs';
 
 import { UmaService } from 'src/app/services/uma.service';
 
+import {
+  ESTADOS_EXPEDIENTE,
+  ESTADOS_BLOQUEADOS,
+  COBRADO_BLOQUEADO
+} from 'src/app/config/estados-expediente.config';
+
+
+import {
+  ESTADOS_CAPITAL,
+  ESTADOS_CAPITAL_APELADO,
+  ESTADOS_CAPITAL_PENDIENTE,
+  ESTADOS_CAPITAL_FIRME
+} from 'src/app/config/estados-capital.config';
+
+import {
+  ESTADOS_HONORARIOS,
+  ESTADO_HONORARIO_DIFERIDO,
+  ESTADOS_HONORARIOS_APELADO,
+  ESTADOS_HONORARIOS_PENDIENTE,
+  ESTADOS_HONORARIOS_DIFERIDO,
+  ESTADOS_HONORARIOS_FIRME
+} from 'src/app/config/estados-honorario.config';
 
 @Component({
   selector: 'app-estado',
@@ -43,7 +64,7 @@ import { UmaService } from 'src/app/services/uma.service';
   styleUrls: ['./estado.page.scss'],
   standalone: true,
   imports: [FormsModule, IonItemSliding, IonList, IonContent, IonHeader, IonTitle, IonToolbar, IonInput, CommonModule, FormsModule,
-        MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
+        MatButtonModule, MatDatepickerModule, MatNativeDateModule,
         MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule,
         MatMenuModule, MatButtonModule, MatIconModule, MatSelectModule, ReactiveFormsModule,     
         MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatCheckboxModule
@@ -67,6 +88,7 @@ export class EstadoPage implements OnInit {
   tipoSeleccionado: any;
   juzgados: JuzgadoModel[] = [];
   juzgadoSeleccionado: any;
+/*
 estados: any[] = [
   'Sorteado',
   'Inicio - Previo',
@@ -133,7 +155,11 @@ estados: any[] = [
   'Sentencia',
   'Archivo',
   'Caducidad'
-];
+];*/
+
+  estados: string[] = ESTADOS_EXPEDIENTE.filter(
+    e => !COBRADO_BLOQUEADO.includes(e)
+  );
   estadoSeleccionado: any;
 
   honorarios: any[] = ['Regulacion 1º instancia', 'Difiere regulacion 1º instancia', 'Costas por su orden'];
@@ -159,6 +185,19 @@ estados: any[] = [
 
 ultimo_movimiento: string | null = null;
 fecha_atencion: string | null = null;
+
+// Estados honorario y capital
+estadosCapital = ESTADOS_CAPITAL;
+subEstadosCapitalApelado = ESTADOS_CAPITAL_APELADO;
+subEstadosCapitalPendiente = ESTADOS_CAPITAL_PENDIENTE;
+subEstadosCapitalFirme = ESTADOS_CAPITAL_FIRME;
+
+estadosHonorarios = ESTADOS_HONORARIOS;
+estadoHonorarioDiferido = ESTADO_HONORARIO_DIFERIDO;
+subEstadosHonorariosApelado = ESTADOS_HONORARIOS_APELADO;
+subEstadosHonorariosPendiente = ESTADOS_HONORARIOS_PENDIENTE;
+subEstadosHonorariosDiferido = ESTADOS_HONORARIOS_DIFERIDO;
+subEstadosHonorariosFirme = ESTADOS_HONORARIOS_FIRME;
 
 // Capital
 estadoCapitalSeleccionado: string | null = null;

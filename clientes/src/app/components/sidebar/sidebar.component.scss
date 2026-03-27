@@ -1,0 +1,346 @@
+// ============================================================
+// VARIABLES
+// ============================================================
+$sidebar-width:    240px;
+$topbar-height:    60px;
+
+$c-sidebar:        #0d1b2a;
+$c-sidebar-hover:  #1a2e45;
+$c-active:         #1e6fbe;
+$c-active-bg:      rgba(30, 111, 190, 0.14);
+$c-divider:        rgba(255, 255, 255, 0.07);
+$c-text-dim:       rgba(255, 255, 255, 0.42);
+$c-text:           rgba(255, 255, 255, 0.82);
+$c-white:          #ffffff;
+
+$ease:             cubic-bezier(0.4, 0, 0.2, 1);
+
+// ============================================================
+// OVERLAY — solo en móvil
+// ============================================================
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s $ease;
+
+  &.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  @media (max-width: 768px) {
+    display: block;
+  }
+}
+
+// ============================================================
+// SIDEBAR BASE — parte del layout en desktop
+// ============================================================
+.sidebar {
+  width: $sidebar-width;
+  min-width: $sidebar-width;
+  height: 100vh;
+  background: $c-sidebar;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+  z-index: 100;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
+
+  // Animación al mostrar/ocultar
+  transition: width 0.28s $ease,
+              min-width 0.28s $ease,
+              opacity 0.28s $ease;
+
+  // ── Colapsado: desaparece completamente ─────────────────
+  &.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  // ── Móvil: overlay por defecto ──────────────────────────
+  @media (max-width: 768px) {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: $sidebar-width !important;
+    min-width: $sidebar-width !important;
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(-100%);
+    transition: transform 0.28s $ease;
+    z-index: 200;
+
+    &.collapsed {
+      width: $sidebar-width !important;
+      min-width: $sidebar-width !important;
+      opacity: 1;
+      pointer-events: all;
+      transform: translateX(-100%);
+    }
+
+    &.mobile-open {
+      transform: translateX(0) !important;
+    }
+  }
+}
+
+// ============================================================
+// HEADER
+// ============================================================
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: $topbar-height;
+  min-height: $topbar-height;
+  flex-shrink: 0;
+  border-bottom: 1px solid $c-divider;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+
+  .logo-icon {
+    color: #4a9edd;
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    color: $c-white;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    white-space: nowrap;
+  }
+}
+
+.collapse-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $c-text-dim;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 6px;
+  transition: all 0.2s $ease;
+  flex-shrink: 0;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { background: $c-sidebar-hover; color: $c-white; }
+
+  // Ocultar en móvil (se usa hamburguesa)
+  @media (max-width: 768px) { display: none; }
+}
+
+// ============================================================
+// USUARIO
+// ============================================================
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  flex-shrink: 0;
+
+  .user-avatar mat-icon {
+    font-size: 34px;
+    width: 34px;
+    height: 34px;
+    color: $c-text-dim;
+    flex-shrink: 0;
+    display: block;
+  }
+
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .user-name {
+    color: $c-white;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-role {
+    color: $c-text-dim;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+}
+
+// ============================================================
+// DIVIDER
+// ============================================================
+.sidebar-divider {
+  height: 1px;
+  background: $c-divider;
+  margin: 4px 0;
+  flex-shrink: 0;
+}
+
+// ============================================================
+// NAVEGACIÓN
+// ============================================================
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
+
+  &::-webkit-scrollbar        { width: 4px; }
+  &::-webkit-scrollbar-track  { background: rgba(255,255,255,0.05); }
+  &::-webkit-scrollbar-thumb  { 
+    background: rgba(255,255,255,0.2); 
+    border-radius: 2px; 
+    &:hover { background: rgba(255,255,255,0.35); }
+  }
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0 16px;
+  height: 46px;
+  min-height: 46px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $c-text;
+  font-size: 13.5px;
+  font-weight: 400;
+  font-family: 'Poppins', sans-serif;
+  text-align: left;
+  transition: all 0.2s $ease;
+  position: relative;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    color: $c-text-dim;
+    transition: color 0.2s $ease;
+  }
+
+  .nav-label {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chevron {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: $c-text-dim;
+    margin-left: auto;
+  }
+
+  &:hover {
+    background: $c-sidebar-hover;
+    color: $c-white;
+    mat-icon { color: $c-white; }
+  }
+
+  &.active {
+    color: $c-white;
+    font-weight: 600;
+    background: $c-active-bg;
+
+    mat-icon { color: $c-active; }
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 7px;
+      bottom: 7px;
+      width: 3px;
+      background: $c-active;
+      border-radius: 0 3px 3px 0;
+    }
+  }
+
+  &.nav-logout {
+    color: rgba(224, 85, 85, 0.75);
+    mat-icon { color: rgba(224, 85, 85, 0.75); }
+
+    &:hover {
+      background: rgba(224, 85, 85, 0.12);
+      color: #e05555;
+      mat-icon { color: #e05555; }
+    }
+  }
+}
+
+.nav-submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s $ease;
+  &.open { max-height: 1200px; }
+}
+
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0 16px 0 46px;
+  height: 40px;
+  min-height: 40px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $c-text-dim;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  text-align: left;
+  transition: all 0.2s $ease;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; flex-shrink: 0; }
+  span { white-space: nowrap; }
+
+  &:hover { background: $c-sidebar-hover; color: $c-white; }
+  &.active { color: $c-active; font-weight: 500; background: $c-active-bg; }
+}
+
+.nav-group-trigger.group-open {
+  color: $c-white;
+  background: $c-sidebar-hover;
+  mat-icon { color: $c-white; }
+}
+
+// ============================================================
+// BOTTOM
+// ============================================================
+.sidebar-spacer { flex: 1; }
+.sidebar-bottom { padding: 6px 0 8px; flex-shrink: 0; }

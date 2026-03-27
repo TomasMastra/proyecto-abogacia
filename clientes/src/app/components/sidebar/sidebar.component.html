@@ -1,0 +1,178 @@
+<!-- Overlay para móvil -->
+<div class="sidebar-overlay" [class.visible]="mobileOpen" (click)="onOverlayClick()"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar"
+  [class.collapsed]="collapsed"
+  [class.mobile-open]="mobileOpen">
+
+  <!-- Header -->
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <mat-icon class="logo-icon">gavel</mat-icon>
+      <span class="logo-text">ABOGACÍA</span>
+    </div>
+    <button class="collapse-btn"
+      (click)="toggleCollapse()"
+      [matTooltip]="collapsed ? 'Expandir menú' : 'Colapsar menú'"
+      matTooltipPosition="right">
+      <mat-icon>{{ collapsed ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+    </button>
+  </div>
+
+  <!-- Usuario -->
+  <div class="sidebar-user">
+    <div class="user-avatar">
+      <mat-icon>account_circle</mat-icon>
+    </div>
+    <div class="user-info">
+      <span class="user-name">{{ nombreUsuario }}</span>
+      <span class="user-role">{{ esAdmin ? 'Administrador' : 'Usuario' }}</span>
+    </div>
+  </div>
+
+  <div class="sidebar-divider"></div>
+
+  <!-- Navegación -->
+  <nav class="sidebar-nav">
+
+    <!-- Inicio -->
+    <button class="nav-item"
+      [class.active]="isActive('home')"
+      (click)="goTo('home')"
+      [matTooltip]="collapsed ? 'Inicio' : ''"
+      matTooltipPosition="right">
+      <mat-icon>home</mat-icon>
+      <span class="nav-label">Inicio</span>
+    </button>
+
+    <!-- Clientes -->
+    <button class="nav-item"
+      *ngIf="esAdmin"
+      [class.active]="isActive('lista-clientes')"
+      (click)="goTo('lista-clientes')"
+      [matTooltip]="collapsed ? 'Clientes' : ''"
+      matTooltipPosition="right">
+      <mat-icon>people</mat-icon>
+      <span class="nav-label">Clientes</span>
+    </button>
+
+    <!-- Expedientes -->
+    <div class="nav-group">
+      <button class="nav-item nav-group-trigger"
+        [class.group-open]="groupOpen['expedientes']"
+        [class.active]="groupOpen['expedientes']"
+        (click)="toggleGroup('expedientes')"
+        [matTooltip]="collapsed ? 'Expedientes' : ''"
+        matTooltipPosition="right">
+        <mat-icon>folder_open</mat-icon>
+        <span class="nav-label">Expedientes</span>
+        <mat-icon class="chevron">
+          {{ groupOpen['expedientes'] ? 'expand_less' : 'expand_more' }}
+        </mat-icon>
+      </button>
+
+      <div class="nav-submenu" [class.open]="groupOpen['expedientes'] && !collapsed">
+        <button class="nav-subitem" [class.active]="isActive('lista-expedientes')" (click)="goTo('lista-expedientes')">
+          <mat-icon>gavel</mat-icon><span>Listado</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('estado')" (click)="goTo('estado')">
+          <mat-icon>flag</mat-icon><span>Estados</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('honorario-diferido')" (click)="goTo('honorario-diferido')">
+          <mat-icon>paid</mat-icon><span>Honorarios</span>
+        </button>
+        <button class="nav-subitem" [class.active]="isActive('consultas')" (click)="goTo('consultas')">
+          <mat-icon>search</mat-icon><span>Consultas expediente</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('consultas-oficio')" (click)="goTo('consultas-oficio')">
+          <mat-icon>find_in_page</mat-icon><span>Consultas pruebas</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('requeridos')" (click)="goTo('requeridos')">
+          <mat-icon>alarm</mat-icon><span>Requieren atención</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('oficio')" (click)="goTo('oficio')">
+          <mat-icon>description</mat-icon><span>Pruebas</span>
+        </button>
+        <button class="nav-subitem" [class.active]="isActive('cobranzas')" (click)="goTo('cobranzas')">
+          <mat-icon>attach_money</mat-icon><span>Cobranzas</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('datos-importantes')" (click)="goTo('datos-importantes')">
+          <mat-icon>info</mat-icon><span>Datos importantes</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('jurisprudencias')" (click)="goTo('jurisprudencias')">
+          <mat-icon>menu_book</mat-icon><span>Jurisprudencias</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('lista-mediaciones')" (click)="goTo('lista-mediaciones')">
+          <mat-icon>handshake</mat-icon><span>Mediaciones</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('informes-enre')" (click)="goTo('informes-enre')">
+          <mat-icon>assessment</mat-icon><span>Informes ENRE</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- General -->
+    <div class="nav-group" *ngIf="esAdmin">
+      <button class="nav-item nav-group-trigger"
+        [class.group-open]="groupOpen['general']"
+        [class.active]="groupOpen['general']"
+        (click)="toggleGroup('general')"
+        [matTooltip]="collapsed ? 'General' : ''"
+        matTooltipPosition="right">
+        <mat-icon>apps</mat-icon>
+        <span class="nav-label">General</span>
+        <mat-icon class="chevron">
+          {{ groupOpen['general'] ? 'expand_less' : 'expand_more' }}
+        </mat-icon>
+      </button>
+
+      <div class="nav-submenu" [class.open]="groupOpen['general'] && !collapsed">
+        <button class="nav-subitem" [class.active]="isActive('juzgados')" (click)="goTo('juzgados')">
+          <mat-icon>account_balance</mat-icon><span>Juzgados</span>
+        </button>
+        <button class="nav-subitem" [class.active]="isActive('localidades')" (click)="goTo('localidades')">
+          <mat-icon>location_on</mat-icon><span>Localidades</span>
+        </button>
+        <button class="nav-subitem" [class.active]="isActive('demandado')" (click)="goTo('demandado')">
+          <mat-icon>person_off</mat-icon><span>Demandados</span>
+        </button>
+        <button class="nav-subitem" [class.active]="isActive('jueces')" (click)="goTo('jueces')">
+          <mat-icon>balance</mat-icon><span>Jueces</span>
+        </button>
+        <button class="nav-subitem" [class.active]="isActive('codigos')" (click)="goTo('codigos')">
+          <mat-icon>tag</mat-icon><span>Códigos</span>
+        </button>
+        <button class="nav-subitem" [class.active]="isActive('graficos')" (click)="goTo('graficos')">
+          <mat-icon>insert_chart</mat-icon><span>Estadísticas</span>
+        </button>
+      </div>
+    </div>
+
+  </nav>
+
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-divider"></div>
+
+  <!-- Bottom -->
+  <div class="sidebar-bottom">
+    <button class="nav-item"
+      *ngIf="esAdmin"
+      [class.active]="isActive('control-anio-expedientes')"
+      (click)="goTo('control-anio-expedientes')"
+      [matTooltip]="collapsed ? 'Correcciones ENRE' : ''"
+      matTooltipPosition="right">
+      <mat-icon>settings</mat-icon>
+      <span class="nav-label">Correcciones ENRE</span>
+    </button>
+
+    <button class="nav-item nav-logout"
+      (click)="logout()"
+      [matTooltip]="collapsed ? 'Cerrar sesión' : ''"
+      matTooltipPosition="right">
+      <mat-icon>logout</mat-icon>
+      <span class="nav-label">Cerrar sesión</span>
+    </button>
+  </div>
+
+</aside>

@@ -27,16 +27,9 @@ export class LocalidadesService {
 
   constructor(private http: HttpClient) {}
 
+
   getLocalidades() {
-    this.http.get<LocalidadModel[]>(this.apiUrl).subscribe(
-      (localidad) => {
-        this.localidadesSubject.next(localidad); 
-      },
-      (error) => {
-        console.error('Error al obtener localidades:', error);
-      }
-    );
-    return this.localidades$;  
+    return this.http.get<LocalidadModel[]>(this.apiUrl);
   }
 
   getPartidos() {

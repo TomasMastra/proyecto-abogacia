@@ -21,15 +21,7 @@ export class DemandadosService {
   constructor(private http: HttpClient) {}
 
   getDemandados() {
-    this.http.get<DemandadoModel[]>(this.apiUrl).subscribe(
-      (demandados) => {
-        this.demandadosSubject.next(demandados); // Actualiza los datos emitidos por el BehaviorSubject
-      },
-      (error) => {
-        console.error('Error al obtener demandados:', error);
-      }
-    );
-    return this.demandados$;  // Devuelve el observable para que el componente se suscriba
+    return this.http.get<DemandadoModel[]>(this.apiUrl);
   }
 
     getOficiados() {

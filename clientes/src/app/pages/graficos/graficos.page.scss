@@ -1,68 +1,156 @@
-ion-content {
-  --background: #1976d2;
-  color: #fff;
-  padding: 1rem;
+$c-white:    #ffffff;
+$c-bg:       #f0f2f7;
+$c-text:     #1e293b;
+$c-muted:    #64748b;
+$c-border:   #e2e8f0;
+$c-blue:     #1e40af;
+$c-blue-mid: #1e6fbe;
+$ease:       cubic-bezier(0.4, 0, 0.2, 1);
+
+.page-wrapper {
+  font-family: 'Poppins', sans-serif;
+  color: $c-text;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: $c-text;
+  margin: 0;
+}
+
+// ── Controles ────────────────────────────────────────────────
+.controls-card {
+  background: $c-white;
+  border: 1px solid $c-border;
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.control-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  font-family: 'Poppins', sans-serif; 
-
+  gap: 6px;
+  min-width: 220px;
 }
 
-ion-toolbar {
-  --background: #1976d2;
-  color: #fff;
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: bold;
+.control-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: $c-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
-.titulo-centrado {
-  width: 100%;
-  text-align: center;
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: white;
-  font-weight: bold;
-}
-
-.selector-container {
+.select-wrap {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  width: 100%;
+
+  .select-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    color: $c-muted;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .select-arrow {
+    position: absolute;
+    right: 10px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: $c-muted;
+    pointer-events: none;
+  }
 }
 
-select {
-  background-color: #1e1e1e;
-  color: #fff;
-  border: 1px solid #3f51b5;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 1rem;
-  outline: none;
+.custom-select {
   width: 100%;
-  max-width: 300px;
-}
-
-.chart-container {
-  display: flex;
-  justify-content: center; 
-  width: 100%;
-}
-
-.chart-container > app-chart-cobranzas {
-  width: 100%;
-  max-width: 1000px;
-  background-color: #fff;
+  height: 42px;
+  padding: 0 38px 0 38px;
+  background: $c-bg;
+  border: 1.5px solid $c-border;
   border-radius: 10px;
-  padding: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  color: $c-text;
+  appearance: none;
+  cursor: pointer;
+  transition: all 0.2s $ease;
+  outline: none;
+
+  &:focus {
+    border-color: $c-blue-mid;
+    background: $c-white;
+    box-shadow: 0 0 0 3px rgba(30, 111, 190, 0.08);
+  }
 }
 
-canvas {
-  width: 100% !important;
-  height: auto !important;
+// ── Empty state ───────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: $c-muted;
+  background: $c-white;
+  border: 1px solid $c-border;
+  border-radius: 14px;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    opacity: 0.35;
+  }
+
+  p {
+    font-size: 14px;
+    margin: 0;
+  }
+}
+
+// ── Chart card ────────────────────────────────────────────────
+.chart-card {
+  background: $c-white;
+  border: 1px solid $c-border;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.chart-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid $c-border;
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $c-text;
+  margin: 0;
+}
+
+.chart-body {
+  padding: 24px;
+
+  canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
 }

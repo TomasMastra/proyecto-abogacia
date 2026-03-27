@@ -25,7 +25,7 @@ export class JuzgadosService {
   juzgados$ = this.juzgadosSubject.asObservable();  
 
   constructor(private http: HttpClient) {}
-
+/*
   getJuzgados() {
     this.http.get<JuzgadoModel[]>(this.apiUrl).subscribe(
       (juzgado) => {
@@ -36,7 +36,11 @@ export class JuzgadosService {
       }
     );
     return this.juzgados$;  
-  }
+  }*/
+
+    getJuzgados() {
+      return this.http.get<JuzgadoModel[]>(this.apiUrl);
+    }
 
   getJuzgadosPorTipo(tipo: string) { 
     const params = { tipo }; 

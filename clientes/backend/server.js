@@ -417,7 +417,7 @@ app.get("/expedientes/mediaciones", async (req, res) => {
         AND LOWER(e.tipo_registro) = 'mediacion'
         AND LOWER(e.estado) NOT IN ('cerrado con acuerdo', 'cobrado')
         ${filtroUsuario}
-      ORDER BY e.id DESC;
+      ORDER BY e.fecha_inicio ASC;
     `;
 
     const result = await pgPool.query(query, params);
@@ -4481,7 +4481,7 @@ app.get("/expedientes/sentencias-emitidas", async (req, res) => {
       `
       SELECT COUNT(*)::int AS cantidad
       FROM public.expedientes
-      WHERE estado = 'sentencia'
+      WHERE estado = 'Sentencia'
         AND usuario_id = $1
       `,
       [usuarioId]

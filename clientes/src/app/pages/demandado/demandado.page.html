@@ -1,65 +1,81 @@
-<div class="content mat-elevation-z8">
-  <ion-list class="lista-clientes">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Demandados</h1>
+  </div>
+
+  <div class="list-card">
 
     <div class="toolbar">
-      <input
-        placeholder="Buscar por nombre"
-        class="input-busqueda"
-        [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()"
-      >
-
-      <button mat-button class="list-button" (click)="agregarDemandado()">
-        <mat-icon style="color:#ffffff">backup_table</mat-icon>
-        <span style="color:#ffffff">Agregar demandado</span>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color:#ffffff">download</mat-icon>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color:#ffffff">more_vert</mat-icon>
-      </button>
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input class="search-input" placeholder="Buscar por nombre..."
+          [(ngModel)]="busqueda" (ngModelChange)="buscar()" />
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="agregarDemandado()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar demandado</span>
+        </button>
+      </div>
     </div>
 
-    <div>
-      <ion-item-sliding *ngFor="let demandado of demandados" class="cliente">
-        <ion-item class="cliente" *ngIf="hayDemandados && demandados.length > 0">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Dirección</th>
+            <th>Oficiado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-md"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
 
-          <!-- CONTENEDOR FLEX -->
-          <div style="width:100%; display:flex; justify-content:space-between; align-items:center">
-            <h1 style="margin:0">
-              {{ demandado.nombre }}
-            </h1>
-
-            <!-- ACCIONES -->
-            <div style="display:flex; gap:8px">
-              <button
-                mat-button
-                class="list-button"
-                (click)="eliminarDemandado(demandado)"
-              >
-                <mat-icon style="color:#ffffff">delete</mat-icon>
-              </button>
-
-              <button
-                mat-button
-                class="list-button"
-                (click)="modificarDemandado(demandado)"
-              >
-                <mat-icon style="color:#ffffff">edit</mat-icon>
-              </button>
-            </div>
-          </div>
-
-        </ion-item>
-      </ion-item-sliding>
-
-      <ion-item *ngIf="!hayDemandados && demandados.length <= 0" class="cliente">
-        <ion-label text-center>{{ texto }}</ion-label>
-      </ion-item>
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let demandado of listaPaginada">
+              <td class="td-nombre">{{ demandado.nombre }}</td>
+              <td class="td-muted">{{ demandado.direccion || '—' }}</td>
+              <td>
+                <span class="badge-oficio" *ngIf="demandado.esOficio">Sí</span>
+                <span class="td-muted" *ngIf="!demandado.esOficio">No</span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar" (click)="modificarDemandado(demandado)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar" (click)="eliminarDemandado(demandado)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="4" class="empty-row">
+                <mat-icon>person_off</mat-icon>
+                No se encontraron demandados
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
     </div>
 
-  </ion-list>
+    <mat-paginator
+      [length]="demandados.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
 </div>

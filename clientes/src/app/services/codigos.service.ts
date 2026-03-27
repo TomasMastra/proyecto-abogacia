@@ -24,34 +24,14 @@ export class CodigosService {
   constructor(private http: HttpClient) {}
 
   /** GET con soporte de búsqueda/paginación del backend */
-  getCodigos(params?: { q?: string; tipo?: string; page?: number; pageSize?: number; }): Observable<CodigoModel[]> {
-    const query = new URLSearchParams();
-    if (params?.q) query.set('q', params.q);
-    if (params?.tipo) query.set('tipo', params.tipo);
-    if (params?.page) query.set('page', String(params.page));
-    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
 
-    const url = query.toString() ? `${this.apiUrl}?${query.toString()}` : this.apiUrl;
-
-    return this.http.get<any>(url, this.httpOptions).pipe(
-      map((res) => {
-        // Si el backend devuelve {rows: [...]}, uso rows.
-        // Si por algún motivo devuelve un array directo, lo uso tal cual.
-        const rows = Array.isArray(res) ? res : (res?.rows ?? []);
-        return rows as CodigoModel[];
-      }),
-      tap(rows => this.codigosSubject.next(rows)),
-      catchError(this.handleError)
-    );
+  getCodigos() {
+    return this.http.get<CodigoModel[]>(this.apiUrl);
   }
 
   /** POST: crear */
   addCodigo(codigo: CodigoModel): Observable<CodigoModel> {
     return this.http.post<CodigoModel>(this.apiUrl, codigo, this.httpOptions).pipe(
-      tap(() => {
-        // refresco liviano: vuelvo a pedir la lista
-        this.getCodigos().subscribe();
-      }),
       catchError(this.handleError)
     );
   }

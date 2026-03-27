@@ -1,261 +1,409 @@
-.calendario-avanzado {
-  padding: 10%;
-  font-family: 'Poppins', sans-serif; 
+$c-white:    #ffffff;
+$c-bg:       #f0f2f7;
+$c-text:     #1e293b;
+$c-muted:    #64748b;
+$c-border:   #e2e8f0;
+$c-blue:     #1e40af;
+$c-blue-mid: #1e6fbe;
+$ease:       cubic-bezier(0.4, 0, 0.2, 1);
 
-  .encabezado {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    gap: 1rem;
-    margin-bottom: 10px;
-  }
+// ── Page ──────────────────────────────────────────────────────
+.page-wrapper { font-family: 'Poppins', sans-serif; color: $c-text; }
+.page-header  { margin-bottom: 20px; }
+.page-title   { font-size: 1.6rem; font-weight: 700; color: $c-text; margin: 0; }
 
-  .dias-semana, .dias-mes {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    color: white;
-  }
-
-  .dia-semana {
-    text-align: center;
-    font-weight: bold;
-    color: #b0d0ff;
-  }
-
-  .dia {
-    height: 40px;
-    text-align: center;
-    padding: 5px;
-    background-color: #0e3d75;
-    border-radius: 5px;
-    color: white;
-  }
-
-  .dia.evento {
-    background-color: #2e8ef7; // Color de evento
-    font-weight: bold;
-  }
-}
-
-.evento-seleccionado {
-  width: 80%;
-  background: rgba(255, 255, 255, 0.5);
-  border: none;
-  font-size: 14px;
-  padding: 4px 8px;
-  margin-top: 5px;
-  border-radius: 6px;
-  text-align: center;
-
-&.mediacion {
-  color: #ffffff;
-  background: rgb(47, 0, 255);
-}
-
-&.audienciaVirtual {
-  color: #ffffff;
-  background: rgba(76, 175, 80);
-}
-
-&.audienciaPersonal {
-  color: #ffffff;
-  background: rgb(151, 41, 33);
-}
-
-&.notificacion {
-  color: #ffffff;
-  background: rgba(156, 39, 176);
-}
-
-&.vencimiento {
-  color: #ffffff;
-  background: rgba(33, 150, 243);
-}
-
-&.otro {
-  color: #ffffff;
-  background: rgb(0, 56, 9);
-}
-
-}
-
-
-.evento-item-horario {
+// ── Layout 2 columnas ─────────────────────────────────────────
+.cal-layout {
   display: flex;
-  gap: 1rem;               // 🔹 Espacio entre hora y contenido
-  background: rgba(255, 255, 255, 0.05);
-  padding: 8px 12px;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.cal-col {
+  flex: 1;
+  min-width: 280px;
+  max-width: 400px;
+
+  &--right {
+    flex: 1.4;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+// ── Card del calendario ───────────────────────────────────────
+.cal-card {
+  background: $c-white;
+  border-radius: 14px;
+  border: 1px solid $c-border;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+// ── Header mes ────────────────────────────────────────────────
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid $c-border;
+}
+
+.cal-mes-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: $c-text;
+}
+
+.cal-nav-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 32px; height: 32px;
   border-radius: 8px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: white;
+  display: flex; align-items: center; justify-content: center;
+  color: $c-muted;
+  transition: all 0.15s $ease;
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  &:hover { background: $c-bg; color: $c-text; }
 }
 
-.hora-evento {
-  font-weight: bold;
-  color: #ffffff;
-  min-width: 60px;
-  text-align: right;
-  padding-top: 2px; // 🔹 opcional si querés bajarlo un pelín
+// ── Grid del calendario ───────────────────────────────────────
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 10px;
+
+  &--header { padding-bottom: 4px; }
 }
 
-.detalle-evento {
+.cal-dow {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: $c-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 4px 0;
+}
+
+.cal-dia {
+  position: relative;
+  aspect-ratio: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: $c-text;
+  cursor: pointer;
+  transition: all 0.15s $ease;
+  background: transparent;
+
+  &:hover:not(.cal-dia--vacio) { background: $c-bg; }
+
+  &--vacio { pointer-events: none; }
+
+  &--hoy {
+    background: $c-blue;
+    color: $c-white;
+    font-weight: 700;
+    &:hover { background: darken($c-blue, 6%); }
+  }
+
+  &--evento:not(.cal-dia--hoy) {
+    background: #eff6ff;
+    color: $c-blue;
+    font-weight: 700;
+    &:hover { background: #dbeafe; }
+  }
 }
 
+.cal-dot {
+  position: absolute;
+  bottom: 3px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: $c-blue-mid;
 
-.titulo-evento {
+  .cal-dia--hoy & { background: $c-white; }
+}
+
+// ── Leyenda ───────────────────────────────────────────────────
+.cal-leyenda {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  padding: 0 4px;
+}
+
+.leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: $c-muted;
+}
+
+.dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+
+  &--evento { background: #eff6ff; border: 2px solid $c-blue-mid; }
+  &--hoy    { background: $c-blue; }
+}
+
+// ── Eventos del día ───────────────────────────────────────────
+.eventos-card {
+  background: $c-white;
+  border-radius: 14px;
+  border: 1px solid $c-border;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.eventos-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid $c-border;
+  font-size: 13px;
+  font-weight: 600;
+  color: $c-text;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: $c-blue-mid; }
+}
+
+.evento-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid $c-border;
+  cursor: pointer;
+  transition: background 0.15s $ease;
+  border-left: 3px solid transparent;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f8fafc; }
+
+  // Colores por tipo
+  &--mediacion         { border-left-color: #7c3aed; }
+  &--audienciaVirtual  { border-left-color: #0891b2; }
+  &--audienciaPersonal { border-left-color: #059669; }
+  &--notificacion      { border-left-color: #d97706; }
+  &--sentencia         { border-left-color: $c-blue; }
+  &--otro              { border-left-color: $c-muted; }
+}
+
+.evento-hora {
+  font-size: 12px;
+  font-weight: 700;
+  color: $c-muted;
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.evento-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.evento-tipo {
+  font-size: 13px;
+  font-weight: 600;
+  color: $c-text;
+}
+
+.evento-desc {
+  font-size: 12px;
+  color: $c-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.evento-arrow {
+  font-size: 18px; width: 18px; height: 18px;
+  color: $c-muted; flex-shrink: 0;
+}
+
+.empty-eventos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 20px;
+  color: $c-muted;
+  background: $c-white;
+  border-radius: 14px;
+  border: 1px solid $c-border;
+
+  mat-icon { font-size: 32px; width: 32px; height: 32px; opacity: 0.35; }
+  p { font-size: 13.5px; margin: 0; }
+}
+
+// ── Botón agregar ─────────────────────────────────────────────
+.btn-agregar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: $c-blue;
+  color: $c-white;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all 0.18s $ease;
+
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { background: darken($c-blue, 6%); box-shadow: 0 4px 12px rgba(30,64,175,0.3); }
+}
+
+// ── Formulario ────────────────────────────────────────────────
+.form-card {
+  background: $c-white;
+  border-radius: 14px;
+  border: 1px solid $c-border;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+.form-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: $c-text;
+  margin: 0 0 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &--full { grid-column: 1 / -1; }
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: $c-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.field-input {
+  height: 44px;
+  padding: 0 14px;
+  background: $c-bg;
+  border: 1.5px solid $c-border;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: 'Poppins', sans-serif;
+  color: $c-text;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s $ease;
+  &::placeholder { color: #94a3b8; }
+  &:focus { border-color: $c-blue-mid; background: $c-white; box-shadow: 0 0 0 3px rgba(30,111,190,0.08); }
+}
+
+.mat-field {
+  width: 100%;
+
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper { background: $c-bg !important; border-radius: 10px; }
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing { border-color: $c-border !important; }
+    .mat-mdc-select-value,
+    .mat-mdc-input-element,
+    .mdc-floating-label { color: $c-text !important; font-family: 'Poppins', sans-serif; font-size: 13.5px; }
+    .mdc-floating-label { color: $c-muted !important; }
+  }
+}
+
+// ── Chips clientes ────────────────────────────────────────────
+.clientes-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cliente-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12.5px;
+  color: $c-blue;
   font-weight: 500;
 }
 
-.rango-horario {
-  font-size: 12px;
-  color: #ccc;
-  display: flex;
-  align-items: flex-start;
-
-}
-
-.flex {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 12px;
-}
-
-
-
-.linea-vertical {
-  width: 3px;
-  height: 40px;
-  background-color: rgba(255, 255, 255, 0.3); // o el color que prefieras
-  margin: 0 8px;
-}
-
-.calendario-container {
-  padding: 32px 40px 24px 280px; // margen izquierdo mayor para separarse del sidenav
-  color: white;
-  background-color: #1976d2; // fondo para separar visualmente del lateral
-  min-height: 100vh; // asegura el alto total
-}
-
-.titulo {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 24px;
+.chip-remove {
+  background: transparent;
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
+  padding: 0;
+  color: #93c5fd;
+  transition: color 0.15s $ease;
+
+  mat-icon { font-size: 14px; width: 14px; height: 14px; }
+  &:hover { color: #1e40af; }
 }
 
-.titulo-icono {
-  font-size: 2rem;
-  color: #ffeb3b;
-}
-
-
-.toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 20px;
-}
-
-.calendar-card {
-  margin-bottom: 20px;
-  background-color: #002b5c;
-  color: white;
-}
-
-.formulario-evento {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.eventos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.evento-card {
-  background-color: #004a9f;
-  color: white;
-  width: 300px;
-}
-
-.formulario-container {
-  display: flex;
-  justify-content: center;
-  //margin-bottom: 32px;
-}
-
-.calendar-card {
-  background-color: #002b5c;
-  color: white;
-  width: 500%;
-  padding: 20px;
+// ── Botón guardar ─────────────────────────────────────────────
+.btn-guardar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: $c-blue;
+  color: $c-white;
+  border: none;
   border-radius: 10px;
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
-}
-
-/* Cambios */
-
-.dia-container {
-  position: relative;
-  text-align: center;
-}
-
-.indicadores-evento {
-  display: flex;
-  justify-content: center;
-  gap: 2px;
-  margin-top: 2px;
-}
-
-.indicador {
-  width: 25%;
-  height: 3px;
-  border-radius: 10%;
-}
-
-.indicador.mediacion {
-  background-color: #ff9800;
-}
-.indicador.audienciaVirtual {
-  background-color: #4caf50;
-}
-.indicador.audienciaPersonal {
-  background-color: #9c27b0;
-}
-.indicador.otro {
-  background-color: #ffffff;
-}
-
-
-// Para los días del calendario (ya tengan evento o no)
-.dias-mes .dia {
+  padding: 11px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
   cursor: pointer;
+  transition: all 0.18s $ease;
+  margin-top: 4px;
 
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.4); // efecto visual suave al pasar
-  }
+  mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { background: darken($c-blue, 6%); box-shadow: 0 4px 12px rgba(30,64,175,0.3); }
 }
 
-// Para los eventos listados debajo del calendario
-.evento-item-horario {
-  cursor: pointer;
+// ── Responsive ────────────────────────────────────────────────
+@media (max-width: 768px) {
+  .cal-layout { flex-direction: column; }
+  .cal-col { max-width: 100%; }
 }
-
-
-
-
-
-
-
-

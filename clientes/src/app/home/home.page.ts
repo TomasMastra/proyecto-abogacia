@@ -1,64 +1,67 @@
-import { Component } from '@angular/core';
-import { IonHeader, IonToolbar, IonTitle, IonContent } from '@ionic/angular/standalone';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatDialog } from '@angular/material/dialog';
-import { MatSelectModule } from '@angular/material/select';
-import { MatCardModule } from '@angular/material/card';
-import { Router } from '@angular/router';
-import { UmaService } from 'src/app/services/uma.service';
-import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
-import { ExpedientesService } from 'src/app/services/expedientes.service';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { forkJoin } from 'rxjs';
+
+import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { UsuarioService } from '../services/usuario.service';
 
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, CommonModule, 
-          MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
-          MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule,
-          MatMenuModule, MatButtonModule, MatIconModule, MatSelectModule,     
-          MatFormFieldModule, MatInputModule, MatCardModule],
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatIconModule,
+    MatButtonModule,
+    MatCardModule,
+  ],
 })
-export class HomePage {
-  
+export class HomePage implements OnInit {
+
   expedientesActivos: number = 0;
   clientesRegistrados: number = 0;
   sentenciasEmitidas: number = 0;
   honorariosPendientes: number = 0;
+  cargando: boolean = true;
+  hoy: Date = new Date();
 
-  constructor(private router: Router, private umaService: UmaService, 
-    private expedienteService: ExpedientesService, public usuarioService: UsuarioService
+  constructor(
+    private router: Router,
+    private expedienteService: ExpedientesService,
+    public usuarioService: UsuarioService,
   ) {}
 
-  goTo(path: string) {
-    this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
-      this.router.navigate([path]); // Esto forzará la recarga del componente
+  ngOnInit(): void {
+    // Cargar todo junto y apagar el skeleton cuando terminen todos
+    forkJoin({
+      activos:    this.expedienteService.obtenerCantidadExpedientesActivos(),
+      clientes:   this.expedienteService.obtenerCantidadClientesRegistrados(),
+      sentencias: this.expedienteService.obtenerCantidadSentenciasEmitidas(),
+      honorarios: this.expedienteService.obtenerCantidadHonorariosPendientes(),
+    }).subscribe({
+      next: (data) => {
+        this.expedientesActivos   = data.activos;
+        this.clientesRegistrados  = data.clientes;
+        this.sentenciasEmitidas   = data.sentencias;
+        this.honorariosPendientes = data.honorarios;
+        this.cargando = false;
+      },
+      error: () => {
+        this.cargando = false;
+      }
     });
   }
 
-  ngOnInit() {
-  this.expedienteService.obtenerCantidadExpedientesActivos().subscribe(d => this.expedientesActivos = d);
-  this.expedienteService.obtenerCantidadClientesRegistrados().subscribe(d => this.clientesRegistrados = d);
-  this.expedienteService.obtenerCantidadSentenciasEmitidas().subscribe(d => this.sentenciasEmitidas = d);
-  this.expedienteService.obtenerCantidadHonorariosPendientes().subscribe(d => this.honorariosPendientes = d);
-}
-
-  verificarRol(): boolean{
-    if(this.usuarioService.usuarioLogeado!.rol == 'admin'){
-      return true;
-    }
-    return false;   
+  goTo(path: string): void {
+    this.router.navigate([path], { replaceUrl: true });
   }
 
+  verificarRol(): boolean {
+    return this.usuarioService.usuarioLogeado?.rol === 'admin';
+  }
 }

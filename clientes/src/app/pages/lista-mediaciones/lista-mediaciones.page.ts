@@ -1,385 +1,209 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, takeUntil } from 'rxjs';
 
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatSelectModule } from '@angular/material/select';
-import { MatOptionModule } from '@angular/material/core';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
-import { IonList, IonItemSliding, IonLabel, IonItem, IonInput, IonHeader, IonToolbar } from "@ionic/angular/standalone";
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 
 import { JuzgadosService } from 'src/app/services/juzgados.service';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { UsuarioService } from 'src/app/services/usuario.service';
-
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import Swal from 'sweetalert2'
-import { DialogExpedienteComponent } from '../../components/dialog-expediente/dialog-expediente.component'; 
-import { DialogExpedienteModificarComponent } from '../../components/dialog-expediente-modificar/dialog-expediente-modificar.component'; 
-import { DialogTipoAltaComponent, AltaMode } from '../../components/dialog-tipo-alta/dialog-tipo-alta.component';
+
+import { DialogExpedienteComponent } from '../../components/dialog-expediente/dialog-expediente.component';
+import { DialogExpedienteModificarComponent } from '../../components/dialog-expediente-modificar/dialog-expediente-modificar.component';
+import { DialogTipoAltaComponent } from '../../components/dialog-tipo-alta/dialog-tipo-alta.component';
+
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-lista-mediaciones',
   templateUrl: './lista-mediaciones.page.html',
   styleUrls: ['./lista-mediaciones.page.scss'],
   standalone: true,
-  imports: [IonToolbar, IonHeader, 
-    IonInput, IonItem, IonLabel, IonItemSliding, IonList,
+  imports: [
     CommonModule, FormsModule,
-    MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
-    MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule,
-    MatMenuModule, MatProgressSpinnerModule, MatSelectModule, MatOptionModule, MatDialogModule,
-    DialogTipoAltaComponent, 
-    DialogExpedienteComponent,
-    DialogExpedienteModificarComponent
-  ]
+    MatIconModule, MatPaginatorModule, MatTooltipModule, MatDialogModule,
+    DialogTipoAltaComponent, DialogExpedienteComponent, DialogExpedienteModificarComponent,
+  ],
 })
 export class ListaMediacionesPage implements OnInit, OnDestroy {
 
-  cargando: boolean = false;
   mediaciones: any[] = [];
   mediacionesOriginales: any[] = [];
-  hayMediaciones: boolean = true;
+  listaPaginada: any[] = [];
 
-  private destroy$ = new Subject<void>();
+  cargando = true;
+  busqueda = '';
 
-  busqueda: string = '';
-
-  ordenCampo: string = '';
-  ordenAscendente: boolean = true;
+  ordenCampo = '';
+  ordenAscendente = true;
 
   listaUsuarios: UsuarioModel[] = [];
   listaJuzgados: any[] = [];
 
-  tiposJuzgado: string[] = ['CCF', 'COM', 'CIV', 'CC'];
-  tipoSeleccionado: string = '';
-  juzgadoSeleccionado: string = '';
+  tiposJuzgado = ['CCF', 'COM', 'CIV', 'CC'];
+  tipoSeleccionado = '';
+  juzgadoSeleccionado = '';
+  abogadoSeleccionado = '';
+  procuradorSeleccionado = '';
+  estadoSeleccionado = '';
+  estadosMediacion = ['Pendiente', 'Continua', 'Cerrado sin acuerdo', 'Cerrado sin acuerdo - acta pendiente', 'Cerrado sin acuerdo - acta firmada'];
 
-  abogadoSeleccionado: string = '';
-  procuradorSeleccionado: string = '';
+  pageSize = 20;
+  pageIndex = 0;
+  skeletonRows = Array(this.pageSize).fill(0);
 
-  estadosMediacion: string[] = [
-    'Pendiente',
-    'Continua',
-    'Cerrado sin acuerdo'
-  ];
-  estadoSeleccionado: string = '';
+  private destroy$ = new Subject<void>();
 
   constructor(
     private expedienteService: ExpedientesService,
     private juzgadoService: JuzgadosService,
     private usuarioService: UsuarioService,
     private router: Router,
-    private dialog: MatDialog // <-- Faltaba inyectar esto
+    private dialog: MatDialog,
+    private cdr: ChangeDetectorRef,
   ) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.cargarUsuarios();
     this.cargarMediaciones();
-
-    this.juzgadoService.getJuzgados()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(juzgados => {
-        this.listaJuzgados = juzgados || [];
-      });
+    this.juzgadoService.getJuzgados().pipe(takeUntil(this.destroy$))
+      .subscribe(j => this.listaJuzgados = j || []);
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  goTo(ruta: string) {
-    this.router.navigate([ruta]);
+  cargarUsuarios(): void {
+    this.usuarioService.getUsuarios().pipe(takeUntil(this.destroy$))
+      .subscribe({ next: (u) => this.listaUsuarios = u || [], error: (e) => console.error(e) });
   }
 
-  cargarUsuarios() {
-    this.usuarioService.getUsuarios()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (usuarios) => {
-          this.listaUsuarios = usuarios || [];
-        },
-        error: (error) => {
-          console.error('Error al obtener usuarios:', error);
-        }
-      });
-  }
-
-  cargarMediaciones() {
+  cargarMediaciones(): void {
     this.cargando = true;
+    this.cdr.detectChanges();
 
-    this.expedienteService.getMediaciones()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (expedientes) => {
-          this.mediaciones = expedientes || [];
-          this.mediacionesOriginales = [...(expedientes || [])];
-          this.hayMediaciones = this.mediaciones.length > 0;
-          this.cargando = false;
-        },
-        error: (error) => {
-          console.error('Error al obtener mediaciones:', error);
-          this.cargando = false;
-        }
-      });
-  }
-
-  getNombreAbogado(usuario_id: any): string {
-    if (usuario_id === null || usuario_id === undefined || usuario_id === '' || +usuario_id === 0) {
-      return 'Sin abogado';
-    }
-
-    const id = +usuario_id;
-    const abogado = this.listaUsuarios.find(u => +u.id === id);
-    return abogado ? `${abogado.nombre}` : 'Sin abogado';
-  }
-
-  getNombreProcurador(usuario_id: any): string {
-    if (usuario_id === null || usuario_id === undefined || usuario_id === '' || +usuario_id === 0) {
-      return 'Sin procurador';
-    }
-
-    const id = +usuario_id;
-    const procurador = this.listaUsuarios.find(u => +u.id === id);
-    return procurador ? `${procurador.nombre}` : 'Sin procurador';
-  }
-
-  ordenarPor(campo: string) {
-    if (this.ordenCampo === campo) {
-      this.ordenAscendente = !this.ordenAscendente;
-    } else {
-      this.ordenCampo = campo;
-      this.ordenAscendente = true;
-    }
-  }
-
-  obtenerValorOrden(item: any, campo: string): any {
-    switch (campo) {
-      case 'numero':
-        return `${item.numero || ''}/${item.anio || ''}`;
-
-      case 'caratula':
-        return (item.caratula || '').toLowerCase();
-
-      case 'estado':
-        return (item.estado || '').toLowerCase();
-
-      case 'abogado': {
-        const abogado = this.listaUsuarios.find(u => u.id === item.usuario_id);
-        return abogado ? abogado.nombre.toLowerCase() : 'sin abogado';
-      }
-
-      case 'procurador': {
-        const procurador = this.listaUsuarios.find(u => u.id === item.procurador_id);
-        return procurador ? procurador.nombre.toLowerCase() : 'sin procurador';
-      }
-
-      default:
-        return '';
-    }
-  }
-
-abrirDialog(): void {
-  const dialogRef = this.dialog.open(DialogExpedienteComponent, {
-    width: '900px',
-    disableClose: true,
-    data: {
-      mode: 'mediacion',
-      tipo_registro: 'mediacion'
-    }
-  });
-
-  dialogRef.afterClosed().subscribe((payload: any) => {
-    if (!payload) return;
-
-    this.expedienteService.addExpediente(payload).subscribe({
-      next: () => {
-        Swal.fire({
-          toast: true,
-          position: 'top-end',
-          icon: 'success',
-          title: 'Mediación cargada',
-          showConfirmButton: false,
-          timer: 2000
-        });
-
-        this.cargarMediaciones();
+    this.expedienteService.getMediaciones().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (expedientes) => {
+        this.mediaciones = expedientes || [];
+        this.mediacionesOriginales = [...this.mediaciones];
+        this.pageIndex = 0;
+        this.actualizarPagina();
+        this.cargando = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al guardar',
-          text: err?.error?.message || 'Revisá los datos'
-        });
+        console.error('Error al obtener mediaciones:', err);
+        this.cargando = false;
+        this.cdr.detectChanges();
       }
     });
-  });
-}
+  }
 
-  filtrar() {
+  actualizarPagina(): void {
+    const start = this.pageIndex * this.pageSize;
+    this.listaPaginada = this.mediaciones.slice(start, start + this.pageSize);
+  }
+
+  onPageChange(event: PageEvent): void {
+    this.pageSize = event.pageSize;
+    this.pageIndex = event.pageIndex;
+    this.actualizarPagina();
+  }
+
+  filtrar(): void {
     const texto = (this.busqueda || '').toLowerCase().trim();
-    const textoNorm = texto
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+    const textoNorm = texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-    this.mediaciones = this.mediacionesOriginales.filter((mediacion: any) => {
-      const tipoOk = this.tipoSeleccionado
-        ? mediacion.juzgadoModel?.tipo === this.tipoSeleccionado
-        : true;
-
-      const juzgadoOk = this.juzgadoSeleccionado
-        ? mediacion.juzgado_id === +this.juzgadoSeleccionado
-        : true;
-
-      const abogadoOk = this.abogadoSeleccionado
-        ? +mediacion.usuario_id === +this.abogadoSeleccionado
-        : true;
-
-      const procuradorOk = this.procuradorSeleccionado
-        ? +mediacion.procurador_id === +this.procuradorSeleccionado
-        : true;
-
-      const estadoOk = this.estadoSeleccionado
-        ? (mediacion.estado || '').toLowerCase() === this.estadoSeleccionado.toLowerCase()
-        : true;
-
-      const numeroOk = mediacion.numero?.toString().includes(texto);
-      const anioOk = mediacion.anio?.toString().includes(texto);
+    this.mediaciones = this.mediacionesOriginales.filter((m: any) => {
+      const tipoOk       = this.tipoSeleccionado      ? m.juzgadoModel?.tipo === this.tipoSeleccionado : true;
+      const juzgadoOk    = this.juzgadoSeleccionado   ? m.juzgado_id === +this.juzgadoSeleccionado : true;
+      const abogadoOk    = this.abogadoSeleccionado   ? +m.usuario_id === +this.abogadoSeleccionado : true;
+      const procuradorOk = this.procuradorSeleccionado? +m.procurador_id === +this.procuradorSeleccionado : true;
+      const estadoOk     = this.estadoSeleccionado    ? (m.estado || '').toLowerCase() === this.estadoSeleccionado.toLowerCase() : true;
 
       const matchParte = (p: any) => {
         if (!p) return false;
-
-        const n = p?.nombre?.toLowerCase() || '';
-        const a = p?.apellido?.toLowerCase() || '';
-        const rs = (p?.razonSocial ?? p?.razon_social ?? '').toLowerCase();
-        const nf = (p?.nombreFantasia ?? p?.nombre_fantasia ?? '').toLowerCase();
-
-        return (
-          n.includes(texto) ||
-          a.includes(texto) ||
-          rs.includes(texto) ||
-          nf.includes(texto) ||
-          `${n} ${a}`.trim().includes(texto)
-        );
+        const n = (p.nombre || '').toLowerCase();
+        const a = (p.apellido || '').toLowerCase();
+        const rs = (p.razonSocial ?? p.razon_social ?? '').toLowerCase();
+        return n.includes(texto) || a.includes(texto) || rs.includes(texto) || `${n} ${a}`.trim().includes(texto);
       };
 
-      const actoraOk =
-        (mediacion.clientes?.some(matchParte) ?? false) ||
-        ((mediacion as any).actoras?.some(matchParte) ?? false) ||
-        ((mediacion as any).actorasEmpresas?.some(matchParte) ?? false) ||
-        matchParte((mediacion as any).actora) ||
-        matchParte((mediacion as any).actoraEmpresa);
-
-      const demandadoOk =
-        (mediacion.demandados?.some(matchParte) ?? false) ||
-        ((mediacion as any).demandadosClientes?.some(matchParte) ?? false) ||
-        matchParte((mediacion as any).demandado);
-
-      const caratulaStr = (mediacion.caratula || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
-
-      const caratulaOk = textoNorm === '' || caratulaStr.includes(textoNorm);
-
-      const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
+      const numeroOk    = m.numero?.toString().includes(texto);
+      const anioOk      = m.anio?.toString().includes(texto);
+      const actoraOk    = m.clientes?.some(matchParte) ?? false;
+      const demandadoOk = m.demandados?.some(matchParte) ?? false;
+      const caratulaOk  = (m.caratula || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(textoNorm);
+      const busquedaOk  = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
 
       return tipoOk && juzgadoOk && abogadoOk && procuradorOk && estadoOk && busquedaOk;
     });
+    this.pageIndex = 0;
+    this.actualizarPagina();
   }
 
-abrirModificar(expediente: any) { // Usá any o el modelo correcto
-    const dialogRef = this.dialog.open(DialogExpedienteModificarComponent, {
-      width: '900px',
-      disableClose: true,
-      data: {
-        id: expediente.id,
-        tipo_registro: expediente.tipo_registro ?? null,
-      }
+  getNombreAbogado(usuario_id: any): string {
+    if (!usuario_id || +usuario_id === 0) return '-';
+    return this.listaUsuarios.find(u => +u.id === +usuario_id)?.nombre ?? '-';
+  }
+
+  mostrarFecha(fecha: string | null | undefined): string {
+    if (!fecha) return '';
+    const soloFecha = fecha.split('T')[0].split(' ')[0];
+    if (soloFecha === '1900-01-01') return '';
+    const [anio, mes, dia] = soloFecha.split('-');
+    return `${dia}/${mes}/${anio}`;
+  }
+
+  abrirDialog(): void {
+    const ref = this.dialog.open(DialogExpedienteComponent, {
+      width: '900px', disableClose: true,
+      data: { mode: 'mediacion', tipo_registro: 'mediacion' }
     });
-  
-    dialogRef.afterClosed().subscribe((payload: any) => {
-      if (!payload?.id) return;
-  
-      this.expedienteService.actualizarExpediente(payload.id, payload).subscribe({
-        next: () => {
-          Swal.fire({ toast:true, position:'top-end', icon:'success', title:'Mediación modificada', showConfirmButton:false, timer:1500 });
-          this.cargarMediaciones(); // <-- Nombre corregido
-        },
-        error: () => {
-          Swal.fire({ toast:true, position:'top-end', icon:'error', title:'Error al actualizar', showConfirmButton:false, timer:1500 });
-        }
+    ref.afterClosed().subscribe((payload: any) => {
+      if (!payload) return;
+      this.expedienteService.addExpediente(payload).subscribe({
+        next: () => { this.cargarMediaciones(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Mediación cargada', showConfirmButton: false, timer: 2000 }); },
+        error: (err) => Swal.fire({ icon: 'error', title: 'Error al guardar', text: err?.error?.message || 'Revisá los datos' })
       });
     });
   }
 
-  eliminarExpediente(expediente: any) {
-    Swal.fire({
-      title: "¿Estás seguro?",
-      text: "El expediente pasará a estado eliminado.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "No, cancelar",
-      reverseButtons: true
-    }).then((result) => {
-      if (result.isConfirmed) {
-        
-        // Creamos una copia para no modificar el objeto de la lista antes de la respuesta del server
-        const expedienteUpdate = { ...expediente, estado: 'eliminado' };
-
-        if (!expediente.id) {
-          Swal.fire({ icon: "error", title: "Error", text: "ID no válido." });
-          return;
-        }
-  
-        this.expedienteService.actualizarExpediente(expediente.id, expedienteUpdate).subscribe({
-          next: (response) => {
-            Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "success",
-              title: "Eliminado correctamente.",
-              showConfirmButton: false,
-              timer: 3000
-            });
-            this.cargarMediaciones(); // <-- Nombre corregido
-          },
-          error: (error) => {
-            console.error('Error al eliminar:', error);
-            Swal.fire({ icon: "error", title: "Error", text: "No se pudo eliminar." });
-          }
-        });
-      }
+  abrirModificar(expediente: any): void {
+    const ref = this.dialog.open(DialogExpedienteModificarComponent, {
+      width: '900px', disableClose: true,
+      data: { id: expediente.id, tipo_registro: expediente.tipo_registro ?? null }
+    });
+    ref.afterClosed().subscribe((payload: any) => {
+      if (!payload?.id) return;
+      this.expedienteService.actualizarExpediente(payload.id, payload).subscribe({
+        next: () => { this.cargarMediaciones(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Mediación modificada', showConfirmButton: false, timer: 1500 }); },
+        error: () => Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Error al actualizar', showConfirmButton: false, timer: 1500 })
+      });
     });
   }
 
-  mostrarFecha(fecha: string | null | undefined): string {
-  if (!fecha) return '';
+  eliminarExpediente(expediente: any): void {
+    Swal.fire({
+      title: '¿Estás seguro?', text: 'El expediente pasará a estado eliminado.',
+      icon: 'warning', showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar',
+    }).then(result => {
+      if (!result.isConfirmed || !expediente.id) return;
+      this.expedienteService.actualizarExpediente(expediente.id, { ...expediente, estado: 'eliminado' }).subscribe({
+        next: () => { this.cargarMediaciones(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Eliminado correctamente.', showConfirmButton: false, timer: 3000 }); },
+        error: () => Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar.' })
+      });
+    });
+  }
 
-  const soloFecha = fecha.split('T')[0].split(' ')[0];
-
-  if (soloFecha === '1900-01-01') return '';
-
-  const partes = soloFecha.split('-');
-  if (partes.length !== 3) return '';
-
-  const [anio, mes, dia] = partes;
-  return `${dia}/${mes}/${anio}`;
-}
+  goTo(ruta: string): void { this.router.navigate([ruta]); }
 }

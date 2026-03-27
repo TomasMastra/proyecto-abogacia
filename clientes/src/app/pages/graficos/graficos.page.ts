@@ -4,16 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 
 import { ChartComponent } from 'src/app/components/chart/chart.component'; // Asegurate de que la ruta sea correcta
-
 import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-graficos',
   templateUrl: './graficos.page.html',
   styleUrls: ['./graficos.page.scss'],
   standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule, ChartComponent]
+  imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule, ChartComponent, MatIconModule]
 })
 export class GraficosPage implements OnInit {
 

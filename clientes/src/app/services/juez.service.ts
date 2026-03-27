@@ -26,7 +26,7 @@ export class JuezService {
     juez$ = this.juezSubject.asObservable();  
   
     constructor(private http: HttpClient) {}
-  
+  /*
     getJuez() {
       this.http.get<JuezModel[]>(this.apiUrl).subscribe(
         (juez) => {
@@ -37,7 +37,11 @@ export class JuezService {
         }
       );
       return this.juez$;  
-    }
+    }*/
+
+      getJuez() {
+        return this.http.get<JuezModel[]>(this.apiUrl);
+      }
 
       addJuez(juez: JuezModel): Observable<any> {
         const url = `${this.apiUrl}/agregar`;

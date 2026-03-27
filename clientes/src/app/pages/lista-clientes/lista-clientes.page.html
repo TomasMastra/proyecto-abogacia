@@ -1,79 +1,114 @@
-<div class="content mat-elevation-z8">
+<div class="page-wrapper">
 
+  <!-- Título -->
+  <div class="page-header">
+    <h1 class="page-title">Clientes</h1>
+  </div>
 
-
-  <ion-list class="lista-clientes">
-<!-- SPINNER CENTRAL CUANDO CARGAN LOS CLIENTES -->
-
-
+  <!-- Toolbar -->
+  <div class="list-card">
     <div class="toolbar">
-      <input 
-        placeholder="Buscar por nombre, apellido o dirección de correo electrónico" 
-        class="input-busqueda"
-        [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()">
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="search-input"
+          placeholder="Buscar por nombre o apellido..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="buscar()"
+        />
+      </div>
 
-      <button mat-button class="list-button" (click)="abrirDialog()">
-        <mat-icon style="color: #ffffff">person</mat-icon>
-        <span style="color: #ffffff">Agregar cliente</span>
-      </button>
-
-      <button mat-icon-button class="list-button" (click)="buscar()" matTooltip="descargar">
-        <mat-icon style="color: #ffffff">download</mat-icon>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff">more_vert</mat-icon>
-      </button>
-    </div>
-
-    <div>
-       <!-- FUERA de ion-list (no es compatible) -->
-<cdk-virtual-scroll-viewport itemSize="90" class="scroll-viewport" *ngIf="clientes && clientes.length > 0">
-  <div *cdkVirtualFor="let cliente of clientes; trackBy: trackByCliente" class="cliente-container" (click)="toggleExpandirCliente(cliente)">
-    
-    <div class="cliente-header">
-      <h2>{{ cliente.nombre }} {{ cliente.apellido }}</h2>
-
-      <div class="acciones">
-        <button mat-icon-button class="list-button" (click)="eliminarCliente(cliente); $event.stopPropagation()">
-          <mat-icon style="color: #ffffff">delete</mat-icon>
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="abrirDialog()">
+          <mat-icon>person_add</mat-icon>
+          <span>Nuevo cliente</span>
         </button>
-
-        <button mat-icon-button class="list-button" (click)="abrirModificar(cliente); $event.stopPropagation()">
-          <mat-icon style="color: #ffffff">edit</mat-icon>
+        <button class="btn btn--icon" matTooltip="Descargar">
+          <mat-icon>download</mat-icon>
+        </button>
+        <button class="btn btn--icon" matTooltip="Más opciones">
+          <mat-icon>more_vert</mat-icon>
         </button>
       </div>
     </div>
 
-<div *ngIf="expandido === cliente.id" class="detalles-cliente">
-  <h3>Expedientes vinculados:</h3>
+    <!-- Tabla -->
+    <div class="table-wrap">
+      <!-- Header -->
+      <div class="table-header">
+        <div class="col-nombre">Nombre y apellido</div>
+        <div class="col-acciones"></div>
+      </div>
 
-  <div *ngIf="(expedientesPorCliente[cliente.id]?.length ?? 0) > 0; else sinExpedientes">
-    <ul>
-      <li *ngFor="let exp of expedientesPorCliente[cliente.id]">
-        Nº {{ exp.numero }}/{{ exp.anio }} ({{ exp.juzgadoModel?.nombre }})
-      </li>
-    </ul>
-  </div>
+      <!-- Skeleton -->
+      <ng-container *ngIf="cargandoClientes">
+        <div class="skeleton-row" *ngFor="let _ of skeletonRows">
+          <div class="skeleton-line sk-name"></div>
+        </div>
+      </ng-container>
 
-  <ng-template #sinExpedientes>
-    <p>Este cliente no tiene expedientes vinculados.</p>
-  </ng-template>
-</div>
+      <!-- Sin resultados -->
+      <div class="empty-state" *ngIf="!cargandoClientes && clientesPaginados.length === 0">
+        <mat-icon>people_outline</mat-icon>
+        <p>No se encontraron clientes</p>
+      </div>
 
+      <!-- Filas -->
+      <ng-container *ngIf="!cargandoClientes && clientesPaginados.length > 0">
+        <div
+          class="table-row"
+          *ngFor="let cliente of clientesPaginados; trackBy: trackByCliente"
+          (click)="toggleExpandirCliente(cliente)"
+          [class.expanded]="expandido === cliente.id"
+        >
+          <div class="row-main">
+            <div class="cliente-avatar">
+              {{ (cliente.nombre?.charAt(0) || '') + (cliente.apellido?.charAt(0) || '') | uppercase }}
+            </div>
+            <div class="cliente-info">
+              <span class="cliente-nombre">{{ cliente.nombre }} {{ cliente.apellido }}</span>
+              <span class="cliente-email" *ngIf="cliente.email">{{ cliente.email }}</span>
+            </div>
+            <div class="row-actions" (click)="$event.stopPropagation()">
+              <button class="action-icon-btn" matTooltip="Editar" (click)="abrirModificar(cliente)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar" (click)="eliminarCliente(cliente)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          </div>
 
-  </div>
-</cdk-virtual-scroll-viewport>
+          <!-- Expedientes expandidos -->
+          <div class="row-detail" *ngIf="expandido === cliente.id" (click)="$event.stopPropagation()">
+            <span class="detail-label">Expedientes vinculados:</span>
+            <ng-container *ngIf="expedientesPorCliente[cliente.id]!.length > 0; else sinExp">
+              <div class="exp-list">
+                <span class="exp-chip" *ngFor="let exp of expedientesPorCliente[cliente.id]">
+                  <mat-icon>folder_open</mat-icon>
+                  Nº {{ exp.numero }}/{{ exp.anio }}
+                  <ng-container *ngIf="exp.juzgadoModel?.nombre"> — {{ exp.juzgadoModel.nombre }}</ng-container>
+                </span>
+              </div>
+            </ng-container>
+            <ng-template #sinExp>
+              <span class="no-exp">Sin expedientes vinculados</span>
+            </ng-template>
+          </div>
 
-
-
-<ion-item *ngIf="clientes && clientes.length === 0">
-  <ion-label text-center>{{ texto || 'No hay clientes disponibles' }}</ion-label>
-</ion-item>
-
+        </div>
+      </ng-container>
     </div>
 
-  </ion-list>
+    <!-- Paginador -->
+    <mat-paginator
+      [length]="clientes.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 25, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
 
+  </div>
 </div>

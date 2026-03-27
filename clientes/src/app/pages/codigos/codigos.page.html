@@ -1,61 +1,75 @@
-<div class="content mat-elevation-z8">
-  <ion-list class="lista-clientes">
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Códigos</h1>
+  </div>
+
+  <div class="list-card">
 
     <div class="toolbar">
-      <input
-        placeholder="Buscar por nombre o apellido"
-        class="input-busqueda"
-        [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()">
-
-      <button mat-button class="list-button" (click)="agregarCodigo()">
-        <mat-icon style="color:#ffffff">cases</mat-icon>
-        <span style="color:#ffffff">Agregar códigos</span>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color:#ffffff">download</mat-icon>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color:#ffffff">more_vert</mat-icon>
-      </button>
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input class="search-input" placeholder="Buscar por tipo, código o descripción..."
+          [(ngModel)]="busqueda" (ngModelChange)="buscar()" />
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="agregarCodigo()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar código</span>
+        </button>
+      </div>
     </div>
 
-    <div>
-      <ion-item-sliding *ngFor="let j of codigos" class="jurisprudencias">
-        <ion-item class="cliente" *ngIf="hayCodigos && codigos.length > 0">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
 
-          <div style="width:100%; display:flex; justify-content:space-between; align-items:flex-start">
-
-            <div>
-              <h2 style="color:#ffffff; margin:0">
-                <strong>{{ j.tipo | titlecase }}</strong> — {{ j.codigo }}
-              </h2>
-              <p style="white-space:pre-line; color:#ffffff; margin:0">
-                {{ j.descripcion }}
-              </p>
-            </div>
-
-            <div style="display:flex; gap:8px">
-              <button mat-button class="list-button" (click)="eliminarCodigos(j)">
-                <mat-icon style="color:#ffffff">delete</mat-icon>
-              </button>
-
-              <button mat-button class="list-button">
-                <mat-icon style="color:#ffffff">edit</mat-icon>
-              </button>
-            </div>
-
-          </div>
-
-        </ion-item>
-      </ion-item-sliding>
-
-      <ion-item *ngIf="!hayCodigos && codigos.length <= 0" class="jurisprudencias">
-        <ion-label text-center>{{ texto }}</ion-label>
-      </ion-item>
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let j of listaPaginada">
+              <td><span class="tipo-chip">{{ j.tipo | titlecase }}</span></td>
+              <td class="td-nombre">{{ j.codigo }}</td>
+              <td class="td-desc">{{ j.descripcion }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar" (click)="eliminarCodigos(j)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="4" class="empty-row">
+                <mat-icon>tag</mat-icon>
+                No se encontraron códigos
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
     </div>
 
-  </ion-list>
+    <mat-paginator
+      [length]="codigos.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
 </div>

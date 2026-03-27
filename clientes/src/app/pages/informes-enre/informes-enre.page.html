@@ -1,341 +1,461 @@
-<div class="content mat-elevation-z8" [class.blur-content]="cargando">
+<div class="page-wrapper">
 
-  <!-- HEADER -->
-  <div class="toolbar">
-    <input
-      class="input-busqueda"
-      style="color: white; font-weight: bold;"
-      placeholder="Buscar cliente, carátula o expediente"
-      [(ngModel)]="busqueda"
-      (ngModelChange)="filtrar()"
-    >
-
-    <label for="selectEmpresa" class="custom-select">
-      <select id="selectEmpresa" [(ngModel)]="empresaSeleccionada" (change)="filtrar()">
-        <option [value]="''">Todas</option>
-        <option [value]="1">EDESUR</option>
-        <option [value]="7">EDENOR</option>
-      </select>
-    </label>
+  <!-- Header -->
+  <div class="page-header">
+    <h1 class="page-title">Informes ENRE</h1>
   </div>
 
-  <!-- LOADER -->
-  <div *ngIf="cargando" class="fullscreen-loader">
-    <mat-progress-spinner mode="indeterminate" color="accent"></mat-progress-spinner>
-  </div>
+  <!-- Toolbar filtros -->
+  <div class="list-card">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="search-input"
+          placeholder="Buscar cliente, carátula o expediente..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="filtrar()"
+        />
+      </div>
 
-  <div *ngIf="!cargando" class="contenedor-general">
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="empresaSeleccionada" (change)="filtrar()">
+          <option value="">Todas las empresas</option>
+          <option value="1">EDESUR</option>
+          <option value="7">EDENOR</option>
+        </select>
+        <mat-icon class="select-arrow">expand_more</mat-icon>
+      </div>
+    </div>
 
-    <h1 class="titulo-principal">Gestión de reclamos por nuevos cortes</h1>
-
-    <!-- TABS -->
-    <div class="tabs-estados">
+    <!-- Tabs SIEMPRE visibles -->
+    <div class="tabs-row">
       <button
         class="tab-btn"
-        [class.tab-activo]="tabActiva === 'para-reactivar'"
+        [class.active]="tabActiva === 'para-reactivar'"
         (click)="tabActiva = 'para-reactivar'">
-        Para reactivar ({{ listaParaReactivar.length }})
+        Para reactivar
+        <span class="tab-count" *ngIf="!cargando">{{ listaParaReactivar.length }}</span>
       </button>
 
       <button
         class="tab-btn"
-        [class.tab-activo]="tabActiva === 'en-tramite'"
+        [class.active]="tabActiva === 'en-tramite'"
         (click)="tabActiva = 'en-tramite'">
-        En trámite ({{ listaEnTramite.length }})
+        En trámite
+        <span class="tab-count" *ngIf="!cargando">{{ listaEnTramite.length }}</span>
       </button>
 
       <button
         class="tab-btn"
-        [class.tab-activo]="tabActiva === 'con-cortes'"
+        [class.active]="tabActiva === 'con-cortes'"
         (click)="tabActiva = 'con-cortes'">
-        Con cortes ({{ listaConCortes.length }})
+        Con cortes
+        <span class="tab-count" *ngIf="!cargando">{{ listaConCortes.length }}</span>
       </button>
 
       <button
         class="tab-btn"
-        [class.tab-activo]="tabActiva === 'sin-cortes'"
+        [class.active]="tabActiva === 'sin-cortes'"
         (click)="tabActiva = 'sin-cortes'">
-        Sin cortes ({{ listaSinCortes.length }})
+        Sin cortes
+        <span class="tab-count" *ngIf="!cargando">{{ listaSinCortes.length }}</span>
       </button>
     </div>
 
-    <!-- TAB 1 -->
-    <div class="table-container" *ngIf="tabActiva === 'para-reactivar'">
-      <table>
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Expediente</th>
-            <th>Fecha inicio</th>
-            <th>Antigüedad</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
+    <!-- Contenido -->
+    <div class="table-content">
 
-        <tbody>
-          <tr *ngFor="let item of listaParaReactivar">
-            <td>{{ getTituloClientes(item) }}</td>
-            <td>{{ item.numero }}/{{ item.anio }}</td>
-            <td>{{ mostrarFecha(item.fecha_inicio) || 'Sin fecha' }}</td>
-            <td>{{ calcularAntiguedad(item.fecha_inicio) }}</td>
-            <td>
-              <button class="btn-accion" (click)="iniciar(item)">
-                Iniciar
-              </button>
-            </td>
-          </tr>
+      <!-- TAB 1: Para reactivar -->
+      <div class="table-wrap" *ngIf="tabActiva === 'para-reactivar'">
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Expediente</th>
+              <th>Fecha inicio</th>
+              <th>Antigüedad</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
 
-          <tr *ngIf="listaParaReactivar.length === 0">
-            <td colspan="5" class="sin-resultados">No hay expedientes para mostrar</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            <!-- Skeleton -->
+            <ng-container *ngIf="cargando">
+              <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows">
+                <td><div class="skeleton-line sk-col1"></div></td>
+                <td><div class="skeleton-line sk-col2"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col4"></div></td>
+                <td><div class="skeleton-line sk-col5"></div></td>
+              </tr>
+            </ng-container>
 
-    <!-- TAB 2 -->
-    <div class="table-container" *ngIf="tabActiva === 'en-tramite'">
-      <table>
-        <thead>
-          <tr>
-            <th>Carátula</th>
-            <th>Nro. Cliente EDESUR</th>
-            <th>Fecha pedido informe</th>
-            <th>Fecha respuesta informe</th>
-            <th>Estado</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
+            <!-- Data -->
+            <ng-container *ngIf="!cargando">
+              <tr *ngFor="let item of listaParaReactivarPaginada">
+                <td>{{ getTituloClientes(item) }}</td>
+                <td class="td-num">{{ item.numero }}/{{ item.anio }}</td>
+                <td>{{ mostrarFecha(item.fecha_inicio) || '—' }}</td>
+                <td>
+                  <span class="antiguedad-chip">
+                    {{ calcularAntiguedad(item.fecha_inicio) }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn-accion btn-accion--primary" (click)="iniciar(item)">
+                    Iniciar
+                  </button>
+                </td>
+              </tr>
 
-        <tbody>
-          <tr *ngFor="let item of listaEnTramite">
-            <td>{{ item.caratula }}</td>
-            <td>{{ item.numero_cliente_edesur || '-' }}</td>
-            <td>{{ mostrarFecha(item.fecha_pedido_informe) || '-' }}</td>
-            <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '-' }}</td>
-            <td>
-              <span class="badge-estado estado-tramite">{{ item.estado_descripcion }}</span>
-            </td>
-            <td>
-               <div class="acciones">
-                <button class="btn-accion editar" (click)="abrirModalEditar(item)">
-                  Editar
-                </button>
+              <tr *ngIf="listaParaReactivar.length === 0">
+                <td colspan="5" class="empty-row">
+                  <mat-icon>folder_open</mat-icon>
+                  No hay expedientes para mostrar
+                </td>
+              </tr>
+            </ng-container>
 
-                <button class="btn-deshacer" (click)="deshacerCambios(item)">
-                  Deshacer
-                </button>
-              </div>
-            </td>
-          </tr>
+          </tbody>
+        </table>
 
-          <tr *ngIf="listaEnTramite.length === 0">
-            <td colspan="6" class="sin-resultados">No hay registros en trámite</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        <mat-paginator
+          *ngIf="!cargando"
+          [length]="listaParaReactivar.length"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[10, 20, 50]"
+          [pageIndex]="pageIndexReactivar"
+          (page)="onPageReactivar($event)"
+          showFirstLastButtons>
+        </mat-paginator>
+      </div>
 
-    <!-- TAB 3 -->
-    <div class="table-container" *ngIf="tabActiva === 'con-cortes'">
-      <table>
-        <thead>
-          <tr>
-            <th>Carátula</th>
-            <th>Nro. Cliente EDESUR</th>
-            <th>Fecha pedido</th>
-            <th>Fecha respuesta</th>
-            <th>Días</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
+      <!-- TAB 2: En trámite -->
+      <div class="table-wrap" *ngIf="tabActiva === 'en-tramite'">
+        <table>
+          <thead>
+            <tr>
+              <th>Carátula</th>
+              <th>Nro. Cliente EDESUR</th>
+              <th>Fecha pedido</th>
+              <th>Fecha respuesta</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
 
-        <tbody>
-          <tr *ngFor="let item of listaConCortes">
-            <td>{{ item.caratula }}</td>
-            <td>{{ item.numero_cliente_edesur || '-' }}</td>
-            <td>{{ mostrarFecha(item.fecha_pedido_informe) || '-' }}</td>
-            <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '-' }}</td>
-            <td>{{ item.dias_cortes || '-' }}</td>
-            <td>
-              <div class="acciones">
-                <button class="btn-accion editar" (click)="abrirModalEditar(item)">
-                  Editar
-                </button>
+            <!-- Skeleton -->
+            <ng-container *ngIf="cargando">
+              <tr class="skeleton-table-row" *ngFor="let _ of [1,2,3,4,5,6,7]">
+                <td><div class="skeleton-line sk-col2"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col4"></div></td>
+                <td><div class="skeleton-line sk-col5"></div></td>
+              </tr>
+            </ng-container>
 
-                <button class="btn-deshacer" (click)="deshacerCambios(item)">
-                  Deshacer
-                </button>
-              </div>
-            </td>
-          </tr>
+            <!-- Data -->
+            <ng-container *ngIf="!cargando">
+              <tr *ngFor="let item of listaEnTramitePaginada">
+                <td class="td-caratula">{{ item.caratula }}</td>
+                <td>{{ item.numero_cliente_edesur || '—' }}</td>
+                <td>{{ mostrarFecha(item.fecha_pedido_informe) || '—' }}</td>
+                <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '—' }}</td>
+                <td>
+                  <span class="badge badge--tramite">
+                    {{ item.estado_descripcion }}
+                  </span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn-accion btn-accion--edit" (click)="abrirModalEditar(item)">
+                      Editar
+                    </button>
+                    <button class="btn-accion btn-accion--undo" (click)="deshacerCambios(item)">
+                      Deshacer
+                    </button>
+                  </div>
+                </td>
+              </tr>
 
-          <tr *ngIf="listaConCortes.length === 0">
-            <td colspan="6" class="sin-resultados">No hay expedientes con cortes</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              <tr *ngIf="listaEnTramite.length === 0">
+                <td colspan="6" class="empty-row">
+                  <mat-icon>hourglass_empty</mat-icon>
+                  No hay registros en trámite
+                </td>
+              </tr>
+            </ng-container>
 
-    <!-- TAB 4 -->
-    <div class="table-container" *ngIf="tabActiva === 'sin-cortes'">
-      <table>
-        <thead>
-          <tr>
-            <th>Carátula</th>
-            <th>Nro. Cliente EDESUR</th>
-            <th>Fecha pedido</th>
-            <th>Fecha respuesta</th>
-            <th>Tiene cortes</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
+          </tbody>
+        </table>
 
-        <tbody>
-          <tr *ngFor="let item of listaSinCortes">
-            <td>{{ item.caratula }}</td>
-            <td>{{ item.numero_cliente_edesur || '-' }}</td>
-            <td>{{ mostrarFecha(item.fecha_pedido_informe) || '-' }}</td>
-            <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '-' }}</td>
-            <td>
-              <span class="badge-estado estado-no">No</span>
-            </td>
-            <td>
-              <div class="acciones">
-                <button class="btn-accion editar" (click)="abrirModalEditar(item)">
-                  Editar
-                </button>
+        <mat-paginator
+          *ngIf="!cargando"
+          [length]="listaEnTramite.length"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[10, 20, 50]"
+          [pageIndex]="pageIndexTramite"
+          (page)="onPageTramite($event)"
+          showFirstLastButtons>
+        </mat-paginator>
+      </div>
 
-                <button class="btn-deshacer" (click)="deshacerCambios(item)">
-                  Deshacer
-                </button>
-              </div>
-            </td>
-          </tr>
+      <!-- TAB 3: Con cortes -->
+      <div class="table-wrap" *ngIf="tabActiva === 'con-cortes'">
+        <table>
+          <thead>
+            <tr>
+              <th>Carátula</th>
+              <th>Nro. Cliente EDESUR</th>
+              <th>Fecha pedido</th>
+              <th>Fecha respuesta</th>
+              <th>Días</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
 
-          <tr *ngIf="listaSinCortes.length === 0">
-            <td colspan="6" class="sin-resultados">No hay expedientes sin cortes</td>
-          </tr>
-        </tbody>
-      </table>
+            <!-- Skeleton -->
+            <ng-container *ngIf="cargando">
+              <tr class="skeleton-table-row" *ngFor="let _ of [1,2,3,4,5,6,7]">
+                <td><div class="skeleton-line sk-col2"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col4"></div></td>
+                <td><div class="skeleton-line sk-col5"></div></td>
+              </tr>
+            </ng-container>
+
+            <!-- Data -->
+            <ng-container *ngIf="!cargando">
+              <tr *ngFor="let item of listaConCortesPaginada">
+                <td class="td-caratula">{{ item.caratula }}</td>
+                <td>{{ item.numero_cliente_edesur || '—' }}</td>
+                <td>{{ mostrarFecha(item.fecha_pedido_informe) || '—' }}</td>
+                <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '—' }}</td>
+                <td>
+                  <span class="badge badge--cortes">
+                    {{ item.dias_cortes || '—' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn-accion btn-accion--edit" (click)="abrirModalEditar(item)">
+                      Editar
+                    </button>
+                    <button class="btn-accion btn-accion--undo" (click)="deshacerCambios(item)">
+                      Deshacer
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="listaConCortes.length === 0">
+                <td colspan="6" class="empty-row">
+                  <mat-icon>bolt</mat-icon>
+                  No hay expedientes con cortes
+                </td>
+              </tr>
+            </ng-container>
+
+          </tbody>
+        </table>
+
+        <mat-paginator
+          *ngIf="!cargando"
+          [length]="listaConCortes.length"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[10, 20, 50]"
+          [pageIndex]="pageIndexConCortes"
+          (page)="onPageConCortes($event)"
+          showFirstLastButtons>
+        </mat-paginator>
+      </div>
+
+      <!-- TAB 4: Sin cortes -->
+      <div class="table-wrap" *ngIf="tabActiva === 'sin-cortes'">
+        <table>
+          <thead>
+            <tr>
+              <th>Carátula</th>
+              <th>Nro. Cliente EDESUR</th>
+              <th>Fecha pedido</th>
+              <th>Fecha respuesta</th>
+              <th>Tiene cortes</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <!-- Skeleton -->
+            <ng-container *ngIf="cargando">
+              <tr class="skeleton-table-row" *ngFor="let _ of [1,2,3,4,5,6,7]">
+                <td><div class="skeleton-line sk-col2"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col3"></div></td>
+                <td><div class="skeleton-line sk-col4"></div></td>
+                <td><div class="skeleton-line sk-col5"></div></td>
+              </tr>
+            </ng-container>
+
+            <!-- Data -->
+            <ng-container *ngIf="!cargando">
+              <tr *ngFor="let item of listaSinCortesPaginada">
+                <td class="td-caratula">{{ item.caratula }}</td>
+                <td>{{ item.numero_cliente_edesur || '—' }}</td>
+                <td>{{ mostrarFecha(item.fecha_pedido_informe) || '—' }}</td>
+                <td>{{ mostrarFecha(item.fecha_respuesta_informe) || '—' }}</td>
+                <td>
+                  <span class="badge badge--no">No</span>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <button class="btn-accion btn-accion--edit" (click)="abrirModalEditar(item)">
+                      Editar
+                    </button>
+                    <button class="btn-accion btn-accion--undo" (click)="deshacerCambios(item)">
+                      Deshacer
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="listaSinCortes.length === 0">
+                <td colspan="6" class="empty-row">
+                  <mat-icon>check_circle</mat-icon>
+                  No hay expedientes sin cortes
+                </td>
+              </tr>
+            </ng-container>
+
+          </tbody>
+        </table>
+
+        <mat-paginator
+          *ngIf="!cargando"
+          [length]="listaSinCortes.length"
+          [pageSize]="pageSize"
+          [pageSizeOptions]="[10, 20, 50]"
+          [pageIndex]="pageIndexSinCortes"
+          (page)="onPageSinCortes($event)"
+          showFirstLastButtons>
+        </mat-paginator>
+      </div>
+
     </div>
   </div>
 
   <!-- MODAL -->
-  <div class="modal-backdrop" *ngIf="modalAbierto">
-    <div class="modal-reclamo">
+  <div class="modal-backdrop" *ngIf="modalAbierto" (click)="cerrarModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
 
       <div class="modal-header">
         <h2>{{ modoEdicion ? 'Editar relevamiento' : 'Nuevo relevamiento' }}</h2>
-        <button class="btn-cerrar" (click)="cerrarModal()">×</button>
+        <button class="btn-cerrar" (click)="cerrarModal()">
+          <mat-icon>close</mat-icon>
+        </button>
       </div>
 
       <div class="modal-body">
-        <div class="bloque-datos">
-          <div class="fila-dato">
-            <span class="label">Carátula:</span>
-            <span class="valor">{{ expedienteSeleccionado?.caratula || '-' }}</span>
+        <div class="info-block">
+          <div class="info-row">
+            <span class="info-label">Carátula</span>
+            <span class="info-value">{{ expedienteSeleccionado?.caratula || '—' }}</span>
           </div>
-
-          <div class="fila-dato">
-            <span class="label">Expediente:</span>
-            <span class="valor">
-              {{ expedienteSeleccionado?.numero }}/{{ expedienteSeleccionado?.anio }}
-            </span>
+          <div class="info-row">
+            <span class="info-label">Expediente</span>
+            <span class="info-value">{{ expedienteSeleccionado?.numero }}/{{ expedienteSeleccionado?.anio }}</span>
           </div>
-
-          <div class="fila-dato">
-            <span class="label">Cliente:</span>
-            <span class="valor">{{ getTituloClientes(expedienteSeleccionado) }}</span>
+          <div class="info-row">
+            <span class="info-label">Cliente</span>
+            <span class="info-value">{{ getTituloClientes(expedienteSeleccionado) }}</span>
           </div>
-
-          <div class="fila-dato">
-            <span class="label">Fecha inicio expediente:</span>
-            <span class="valor">{{ mostrarFecha(expedienteSeleccionado?.fecha_inicio) }}</span>
+          <div class="info-row">
+            <span class="info-label">Fecha inicio</span>
+            <span class="info-value">{{ mostrarFecha(expedienteSeleccionado?.fecha_inicio) }}</span>
           </div>
         </div>
 
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Nro. de Cliente EDESUR</label>
+        <div class="modal-form">
+          <div class="modal-field">
+            <label class="modal-label">Nro. de Cliente EDESUR</label>
             <input
+              class="modal-input"
               type="text"
               [(ngModel)]="formModal.numero_cliente_edesur"
-              placeholder="Ingrese número de cliente"
-            >
+              placeholder="Ingrese número de cliente">
           </div>
 
-          <div class="form-group">
-            <label>Fecha de pedido de informe</label>
-            <input
-              type="date"
-              [(ngModel)]="formModal.fecha_pedido_informe"
-            >
+          <div class="modal-field">
+            <label class="modal-label">Fecha de pedido de informe</label>
+            <input class="modal-input" type="date" [(ngModel)]="formModal.fecha_pedido_informe">
           </div>
 
-          <div class="form-group">
-            <label>Fecha de respuesta de informe</label>
-            <input
-              type="date"
-              [(ngModel)]="formModal.fecha_respuesta_informe"
-            >
+          <div class="modal-field">
+            <label class="modal-label">Fecha de respuesta de informe</label>
+            <input class="modal-input" type="date" [(ngModel)]="formModal.fecha_respuesta_informe">
           </div>
 
-          <div class="form-group grupo-radio">
-            <label>¿Tiene cortes?</label>
-
-            <div class="radio-opciones">
-              <label>
+          <div class="modal-field">
+            <label class="modal-label">¿Tiene cortes?</label>
+            <div class="radio-group">
+              <label class="radio-label">
                 <input
                   type="radio"
                   name="tieneCortes"
                   [value]="true"
                   [(ngModel)]="formModal.tiene_cortes"
-                  [disabled]="!formModal.fecha_respuesta_informe"
-                >
+                  [disabled]="!formModal.fecha_respuesta_informe">
                 Sí
               </label>
-
-              <label>
+              <label class="radio-label">
                 <input
                   type="radio"
                   name="tieneCortes"
                   [value]="false"
                   [(ngModel)]="formModal.tiene_cortes"
-                  [disabled]="!formModal.fecha_respuesta_informe"
-                >
+                  [disabled]="!formModal.fecha_respuesta_informe">
                 No
               </label>
             </div>
-
-            <small *ngIf="!formModal.fecha_respuesta_informe" class="mensaje-ayuda">
-              Para indicar si hubo cortes, primero cargá la fecha de respuesta del informe.
+            <small class="helper-text" *ngIf="!formModal.fecha_respuesta_informe">
+              Primero cargá la fecha de respuesta del informe.
             </small>
           </div>
 
-          <div class="form-group" *ngIf="formModal.tiene_cortes === true">
-            <label>Días reclamables</label>
+          <div class="modal-field" *ngIf="formModal.tiene_cortes === true">
+            <label class="modal-label">Días reclamables</label>
             <input
+              class="modal-input"
               type="number"
               min="1"
               [(ngModel)]="formModal.dias_cortes"
-              placeholder="Ingrese cantidad de días"
-            >
+              placeholder="Cantidad de días">
           </div>
 
-          <div class="form-group full-width">
-            <label>Observaciones</label>
+          <div class="modal-field modal-field--full">
+            <label class="modal-label">Observaciones</label>
             <textarea
+              class="modal-textarea"
               rows="3"
               [(ngModel)]="formModal.observaciones"
-              placeholder="Observaciones internas..."
-            ></textarea>
+              placeholder="Observaciones internas..."></textarea>
           </div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secundario" (click)="cerrarModal()">Cancelar</button>
-        <button class="btn-principal" (click)="guardarModal()">Guardar</button>
+        <button class="btn-cancel" (click)="cerrarModal()">Cancelar</button>
+        <button class="btn-save" (click)="guardarModal()">
+          <mat-icon>save</mat-icon>
+          Guardar
+        </button>
       </div>
 
     </div>

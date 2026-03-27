@@ -15,12 +15,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
-
 import { IonList, IonItemSliding, IonLabel, IonItem, IonInput } from "@ionic/angular/standalone";
 
 import { JuzgadosService } from 'src/app/services/juzgados.service';
@@ -43,7 +43,7 @@ import Swal from 'sweetalert2'
     imports: [IonInput, IonItem, IonLabel, IonItemSliding, IonList, CommonModule, FormsModule,
       MatSidenavModule, MatButtonModule, MatDatepickerModule, MatNativeDateModule,
       MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule, MatMenuModule, MatProgressSpinnerModule,
-      MatSelectModule,
+      MatSelectModule, MatPaginatorModule,
       MatOptionModule,
     ]
 })
@@ -61,19 +61,26 @@ export class DatosImportantesPage implements OnInit {
   ordenAscendente: boolean = true;
 
   estado: string = 'sentencia'; // o 'cobrado'
-listaUsuarios: UsuarioModel[] = [];
+  listaUsuarios: UsuarioModel[] = [];
 
-tiposJuzgado: string[] = ['CCF', 'COM', 'CIV', 'CC']; // o los que vos tengas
-listaJuzgados: any[] = []; // después la cargás desde tu servicio
+  tiposJuzgado: string[] = ['CCF', 'COM', 'CIV', 'CC']; // o los que vos tengas
+  listaJuzgados: any[] = []; // después la cargás desde tu servicio
 
-tipoSeleccionado: string = '';
-juzgadoSeleccionado: string = '';
+  tipoSeleccionado: string = '';
+  juzgadoSeleccionado: string = '';
 
-abogadoSeleccionado: string = '';
-procuradorSeleccionado: string = '';
+  abogadoSeleccionado: string = '';
+  procuradorSeleccionado: string = '';
 
-tiposJuicio: string[] = ['sumarisimo', 'ordinario', 'a definir'];
-juicioSeleccionado: string = '';
+  tiposJuicio: string[] = ['sumarisimo', 'ordinario', 'a definir'];
+  juicioSeleccionado: string = '';
+
+  // Paginador
+  pageSize = 20;
+  pageIndex = 0;
+  expedientesPaginados: any[] = [];
+  skeletonRows = Array(this.pageSize).fill(0);
+
 
   constructor(
     private expedienteService: ExpedientesService,
@@ -94,40 +101,41 @@ juicioSeleccionado: string = '';
 
 cargarExpedientes() {
   this.cargando = true;
+
   this.expedienteService.getExpedientes()
     .pipe(takeUntil(this.destroy$))
     .subscribe(
       (expedientes) => {
-        // Filtrar acá: que NO sean 'Sentencia' ni 'Cobrado'
-        const filtrados = expedientes!.filter(expediente => 
-        //expediente.estado !== 'Sentencia' &&
-        //expediente.estado !== 'Cobrado' &&
-        expediente.estado !== 'eliminado' &&
-        expediente.capitalCobrado == true &&
-        expediente.estadoHonorariosSeleccionado == 'diferido'
-);
+        console.log('RAW expedientes:', expedientes);
+        console.log('TOTAL RAW:', expedientes?.length);
 
-filtrados.sort((a, b) => {
-  // Si uno está en sentencia y el otro no, el que está en sentencia va primero
-  if (a.estado === 'Sentencia' && b.estado !== 'Sentencia') return -1;
-  if (a.estado !== 'Sentencia' && b.estado === 'Sentencia') return 1;
+        const filtrados = (expedientes ?? []).filter(expediente =>
+          expediente.estado !== 'eliminado' &&
+          expediente.capitalCobrado == true &&
+          expediente.estadoHonorariosSeleccionado == 'diferido'
+        );
 
-  // Si ambos son 'Sentencia' o ninguno lo es, ordenamos por fecha (más reciente primero)
-  const fechaA = new Date(a.fecha_atencion!).getTime();
-  const fechaB = new Date(b.fecha_atencion!).getTime();
-  return fechaA - fechaB; 
-});
+        filtrados.sort((a, b) => {
+          if (a.estado === 'Sentencia' && b.estado !== 'Sentencia') return -1;
+          if (a.estado !== 'Sentencia' && b.estado === 'Sentencia') return 1;
 
-      this.expedientes = filtrados;
-      this.expedientesOriginales = [...filtrados];
-      this.hayExpedientes = this.expedientes.length > 0;
-
-      // Asignar juzgado a cada expediente
-      this.expedientes.forEach(expediente => {
-        this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
-          expediente.juzgadoModel = juzgado;
+          const fechaA = a.fecha_atencion ? new Date(a.fecha_atencion).getTime() : 0;
+          const fechaB = b.fecha_atencion ? new Date(b.fecha_atencion).getTime() : 0;
+          return fechaA - fechaB;
         });
-      });
+
+        this.expedientes = [...filtrados];
+        this.expedientesOriginales = [...filtrados];
+        this.hayExpedientes = this.expedientes.length > 0;
+
+        this.pageIndex = 0;
+        this.actualizarPagina();
+        
+        this.expedientes.forEach(expediente => {
+          this.juzgadoService.getJuzgadoPorId(expediente.juzgado_id).subscribe(juzgado => {
+            expediente.juzgadoModel = juzgado;
+          });
+        });
 
         this.cargando = false;
       },
@@ -137,7 +145,6 @@ filtrados.sort((a, b) => {
       }
     );
 }
-
   
   cargarPorEstado(estado: string) {
     this.cargando = true;
@@ -292,6 +299,8 @@ filtrar() {
 
     return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && busquedaOk;
   });
+  this.pageIndex = 0;
+  this.actualizarPagina();
 }
 
 
@@ -315,9 +324,16 @@ async calcularDiasHabilesConFeriados(fechaStr: string, cantidad: number): Promis
   return fecha.toLocaleDateString('es-AR');
 }
 
+  // ── Paginador ─────────────────────────────────────────────
+  actualizarPagina(): void {
+    const start = this.pageIndex * this.pageSize;
+    this.expedientesPaginados = this.expedientes.slice(start, start + this.pageSize);
+  }
 
-
-
-
+  onPageChange(event: PageEvent): void {
+    this.pageSize = event.pageSize;
+    this.pageIndex = event.pageIndex;
+    this.actualizarPagina();
+  }
 
 }

@@ -1,0 +1,50 @@
+<div class="layout-wrapper" [class.sidebar-hidden]="sidebarCollapsed">
+
+  <!-- Sidebar -->
+  <app-sidebar
+    [(collapsed)]="sidebarCollapsed"
+    [(mobileOpen)]="mobileOpen">
+  </app-sidebar>
+
+  <!-- Contenido principal -->
+  <div class="layout-main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+
+        <!-- Hamburguesa: visible en móvil siempre, en desktop solo si sidebar está oculto -->
+        <button class="hamburger-btn" (click)="toggleSidebar()">
+          <mat-icon>menu</mat-icon>
+        </button>
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+          <mat-icon class="bc-home-icon">home</mat-icon>
+          <span class="bc-sep">/</span>
+          <span class="bc-current">{{ paginaActual }}</span>
+        </nav>
+      </div>
+
+      <div class="topbar-right">
+        <button class="topbar-icon-btn">
+          <mat-icon>notifications_none</mat-icon>
+        </button>
+
+        <div class="topbar-user">
+          <div class="topbar-avatar">
+            <mat-icon>account_circle</mat-icon>
+          </div>
+          <span class="topbar-username">{{ nombreUsuario }}</span>
+          <mat-icon class="topbar-chevron">expand_more</mat-icon>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenido de la página -->
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+
+  </div>
+</div>

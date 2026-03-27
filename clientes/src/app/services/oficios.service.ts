@@ -46,6 +46,8 @@ getOficios(): Observable<OficioModel[]> {
 }
 
 
+
+
   actualizarOficio(id: number, data: Partial<OficioModel>): Observable<any> {
     const body = {
       // Si en tu caso no querés cambiar el expediente, podés omitirlo

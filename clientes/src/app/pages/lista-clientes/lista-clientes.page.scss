@@ -1,435 +1,344 @@
-mat-toolbar {
-  background: #004a9f;
-  color: white;
+$c-white:    #ffffff;
+$c-bg:       #f0f2f7;
+$c-text:     #1e293b;
+$c-muted:    #64748b;
+$c-border:   #e2e8f0;
+$c-blue:     #1e40af;
+$c-blue-mid: #1e6fbe;
+$c-red:      #dc2626;
+$ease:       cubic-bezier(0.4, 0, 0.2, 1);
+
+// ============================================================
+// PAGE
+// ============================================================
+.page-wrapper {
+  font-family: 'Poppins', sans-serif;
+  color: $c-text;
 }
 
-mat-sidenav {
-  margin: 16px;
-  width: 200px;
-  border-right: none;
-  background: #002b5c;
-  color: white;
-  border-radius: 10px;
-  padding: 16px;
-  text-align: center;
+.page-header {
+  margin-bottom: 20px;
 }
 
-.content {
-  height: calc(100vh - 98px);
-  border-radius: 10px;
-  margin: 16px;
-  margin-left: 32px;
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: $c-text;
+  margin: 0;
+}
 
+// ============================================================
+// CARD CONTENEDOR
+// ============================================================
+.list-card {
+  background: $c-white;
+  border-radius: 14px;
+  border: 1px solid $c-border;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+// ============================================================
+// TOOLBAR
+// ============================================================
+.toolbar {
   display: flex;
-  justify-content: center;
   align-items: center;
-
-  font-size: 2rem;
-  font-family: 'Poppins', sans-serif; 
-
-  color: lightgray;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid $c-border;
+  flex-wrap: wrap;
 }
 
-mat-sidenav-container {
-  height: calc(100vh - 65px);
-}
-
-
-
-.menu-button {
-  width: 100%;
+.search-wrap {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  font-size: 1rem;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+  background: $c-bg;
+  border: 1.5px solid $c-border;
+  border-radius: 10px;
+  padding: 0 14px;
+  height: 40px;
+  transition: all 0.2s $ease;
 
-  mat-icon {
-    margin-right: 8px;
+  &:focus-within {
+    border-color: $c-blue-mid;
+    background: $c-white;
+    box-shadow: 0 0 0 3px rgba(30, 111, 190, 0.08);
+  }
+
+  .search-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: $c-muted;
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: 'Poppins', sans-serif;
+    color: $c-text;
+
+    &::placeholder { color: #94a3b8; }
   }
 }
 
-.avatar {
-  margin-top: 16px;
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-}
-
-.name {
-  margin-top: 8px;
-  font-weight: normal;
-}
-
-.designation {
-  margin-top: 2px;
-  font-size: 0.7rem;
-  color: lightgrey;
-}
-
-mat-divider {
-  margin-top: 16px;
-  margin-bottom: 16px;
-  background-color: rgba(255, 255, 255, 0.5);
-}
-
-
-/////////
-/// 
-/// 
-/// 
-/// 
-
-
-/* Estilos generales */
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  border: 1px solid #ebd248;
-  padding: 8px;
-  text-align: left;
-  background-color: #030303;
-}
-
-th {
-  background-color: #030303;
-}
-
-.icon-back {
-  margin-right: 10px;
-  margin-left: 10px;
-  width: 40px;
-}
-
-ion-content {
-  --background: none;
-  background-color: #000000;
-}
-
-.contenedor-imagen {
+.toolbar-actions {
   display: flex;
-  justify-content: center; /* Centra horizontalmente */
-  align-items: center; /* Centra verticalmente */
-  height: 100vh; /* Ocupa el 100% del alto de la pantalla */
+  align-items: center;
+  gap: 8px;
 }
 
-.contenedor-imagen img {
-  max-width: 100%; /* Ajusta el tamaño máximo de la imagen */
-  max-height: 100%; /* Ajusta el tamaño máximo de la imagen */
-}
-
-
-.contenedor-card {
+.btn {
   display: flex;
-  justify-content: center; /* Centra el ion-card horizontalmente */
-  width: 100%;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.18s $ease;
+  white-space: nowrap;
+
+  &--primary {
+    background: $c-blue;
+    color: $c-white;
+    padding: 9px 16px;
+    height: 40px;
+
+    mat-icon { font-size: 17px; width: 17px; height: 17px; }
+
+    &:hover {
+      background: darken($c-blue, 6%);
+      box-shadow: 0 3px 10px rgba(30, 64, 175, 0.3);
+    }
+  }
+
+  &--icon {
+    background: $c-bg;
+    color: $c-muted;
+    border: 1px solid $c-border;
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    padding: 0;
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+    &:hover { background: $c-border; color: $c-text; }
+  }
 }
 
-ion-card-content {
-  padding: 10px;
+// ============================================================
+// TABLA
+// ============================================================
+.table-wrap { overflow-x: auto; }
+
+.table-header {
   display: flex;
-  flex-direction: row;
-  justify-content: end;
-  overflow: hidden; /* Oculta el contenido que se desborda */
-  white-space: nowrap; /* Evita que el texto haga saltos de línea */
-  text-overflow: ellipsis; /* Agrega "..." al final del texto si es muy largo */
-  max-width: 100%; /* Evita que el contenido supere el ancho del card */
-
-
+  align-items: center;
+  padding: 10px 20px;
+  background: $c-bg;
+  border-bottom: 1px solid $c-border;
+  font-size: 11px;
+  font-weight: 600;
+  color: $c-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.btn-eliminar {
-  background-size: 20px;
-  padding-left: 30px; /* Espacio para el icono */
+.col-nombre { flex: 1; }
+.col-acciones { width: 80px; }
+
+// Skeleton
+.skeleton-row {
+  padding: 14px 20px;
+  border-bottom: 1px solid $c-border;
 }
 
+.skeleton-line {
+  height: 18px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
 
-.lista-clientes {
+  &.sk-name { width: 40%; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// Empty state
+.empty-state {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  width: calc(100% - 270px); /* 250px del menú lateral y 20px de margen */
-  height: 80vh;
-  //margin: 20px 20px 0 270px; /* Margen izquierdo para separar del menú y margen derecho */
-  border-radius: 15px;
-  box-shadow: 0 4px 8px rgba(221, 99, 99, 0.1);
-  overflow: hidden;
-  background-color: #002b5c;
-  //padding: 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: $c-muted;
+
+  mat-icon { font-size: 36px; width: 36px; height: 36px; }
+  p { font-size: 14px; margin: 0; }
 }
 
+// Filas
+.table-row {
+  border-bottom: 1px solid $c-border;
+  cursor: pointer;
+  transition: background 0.15s $ease;
 
-
-/* Estilo general del contenido */
-ion-content {
-  padding-top: 0; /* Asegura que no haya padding extra en la parte superior */
-  padding-right: 100%;
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f8fafc; }
+  &.expanded { background: #f8fafc; }
 }
 
-
-
-
-.button-icon {
-  width: 24px;
-  height: 24px;
-  margin-right: 8px;
-  vertical-align: middle;
-}
-
-
-
-
-
-.toolbar {
+.row-main {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Distribuye los elementos uniformemente */
-  gap: 10px; /* Espaciado entre los elementos */
-  margin-bottom: 10px; /* Espacio debajo de la barra */
+  gap: 14px;
+  padding: 12px 20px;
 }
 
-.toolbar ion-text {
-  flex-grow: 1; /* Hace que el texto ocupe el espacio disponible */
-  text-align: left;
-}
-
-.toolbar ion-button {
-  white-space: nowrap; /* Evita que los botones se partan en varias líneas */
-}
-
-.menu-button {
-  white-space: nowrap; /* Evita que los botones se partan en varias líneas */
-
-}
-
-
-////////////////
-/// 
-/// 
-/// 
-
-/* Contenedor de la barra de herramientas */
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* Alinea los elementos a los extremos */
-  gap: 10px; /* Espacio entre los elementos */
-  margin-bottom: 10px;
-}
-
-/* Entrada de búsqueda */
-.input-busqueda {
-  flex-grow: 1; /* Hace que ocupe todo el espacio disponible */
-  margin-right: 10px; /* Espacio entre la búsqueda y los botones */
-  margin-left: 10px; /* Mueve el input hacia la derecha */
-  --padding-start: 15px; /* Asegura que el texto no esté tan pegado al borde izquierdo */
-  background-color: #015dbb;
-  border-radius: 15px;
-}
-
-
-
-
-/* Botones */
-.list-button {
-  width: auto; /* Ajusta el tamaño de los botones */
-  padding: 8px 16px; /* Tamaño más pequeño */
-  font-size: 1rem; /* Ajusta el tamaño del texto */
+.cliente-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: $c-bg;
+  border: 1px solid $c-border;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-transform: uppercase;
-  font-weight: bold;
-  cursor: pointer;
-  height: auto; /* Ajusta la altura del botón */
+  font-size: 11px;
+  font-weight: 700;
+  color: $c-muted;
+  letter-spacing: 0.5px;
 }
 
-/* Alineación a la derecha para los botones */
-.toolbar button {
-  margin-left: auto; /* Mueve los botones hacia la derecha */
-}
-
-
-ion-item {
-  background-color: blue;
-  
-}
-
-
-/////
-/// 
-/// 
-/// 
-
-
-.titulo-expediente {
-  font-size: 1.4rem;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 5px;
-}
-
-.clientes-container {
-  padding: 5px;
-  border-left: 3px solid #4CAF50;
-  margin-left: 10px;
-  animation: fadeIn 0.5s ease-in-out;
+.cliente-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .cliente-nombre {
-  font-size: 1rem;
+  font-size: 13.5px;
   font-weight: 500;
-  color: #4CAF50;
-  margin: 3px 0;
-  opacity: 0.9;
-  transition: transform 0.3s ease-in-out;
+  color: $c-text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.cliente-nombre:hover {
-  transform: translateX(5px);
-  color: #388E3C;
+.cliente-email {
+  font-size: 12px;
+  color: $c-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s $ease;
+
+  .table-row:hover & { opacity: 1; }
 }
 
-.cliente-item {
-  background-color: #ff0000; /* Color de fondo deseado */
-}
+.action-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $c-muted;
+  transition: all 0.15s $ease;
 
-
-/* Asegúrate de que esta clase sea lo más específica posible */
-ion-item.cliente {
-background-color: #f0f0f0 !important; /* Usar !important para forzar el estilo */
-}
-
-ion-item.cliente h1 {
-color: #ffffff; /* Asegurarse de que el color del texto no cambie */
-}
-
-ion-item.cliente h6 {
-color: #666;
-}
-
-.lista-clientes {
---background: #002b5c;
-background-color: var(--background);
-}
-
-.cliente {
---ion-item-background: #002b5c;
-margin-bottom: 8px;
-
-}
-
-
-.lista-clientes {
-//max-height: 400px; /* Ajusta la altura máxima según lo necesites */
-overflow-y: auto; /* Permite la barra de desplazamiento vertical cuando sea necesario */
-}
-
-
-.lista-clientes-container {
-max-height: 400px; /* Ajusta la altura máxima según lo necesites */
-overflow-y: auto;  /* Permite la barra de desplazamiento vertical cuando sea necesario */
-}
-
-
-
-/* CAMBIOS DEL CHATGPT*/
-.menu-button, .list-button {
-  transition: all 0.3s ease;
-  border-radius: 8px;
+  mat-icon { font-size: 17px; width: 17px; height: 17px; }
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background: $c-bg;
+    color: $c-text;
   }
 
-  &:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-}
-
-
-
-.detalles-cliente {
-  margin-top: 8px;
-  font-size: 0.85rem;
-  color: #cfd8dc; // gris claro
-  animation: expandir 0.2s ease-in-out;
-}
-
-@keyframes expandir {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  &--danger:hover {
+    background: #fef2f2;
+    color: $c-red;
   }
 }
 
-
-
-
-.cliente-container {
-  background: #002b5c; // azul oscuro navy
-  color: #f8fafc; // casi blanco
-  padding: 15px 20px;
-  //border-radius: 12px;
-  //margin: 10px 0;
-  transition: background 0.3s ease;
-  border: 1px solid #334155; // gris azulado
+// Detalle expandido
+.row-detail {
+  padding: 10px 20px 14px 70px;
+  background: #f8fafc;
+  border-top: 1px solid $c-border;
 }
 
-.cliente-container:hover {
-  background: #01254e; // más clarito al pasar
+.detail-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: $c-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: block;
+  margin-bottom: 8px;
 }
 
-.cliente-header {
+.exp-list {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.exp-chip {
+  display: flex;
   align-items: center;
+  gap: 5px;
+  background: $c-white;
+  border: 1px solid $c-border;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: $c-text;
+
+  mat-icon { font-size: 13px; width: 13px; height: 13px; color: $c-blue-mid; }
 }
 
-.cliente-header h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: bold;
-  color: #e2e8f0;
+.no-exp {
+  font-size: 12.5px;
+  color: $c-muted;
+  font-style: italic;
 }
 
-.acciones button {
-  color: #94a3b8; // gris clarito
-}
-
-.acciones button:hover {
-  color: #facc15; // amarillo dorado (onda resaltado)
-}
-/*
-.detalles-cliente {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid #334155;
-  font-size: 14px;
-  color: #cbd5e1;
-}*/
-
-.scroll-viewport {
-  height: 75vh;
-  padding: 0 10px;
+// ============================================================
+// PAGINADOR — override Material para que pegue con el estilo
+// ============================================================
+::ng-deep .mat-mdc-paginator {
+  border-top: 1px solid $c-border;
+  background: $c-white;
+  border-radius: 0 0 14px 14px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
 }

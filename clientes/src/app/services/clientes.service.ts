@@ -33,30 +33,17 @@ export class ClientesService {
   limpiarClientes() {
     this.clientesSubject.next(null);
   }
+  
   // Método para obtener los clientes desde el servidor y emitir los datos
-getClientes() {
-  const usuario = this.usuarioService.usuarioLogeado;
-  const params = {
-    usuario_id: usuario!.id,
-    rol: usuario!.rol
-  };
+  getClientes() {
+    const usuario = this.usuarioService.usuarioLogeado;
+    const params = {
+      usuario_id: usuario!.id,
+      rol: usuario!.rol
+    };
 
-  if(this.clientesSubject.value && this.clientesSubject.value.length > 0){
-    //alert('ya estan cargados');
-     //return of(this.clientesSubject.value);
+    return this.http.get<ClienteModel[]>(this.apiUrl, { params });
   }
-
-  this.http.get<ClienteModel[]>(this.apiUrl, { params }).subscribe(
-    (clientes) => {
-      this.clientesSubject.next(clientes);
-    },
-    (error) => {
-      console.error('Error al obtener clientes:', error);
-    }
-  );
-
-  return this.clientes$;
-}
 
 
   // Método para obtener un cliente por su ID

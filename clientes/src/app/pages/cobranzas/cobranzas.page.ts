@@ -53,6 +53,8 @@ import Swal from 'sweetalert2';
 export class CobranzasPage implements OnInit {
 
   cargando: boolean = false;
+  cargandoCobros: boolean = false;  // flag para tabla de cobranzas
+  pendientesCobros: number = 0;     // contador de requests pendientes
   expedientes: any[] = [];
   expedientesOriginales: any[] = [];
 
@@ -89,24 +91,27 @@ export class CobranzasPage implements OnInit {
 
 ngOnInit() {
   this.cargarPagos();
+  this.cargarCobrosPorMes();
+}
 
+cargarCobrosPorMes(): void {
   const desdeAnio = 2016;
   const hoy = new Date();
   const hastaAnio = hoy.getFullYear();
   const hastaMes = hoy.getMonth() + 1;
 
   const mesesTemporales: string[] = [];
-
   for (let anio = desdeAnio; anio <= hastaAnio; anio++) {
     const mesFin = (anio === hastaAnio) ? hastaMes : 12;
-
     for (let mes = 1; mes <= mesFin; mes++) {
-      const clave = `${anio}-${mes.toString().padStart(2, '0')}`;
-      mesesTemporales.push(clave);
+      mesesTemporales.push(`${anio}-${mes.toString().padStart(2, '0')}`);
     }
   }
-
   this.mesesDisponibles = mesesTemporales.reverse();
+  this.cobrosPorMes = {}; // resetear
+
+  this.cargandoCobros = true;
+  this.pendientesCobros = this.mesesDisponibles.length;
 
   this.mesesDisponibles.forEach(mes => {
     const [anio, mesStr] = mes.split('-').map(Number);
@@ -135,17 +140,27 @@ ngOnInit() {
 
 
 obtenerCobrosPorMes(anio: number, mes: number, claveMes: string) {
-  this.expedienteService.obtenerTotalCobranzasPorMes(anio, mes).subscribe(totales => {
-
+  this.expedienteService.obtenerTotalCobranzasPorMes(anio, mes).subscribe({
+    next: (totales) => {
       this.cobrosPorMes[claveMes] = {
-        capital: totales.totalCapital,
-        honorarios: totales.totalHonorarios,
-        alzada: totales.totalAlzada,
-        ejecucion: totales.totalEjecucion,
-        diferencia: totales.totalDiferencia,
-        total: totales.totalGeneral
+        capital:    Number(totales.totalCapital    || 0),
+        honorarios: Number(totales.totalHonorarios || 0),
+        alzada:     Number(totales.totalAlzada     || 0),
+        ejecucion:  Number(totales.totalEjecucion  || 0),
+        diferencia: Number(totales.totalDiferencia || 0),
+        total:      Number(totales.totalGeneral    || 0),
       };
-    
+      this.pendientesCobros--;
+      if (this.pendientesCobros <= 0) {
+        this.cargandoCobros = false;
+      }
+    },
+    error: () => {
+      this.pendientesCobros--;
+      if (this.pendientesCobros <= 0) {
+        this.cargandoCobros = false;
+      }
+    }
   });
 }
 
@@ -316,7 +331,7 @@ async cargarPagoDialog(): Promise<void> {
 
 get totalCobranzas(): number {
   return Object.values(this.cobrosPorMes)
-    .reduce((acc, val) => acc + (val?.total || 0), 0);
+    .reduce((acc, val) => acc + Number(val?.total || 0), 0);
 }
 
 get totalPagosPorMes(): number {
@@ -325,11 +340,13 @@ get totalPagosPorMes(): number {
 }
 
 cambiarMenu(opcion: number): void {
-  if (opcion === 1) this.vista = 'cobranzas';
+  if (opcion === 1) {
+    this.vista = 'cobranzas';
+    this.cargarCobrosPorMes(); // recargar siempre al entrar
+  }
   if (opcion === 2) this.vista = 'pagosPorMes';
   if (opcion === 3) this.vista = 'historial';
   if (opcion === 4) this.vista = 'menu';
-
 }
 
 async eliminarPago(p: Pago): Promise<void> {

@@ -1,77 +1,115 @@
-<div class="content mat-elevation-z8">
+<div class="page-wrapper">
 
-  <ion-list class="lista-clientes">
+  <div class="page-header">
+    <h1 class="page-title">Expedientes</h1>
+  </div>
 
+  <div class="list-card">
+
+    <!-- Toolbar -->
     <div class="toolbar">
-      <input 
-        placeholder="Buscar"
-        class="input-busqueda"
-        [(ngModel)]="busqueda"
-        (keyup.enter)="filtrar()">
-    
-      <!-- Mostrar solo si hay texto -->
-      <button *ngIf="busqueda" mat-button class="list-button" (click)="busqueda = ''; filtrar()">
-        <mat-icon style="color:#ffffff">close</mat-icon>
-      </button>
-    
-      <!-- Buscar -->
-      <button mat-button class="list-button" (click)="filtrar()">
-        <mat-icon style="color:#ffffff">search</mat-icon>
-      </button>
-    
-      <!-- Resto de botones -->
-      <button mat-button class="list-button" (click)="abrirDialog()" *ngIf="verificarRol()">
-        <mat-icon style="color: #ffffff">person_add</mat-icon>
-      </button>
-    
-      <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff">download</mat-icon>
-      </button>
-    
-      <button mat-button class="list-button">
-        <mat-icon style="color: #ffffff" >more_vert</mat-icon>
-      </button>
-    </div>
-   
-    <div>
-       <!-- FUERA de ion-list (no es compatible) -->
-<cdk-virtual-scroll-viewport itemSize="100" class="scroll-viewport" *ngIf="expedientes && expedientes.length > 0">
-  <div *cdkVirtualFor="let expediente of expedientes; trackBy: trackByExpedientes" class="expediente-container">
-    
-    <div class="expediente-header">
-      <h2 *ngIf="expediente.caratula">
-        <ng-container *ngIf="expediente.tipo_registro !== 'mediacion'">
-          {{ expediente.numero }}/{{ expediente.anio }}
-        </ng-container>
-        {{ expediente.caratula }}
-      </h2>
-
-  
-
-      <div class="acciones">
-        <button mat-icon-button class="list-button" (click)="eliminarExpediente(expediente); $event.stopPropagation()" *ngIf="verificarRol()">
-          <mat-icon style="color: #ffffff">delete</mat-icon>
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="search-input"
+          placeholder="Buscar expediente..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="filtrar()"
+          (keyup.enter)="filtrar()"
+        />
+        <button class="clear-btn" *ngIf="busqueda" (click)="busqueda = ''; filtrar()">
+          <mat-icon>close</mat-icon>
         </button>
+      </div>
 
-        <button mat-icon-button class="list-button" (click)="abrirModificar(expediente); $event.stopPropagation()" *ngIf="verificarRol()">
-          <mat-icon style="color: #ffffff">edit</mat-icon>
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="abrirDialog()" *ngIf="verificarRol()">
+          <mat-icon>add</mat-icon>
+          <span>Nuevo Expediente</span>
+        </button>
+        <button class="btn btn--icon" matTooltip="Descargar">
+          <mat-icon>download</mat-icon>
+        </button>
+        <button class="btn btn--icon" matTooltip="Más opciones">
+          <mat-icon>more_vert</mat-icon>
         </button>
       </div>
     </div>
 
+    <!-- Tabla -->
+    <div class="table-wrap">
 
+      <!-- Header -->
+      <div class="table-header">
+        <div class="col-num">Nº expediente</div>
+        <div class="col-caratula">Carátula</div>
+        <div class="col-acciones"></div>
+      </div>
 
-  </div>
-</cdk-virtual-scroll-viewport>
+      <!-- Skeleton -->
+      <ng-container *ngIf="cargando">
+        <div class="skeleton-row" *ngFor="let _ of skeletonRows">
+          <div class="skeleton-line sk-num"></div>
+          <div class="skeleton-line sk-caratula"></div>
+        </div>
+      </ng-container>
 
+      <!-- Empty state -->
+      <div class="empty-state" *ngIf="!cargando && expedientesPaginados.length === 0">
+        <mat-icon>folder_open</mat-icon>
+        <p>No se encontraron expedientes</p>
+      </div>
 
+      <!-- Filas -->
+      <ng-container *ngIf="!cargando && expedientesPaginados.length > 0">
+        <div class="table-row"
+          *ngFor="let exp of expedientesPaginados; trackBy: trackByExpedientes">
 
-<ion-item *ngIf="expedientes && expedientes.length === 0">
-  <ion-label text-center>{{ texto || 'No hay expedientes disponibles' }}</ion-label>
-</ion-item>
+          <div class="row-main">
+            <div class="col-num">
+              <span class="exp-num" *ngIf="exp.tipo_registro !== 'mediacion'">
+                {{ exp.numero }}/{{ exp.anio }}
+              </span>
+              <span class="exp-badge exp-badge--mediacion" *ngIf="exp.tipo_registro === 'mediacion'">
+                Mediación
+              </span>
+            </div>
 
+            <div class="col-caratula">
+              <span class="caratula-text">{{ exp.caratula }}</span>
+              <div class="caratula-meta" *ngIf="exp.estado">
+                <span class="estado-chip" [ngClass]="'estado-' + exp.estado?.toLowerCase()?.replace(' ', '-')">
+                  {{ exp.estado }}
+                </span>
+              </div>
+            </div>
+
+            <div class="col-acciones" (click)="$event.stopPropagation()">
+              <button class="action-icon-btn" matTooltip="Editar"
+                *ngIf="verificarRol()" (click)="abrirModificar(exp)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar"
+                *ngIf="verificarRol()" (click)="eliminarExpediente(exp)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </ng-container>
     </div>
 
-  </ion-list>
+    <!-- Paginador -->
+    <mat-paginator
+      *ngIf="!cargando"
+      [length]="expedientes.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[15, 30, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
 
+  </div>
 </div>

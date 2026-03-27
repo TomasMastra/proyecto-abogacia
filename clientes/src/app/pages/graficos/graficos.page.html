@@ -1,38 +1,62 @@
-<ion-toolbar color="primary">
-  <ion-title class="titulo-centrado">Gráficos de Gestión</ion-title>
-</ion-toolbar>
+<div class="page-wrapper">
 
-<ion-content class="ion-padding">
+  <div class="page-header">
+    <h1 class="page-title">Gráficos de gestión</h1>
+  </div>
 
-  <div class="selector-container">
-    <label for="tipoGrafico">Mostrar:</label>
-    <select [(ngModel)]="tipoGrafico" id="tipoGrafico">
-      <option value="cobros">Total Cobrado por Mes</option>
-      <option value="demandados">Cantidad de Demandados</option>
-    </select>
-
-    <div *ngIf="tipoGrafico === 'demandados'">
-      <select [(ngModel)]="mesSeleccionado" (change)="actualizarDemandadosPorNombreEnMes(mesSeleccionado)">
-        <option *ngFor="let mes of mesesDisponibles" [value]="mes">{{ mes }}</option>
-      </select>
+  <div class="controls-card">
+    <div class="control-group">
+      <label class="control-label">Mostrar</label>
+      <div class="select-wrap">
+        <mat-icon class="select-icon">bar_chart</mat-icon>
+        <select [(ngModel)]="tipoGrafico" class="custom-select">
+          <option value="">Seleccioná un gráfico</option>
+          <option value="cobros">Total cobrado por mes</option>
+          <option value="demandados">Cantidad de demandados</option>
+        </select>
+        <mat-icon class="select-arrow">expand_more</mat-icon>
       </div>
+    </div>
+
+    <div class="control-group" *ngIf="tipoGrafico === 'demandados'">
+      <label class="control-label">Mes</label>
+      <div class="select-wrap">
+        <mat-icon class="select-icon">calendar_month</mat-icon>
+        <select
+          [(ngModel)]="mesSeleccionado"
+          (change)="actualizarDemandadosPorNombreEnMes(mesSeleccionado)"
+          class="custom-select">
+          <option *ngFor="let mes of mesesDisponibles" [value]="mes">{{ mes }}</option>
+        </select>
+        <mat-icon class="select-arrow">expand_more</mat-icon>
+      </div>
+    </div>
   </div>
 
-  <div class="chart-container">
-    <app-chart-cobranzas
-      *ngIf="tipoGrafico === 'cobros'"
-      [cobrosPorMes]="cobrosPorMes"
-    ></app-chart-cobranzas>
-
-
-
-
-<app-chart-cobranzas
-  *ngIf="tipoGrafico === 'demandados'"
-  [demandadosPorNombre]="demandadosPorNombre">
-</app-chart-cobranzas>
-
-
-
+  <!-- Estado vacío -->
+  <div class="empty-state" *ngIf="!tipoGrafico">
+    <mat-icon>insert_chart_outlined</mat-icon>
+    <p>Seleccioná un tipo de gráfico para comenzar</p>
   </div>
-</ion-content>
+
+  <!-- Gráfico -->
+  <div class="chart-card" *ngIf="tipoGrafico">
+    <div class="chart-header">
+      <h2 class="chart-title">
+        {{ tipoGrafico === 'cobros' ? 'Total cobrado por mes' : 'Demandados en ' + mesSeleccionado }}
+      </h2>
+    </div>
+    <div class="chart-body">
+      <app-chart-cobranzas
+        *ngIf="tipoGrafico === 'cobros'"
+        [cobrosPorMes]="cobrosPorMes">
+      </app-chart-cobranzas>
+
+      <app-chart-cobranzas
+        *ngIf="tipoGrafico === 'demandados'"
+        [demandadosPorNombre]="demandadosPorNombre">
+      </app-chart-cobranzas>
+    </div>
+  </div>
+
+</div>

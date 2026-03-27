@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 
 @Component({
   selector: 'app-informes-enre',
@@ -14,7 +15,8 @@ import { MatIconModule } from '@angular/material/icon';
     CommonModule,
     FormsModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatPaginatorModule,
   ]
 })
 export class InformesEnrePage {
@@ -48,6 +50,24 @@ export class InformesEnrePage {
   expedienteSeleccionado: any = null;
 
   formModal: any = this.getFormVacio();
+
+  // Paginador — uno por tab
+  pageSize = 20;
+  pageIndexReactivar = 0;
+  pageIndexTramite = 0;
+  pageIndexConCortes = 0;
+  pageIndexSinCortes = 0;
+  skeletonRows = Array(this.pageSize).fill(0);
+
+  get listaParaReactivarPaginada() { const s = this.pageIndexReactivar * this.pageSize; return this.listaParaReactivar.slice(s, s + this.pageSize); }
+  get listaEnTramitePaginada()     { const s = this.pageIndexTramite   * this.pageSize; return this.listaEnTramite.slice(s, s + this.pageSize); }
+  get listaConCortesPaginada()     { const s = this.pageIndexConCortes * this.pageSize; return this.listaConCortes.slice(s, s + this.pageSize); }
+  get listaSinCortesPaginada()     { const s = this.pageIndexSinCortes * this.pageSize; return this.listaSinCortes.slice(s, s + this.pageSize); }
+
+  onPageReactivar(e: any)  { this.pageSize = e.pageSize; this.pageIndexReactivar = e.pageIndex; }
+  onPageTramite(e: any)    { this.pageSize = e.pageSize; this.pageIndexTramite   = e.pageIndex; }
+  onPageConCortes(e: any)  { this.pageSize = e.pageSize; this.pageIndexConCortes = e.pageIndex; }
+  onPageSinCortes(e: any)  { this.pageSize = e.pageSize; this.pageIndexSinCortes = e.pageIndex; }
 
   constructor(private expedientesService: ExpedientesService) {}
 

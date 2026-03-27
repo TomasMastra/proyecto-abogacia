@@ -1,52 +1,92 @@
-<div class="content mat-elevation-z8">
-  <ion-list class="lista-clientes">
+<div class="page-wrapper">
 
+  <div class="page-header">
+    <h1 class="page-title">Juzgados</h1>
+  </div>
+
+  <div class="list-card">
+
+    <!-- Toolbar -->
     <div class="toolbar">
-      <input
-        placeholder="Buscar juzgado"
-        class="input-busqueda"
-        [(ngModel)]="busqueda"
-        (ngModelChange)="buscar()">
-
-      <button mat-button class="list-button" (click)="abrirDialog()">
-        <mat-icon style="color:#ffffff">cases</mat-icon>
-        <span style="color:#ffffff">Agregar juzgado</span>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color:#ffffff">download</mat-icon>
-      </button>
-
-      <button mat-button class="list-button">
-        <mat-icon style="color:#ffffff">more_vert</mat-icon>
-      </button>
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="search-input"
+          placeholder="Buscar juzgado..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="buscar()"
+        />
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="abrirDialog()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar juzgado</span>
+        </button>
+      </div>
     </div>
 
-    <div>
-      <ion-item-sliding *ngFor="let juzgado of juzgados" class="cliente">
-        <ion-item class="cliente" *ngIf="hayJuzgados && juzgados.length > 0">
+    <!-- Tabla -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Datos -->
+          <ng-container *ngIf="!cargando && juzgados.length > 0">
+            <tr *ngFor="let juzgado of listaPaginada">
+              <td class="td-nombre">{{ juzgado.nombre }}</td>
+              <td>
+                <span class="tipo-chip" *ngIf="juzgado.tipo">{{ juzgado.tipo }}</span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar" (click)="abrirModificar(juzgado)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar" (click)="eliminarJuzgado(juzgado)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
 
-          <div style="width:100%; display:flex; justify-content:space-between; align-items:center">
-            <h1 style="margin:0">{{ juzgado.nombre }}</h1>
+            <ng-container *ngIf="cargando">
+            <tr class="skeleton-table-row" *ngFor="let _ of [].constructor(20)">
+              <td><div class="skeleton-cell sk-lg"></div></td>
+              <td><div class="skeleton-cell sk-sm"></div></td>
+              <td><div class="skeleton-cell sk-xs"></div></td>
+            </tr>
+          </ng-container>
 
-            <div style="display:flex; gap:8px">
-              <button mat-button class="list-button" (click)="eliminarJuzgado(juzgado)">
-                <mat-icon style="color:#ffffff">delete</mat-icon>
-              </button>
+            <!-- Empty state -->
+             <ng-container>
+            <tr *ngIf="listaPaginada.length === 0 && !cargando">
+              <td colspan="3" class="empty-row">
+                <mat-icon>account_balance</mat-icon>
+                No se encontraron juzgados
+              </td>
+            </tr>
+             </ng-container>
 
-              <button mat-button class="list-button" (click)="abrirModificar(juzgado)">
-                <mat-icon style="color:#ffffff">edit</mat-icon>
-              </button>
-            </div>
-          </div>
-
-        </ion-item>
-      </ion-item-sliding>
-
-      <ion-item *ngIf="!hayJuzgados && juzgados.length <= 0" class="cliente">
-        <ion-label text-center>{{ texto }}</ion-label>
-      </ion-item>
+        </tbody>
+      </table>
     </div>
 
-  </ion-list>
+    <!-- Paginador -->
+    <mat-paginator
+      [length]="juzgados.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
 </div>

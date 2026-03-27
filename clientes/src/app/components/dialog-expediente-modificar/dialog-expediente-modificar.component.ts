@@ -73,7 +73,7 @@ export class DialogExpedienteModificarComponent implements OnInit, OnDestroy {
   mode: 'expediente' | 'mediacion' = 'expediente';
 
   // estados
-  estadosMediacion = ['Pendiente','Continua','Cerrado con acuerdo','Cerrado sin acuerdo'];
+  estadosMediacion = ['Pendiente','Continua','Cerrado con acuerdo','Cerrado sin acuerdo', 'Cerrado sin acuerdo - acta pendiente', 'Cerrado sin acuerdo - acta firmada'];
 
   estadosVisibles: string[] = [];
 

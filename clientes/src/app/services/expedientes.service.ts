@@ -78,22 +78,16 @@ const usuario = this.usuarioService.usuarioLogeado;
 
 getExpedientes() {
   const usuario = this.usuarioService.usuarioLogeado;
-  const params = { usuario_id: usuario!.id, rol: usuario!.rol };
-
-  this.http.get<any[]>(this.apiUrl, { params }).subscribe({
-    next: (expedientes) => {
-      (expedientes ?? []).forEach(e => {
-        e.clientes = [];
-        e.demandados = [];
-      });
-      this.expedientesSubject.next(expedientes ?? []);
-    },
-    error: () => {
-      this.expedientesSubject.next([]);
-    }
-  });
-
-  return this.clientes$; 
+  const params = { usuario_id: usuario!.id, rol: usuario!.rol }
+  return this.http.get<any[]>(this.apiUrl, { params }).pipe(
+    map((expedientes) => {
+      return (expedientes ?? []).map(e => ({
+        ...e,
+        clientes: [],
+        demandados: []
+      }));
+    })
+  );
 }
 
 
@@ -659,25 +653,27 @@ getCobranzasDetallePorMes(anio: number, mes: number) {
   });
 }
 
-getMediaciones() {
+getMediaciones(): Observable<any[]> {
   const usuario = this.usuarioService.usuarioLogeado;
   const params = { usuario_id: usuario!.id, rol: usuario!.rol };
 
-this.http.get<any[]>(`${this.apiUrl}/mediaciones`, { params }).subscribe({
-      next: (expedientes) => {
-      (expedientes ?? []).forEach(e => {
-        e.clientes = [];
-        e.demandados = [];
-      });
-      this.expedientesSubject.next(expedientes ?? []);
-    },
-    error: () => {
-      this.expedientesSubject.next([]);
-    }
-  });
-
-  return this.clientes$; 
+  // Retornamos directamente el observable del GET
+  return this.http.get<any[]>(`${this.apiUrl}/mediaciones`, { params }).pipe(
+    map(expedientes => {
+      // Si quieres mantener la lógica de inicializar clientes/demandados:
+      return (expedientes ?? []).map(e => ({
+        ...e,
+        clientes: [],
+        demandados: []
+      }));
+    }),
+    catchError(error => {
+      console.error('Error al obtener mediaciones', error);
+      return of([]); // Devuelve un array vacío en caso de error
+    })
+  );
 }
+
 
 getInformeEnre() {
   const url = `${this.apiUrl}/informes`;

@@ -1,357 +1,164 @@
-mat-toolbar {
-    background: #004a9f;
-    color: white;
-  }
-  
-  mat-sidenav {
-    margin: 16px;
-    width: 200px;
-    border-right: none;
-    background: #002b5c;
-    color: white;
-    border-radius: 10px;
-    padding: 16px;
-    text-align: center;
-  }
-  
-  .content {
-    height: calc(100vh - 98px);
-    border-radius: 10px;
-    margin: 16px;
-    margin-left: 32px;
-  
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  
-    font-size: 2rem;
-    color: lightgray;
-    font-family: 'Poppins', sans-serif; 
+$c-white:    #ffffff;
+$c-bg:       #f0f2f7;
+$c-text:     #1e293b;
+$c-muted:    #64748b;
+$c-border:   #e2e8f0;
+$c-blue:     #1e40af;
+$c-blue-mid: #1e6fbe;
+$c-red:      #dc2626;
+$ease:       cubic-bezier(0.4, 0, 0.2, 1);
 
+.page-wrapper { font-family: 'Poppins', sans-serif; color: $c-text; }
+.page-header  { margin-bottom: 20px; }
+.page-title   { font-size: 1.6rem; font-weight: 700; color: $c-text; margin: 0; }
+
+// ── Card ──────────────────────────────────────────────────────
+.list-card {
+  background: $c-white;
+  border-radius: 14px;
+  border: 1px solid $c-border;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+// ── Toolbar ───────────────────────────────────────────────────
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid $c-border;
+  flex-wrap: wrap;
+}
+
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+  background: $c-bg;
+  border: 1.5px solid $c-border;
+  border-radius: 10px;
+  padding: 0 14px;
+  height: 40px;
+  transition: all 0.2s $ease;
+
+  &:focus-within {
+    border-color: $c-blue-mid;
+    background: $c-white;
+    box-shadow: 0 0 0 3px rgba(30,111,190,0.08);
   }
-  
-  mat-sidenav-container {
-    height: calc(100vh - 65px);
+
+  .search-icon { font-size: 17px; width: 17px; height: 17px; color: $c-muted; flex-shrink: 0; }
+  .search-input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-size: 13px; font-family: 'Poppins', sans-serif; color: $c-text;
+    &::placeholder { color: #94a3b8; }
   }
-  
-  
-  
-  .menu-button {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    font-size: 1rem;
-  
-    mat-icon {
-      margin-right: 8px;
-    }
+}
+
+.toolbar-actions { display: flex; align-items: center; gap: 8px; }
+
+.btn {
+  display: flex; align-items: center; gap: 7px;
+  border: none; border-radius: 9px; cursor: pointer;
+  font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 500;
+  transition: all 0.18s $ease; white-space: nowrap;
+
+  &--primary {
+    background: $c-blue; color: $c-white; padding: 9px 16px; height: 40px;
+    mat-icon { font-size: 17px; width: 17px; height: 17px; }
+    &:hover { background: darken($c-blue, 6%); box-shadow: 0 3px 10px rgba(30,64,175,0.3); }
   }
-  
-  .avatar {
-    margin-top: 16px;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-  }
-  
-  .name {
-    margin-top: 8px;
-    font-weight: normal;
-  }
-  
-  .designation {
-    margin-top: 2px;
-    font-size: 0.7rem;
-    color: lightgrey;
-  }
-  
-  mat-divider {
-    margin-top: 16px;
-    margin-bottom: 16px;
-    background-color: rgba(255, 255, 255, 0.5);
-  }
-  
-  
-  /////////
-  /// 
-  /// 
-  /// 
-  /// 
-  
-  
-  /* Estilos generales */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  th, td {
-    border: 1px solid #ebd248;
-    padding: 8px;
-    text-align: left;
-    background-color: #030303;
-  }
-  
+}
+
+// ── Tabla ─────────────────────────────────────────────────────
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; font-family: 'Poppins', sans-serif;
+}
+
+thead tr {
+  background: $c-bg; border-bottom: 2px solid $c-border;
   th {
-    background-color: #030303;
+    padding: 10px 16px;
+    font-size: 11px; font-weight: 600; color: $c-muted;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    text-align: left; white-space: nowrap;
   }
-  
-  .icon-back {
-    margin-right: 10px;
-    margin-left: 10px;
-    width: 40px;
-  }
-  
-  ion-content {
-    --background: none;
-    background-color: #000000;
-  }
-  
-  .contenedor-imagen {
-    display: flex;
-    justify-content: center; /* Centra horizontalmente */
-    align-items: center; /* Centra verticalmente */
-    height: 100vh; /* Ocupa el 100% del alto de la pantalla */
-  }
-  
-  .contenedor-imagen img {
-    max-width: 100%; /* Ajusta el tamaño máximo de la imagen */
-    max-height: 100%; /* Ajusta el tamaño máximo de la imagen */
-  }
-  
-  
-  .contenedor-card {
-    display: flex;
-    justify-content: center; /* Centra el ion-card horizontalmente */
-    width: 100%;
-  }
-  
-  ion-card-content {
-    padding: 10px;
-    display: flex;
-    flex-direction: row;
-    justify-content: end;
-    overflow: hidden; /* Oculta el contenido que se desborda */
-    white-space: nowrap; /* Evita que el texto haga saltos de línea */
-    text-overflow: ellipsis; /* Agrega "..." al final del texto si es muy largo */
-    max-width: 100%; /* Evita que el contenido supere el ancho del card */
-  
-  
-  }
-  
-  .btn-eliminar {
-    background-size: 20px;
-    padding-left: 30px; /* Espacio para el icono */
-  }
-  
-  
-  .lista-clientes {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-    width: calc(100% - 270px); /* 250px del menú lateral y 20px de margen */
-    height: 80vh;
-    //margin: 20px 20px 0 270px; /* Margen izquierdo para separar del menú y margen derecho */
-    border-radius: 15px;
-    box-shadow: 0 4px 8px rgba(221, 99, 99, 0.1);
-    overflow: hidden;
-    background-color: #002b5c;
-    //padding: 20px;
-  }
-  
-  
-  
-  /* Estilo general del contenido */
-  ion-content {
-    padding-top: 0; /* Asegura que no haya padding extra en la parte superior */
-    padding-right: 100%;
-  }
-  
-  
-  
-  
-  .button-icon {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
-    vertical-align: middle;
-  }
-  
-  
-  
-  
-  
-  .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* Distribuye los elementos uniformemente */
-    gap: 10px; /* Espaciado entre los elementos */
-    margin-bottom: 10px; /* Espacio debajo de la barra */
-  }
-  
-  .toolbar ion-text {
-    flex-grow: 1; /* Hace que el texto ocupe el espacio disponible */
-    text-align: left;
-  }
-  
-  .toolbar ion-button {
-    white-space: nowrap; /* Evita que los botones se partan en varias líneas */
-  }
-  
-  .menu-button {
-    white-space: nowrap; /* Evita que los botones se partan en varias líneas */
-  
-  }
-  
-  
-  ////////////////
-  /// 
-  /// 
-  /// 
-  
-  /* Contenedor de la barra de herramientas */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between; /* Alinea los elementos a los extremos */
-    gap: 10px; /* Espacio entre los elementos */
-    margin-bottom: 10px;
-  }
-  
-  /* Entrada de búsqueda */
-  .input-busqueda {
-    flex-grow: 1; /* Hace que ocupe todo el espacio disponible */
-    margin-right: 10px; /* Espacio entre la búsqueda y los botones */
-    margin-left: 10px; /* Mueve el input hacia la derecha */
-    --padding-start: 15px; /* Asegura que el texto no esté tan pegado al borde izquierdo */
-    background-color: #015dbb;
-    border-radius: 15px;
-  }
-  
-  
-  
-  
-  /* Botones */
-  .list-button {
-    width: auto; /* Ajusta el tamaño de los botones */
-    padding: 8px 16px; /* Tamaño más pequeño */
-    font-size: 1rem; /* Ajusta el tamaño del texto */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-transform: uppercase;
-    font-weight: bold;
-    cursor: pointer;
-    height: auto; /* Ajusta la altura del botón */
-  }
-  
-  /* Alineación a la derecha para los botones */
-  .toolbar button {
-    margin-left: auto; /* Mueve los botones hacia la derecha */
-  }
-  
-  
-  ion-item {
-    background-color: blue;
-    
-  }
-  
-  
-  /////
-  /// 
-  /// 
-  /// 
-  
-  
-  .titulo-expediente {
-    font-size: 1.4rem;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 5px;
-  }
-  
-  .clientes-container {
-    padding: 5px;
-    border-left: 3px solid #4CAF50;
-    margin-left: 10px;
-    animation: fadeIn 0.5s ease-in-out;
-  }
-  
-  .cliente-nombre {
-    font-size: 1rem;
-    font-weight: 500;
-    color: #4CAF50;
-    margin: 3px 0;
-    opacity: 0.9;
-    transition: transform 0.3s ease-in-out;
-  }
-  
-  .cliente-nombre:hover {
-    transform: translateX(5px);
-    color: #388E3C;
-  }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateX(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-  
-  .cliente-item {
-    background-color: #ff0000; /* Color de fondo deseado */
-  }
-  
-  
-  /* Asegúrate de que esta clase sea lo más específica posible */
-  ion-item.cliente {
-  background-color: #f0f0f0 !important; /* Usar !important para forzar el estilo */
-  }
-  
-  ion-item.cliente h1 {
-  color: #ffffff; /* Asegurarse de que el color del texto no cambie */
-  }
-  
-  ion-item.cliente h6 {
-  color: #666;
-  }
-  
-  .lista-clientes {
-  --background: #002b5c;
-  background-color: var(--background);
-  }
-  
-  .cliente {
-  --ion-item-background: #002b5c;
-  margin-bottom: 8px;
-  
-  }
-  
-  
-  .lista-clientes {
-  //max-height: 400px; /* Ajusta la altura máxima según lo necesites */
-  overflow-y: auto; /* Permite la barra de desplazamiento vertical cuando sea necesario */
-  }
-  
-  
-  .lista-clientes-container {
-  max-height: 400px; /* Ajusta la altura máxima según lo necesites */
-  overflow-y: auto;  /* Permite la barra de desplazamiento vertical cuando sea necesario */
-  }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+}
+
+tbody tr {
+  border-bottom: 1px solid $c-border;
+  background: $c-white;
+  transition: background 0.15s $ease;
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f8fafc; }
+  &:hover .row-actions { opacity: 1; }
+}
+
+td { padding: 12px 16px; color: $c-text; vertical-align: middle; }
+
+.td-nombre { font-weight: 600; }
+
+.tipo-chip {
+  display: inline-block; padding: 2px 9px; border-radius: 20px;
+  font-size: 11.5px; font-weight: 600;
+  background: #eff6ff; color: $c-blue; border: 1px solid #bfdbfe;
+}
+
+.row-actions {
+  display: flex; align-items: center; gap: 4px;
+  opacity: 0; transition: opacity 0.15s $ease;
+  justify-content: flex-end;
+}
+
+.action-icon-btn {
+  background: transparent; border: none; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  color: $c-muted; transition: all 0.15s $ease;
+  mat-icon { font-size: 17px; width: 17px; height: 17px; }
+  &:hover { background: $c-bg; color: $c-text; }
+  &--danger:hover { background: #fef2f2; color: $c-red; }
+}
+
+// ── Skeleton ──────────────────────────────────────────────────
+.skeleton-table-row td {
+  padding: 14px 16px;
+  border-bottom: 1px solid $c-border;
+}
+
+.skeleton-cell {
+  height: 14px; border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  &.sk-xs  { width: 60px; }
+  &.sk-sm  { width: 100px; }
+  &.sk-md  { width: 160px; }
+  &.sk-lg  { width: 240px; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+// ── Empty state ───────────────────────────────────────────────
+.empty-row {
+  text-align: center; padding: 48px 20px !important; color: $c-muted;
+  mat-icon { font-size: 32px; width: 32px; height: 32px; display: block; margin: 0 auto 8px; opacity: 0.35; }
+}
+
+// ── Paginador ─────────────────────────────────────────────────
+::ng-deep .mat-mdc-paginator {
+  border-top: 1px solid $c-border;
+  background: $c-white;
+  border-radius: 0 0 14px 14px;
+  font-family: 'Poppins', sans-serif;
+}

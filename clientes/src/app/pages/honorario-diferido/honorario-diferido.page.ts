@@ -19,6 +19,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatSelectModule } from '@angular/material/select';
 import { MatOptionModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
 
 import { IonList, IonItemSliding, IonLabel, IonItem, IonInput } from "@ionic/angular/standalone";
@@ -48,6 +49,7 @@ import Swal from 'sweetalert2'
       MatFormFieldModule, MatToolbarModule, MatIconModule, MatDividerModule, MatMenuModule, MatProgressSpinnerModule,
       MatSelectModule,
       MatOptionModule,
+      MatPaginatorModule,
     ]
 })
 export class HonorarioDiferidoPage implements OnInit, OnDestroy {
@@ -72,7 +74,10 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
   usuariosCargados = false;
   expedientesCargados = false;
 
-  cantidadVisible = 30;
+  // Paginador
+  pageSize: number = 20;
+  pageIndex: number = 0;
+  honorariosPaginados: any[] = [];
 
 
   //usuariosCargados = false;
@@ -861,6 +866,8 @@ aplicarFiltros() {
 
     return estadoCoincide && busquedaOk && procuradorOk && this.esVisible(expediente);
   });
+  this.pageIndex = 0;
+  this.actualizarPagina();
 }
 
 /*
@@ -1043,12 +1050,16 @@ restaurarCobro(item: any) {
   });
 }
 
-get honorariosVisibles() {
-  return this.honorariosDiferidos.slice(0, this.cantidadVisible);
+// Paginador
+actualizarPagina(): void {
+  const start = this.pageIndex * this.pageSize;
+  this.honorariosPaginados = this.honorariosDiferidos.slice(start, start + this.pageSize);
 }
 
-cargarMas() {
-  this.cantidadVisible += 30;
+onPageChange(event: PageEvent): void {
+  this.pageSize = event.pageSize;
+  this.pageIndex = event.pageIndex;
+  this.actualizarPagina();
 }
 
 }

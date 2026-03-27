@@ -1,36 +1,43 @@
 <div class="content mat-elevation-z8">
 
-
   <!-- Menú principal -->
-<!-- MENÚ PRINCIPAL DE PRUEBAS -->
 <div *ngIf="menu === 0" class="menu-pruebas">
-  <!-- Oficios -->
+
   <button class="card-btn" (click)="cambiarMenu(1)" aria-label="Oficios">
-    <div class="card-img">
-      <img src="../../../assets/botones/oficios.png" alt="Oficios" />
-      <span class="card-title">Oficios</span>
+    <div class="menu-card-icon menu-card-icon--blue">
+      <mat-icon>mail</mat-icon>
     </div>
-  </button>
-  <!-- Testimoniales -->
-  <button class="card-btn" (click)="cambiarMenu(2)" aria-label="Testimoniales">
-    <div class="card-img">
-      <img src="../../../assets/botones/testimoniales.png" alt="Testimoniales" />
-      <span class="card-title">Testimoniales</span>
-    </div>
+    <span class="card-title">Oficios</span>
+    <span class="card-subtitle">+ Nuevo Oficio</span>
   </button>
 
-  <!-- Pericias -->
-  <button class="card-btn" (click)="cambiarMenu(3)" aria-label="Pericias">
-    <div class="card-img">
-      <img src="../../../assets/botones/pericias.png" alt="Pericias" />
-      <span class="card-title">Pericias</span>
+  <button class="card-btn" (click)="cambiarMenu(2)" aria-label="Testimoniales">
+    <div class="menu-card-icon menu-card-icon--purple">
+      <mat-icon>record_voice_over</mat-icon>
     </div>
+    <span class="card-title">Testimoniales</span>
+    <span class="card-subtitle">+ Nuevo Testimonial</span>
   </button>
+
+  <button class="card-btn" (click)="cambiarMenu(3)" aria-label="Pericias">
+    <div class="menu-card-icon menu-card-icon--green">
+      <mat-icon>manage_search</mat-icon>
+    </div>
+    <span class="card-title">Pericias</span>
+    <span class="card-subtitle">+ Nueva Pericia</span>
+  </button>
+
 </div>
 
 
 <!-- Oficios -->
 <div *ngIf="menu === 1">
+    <div class="card-toolbar card-toolbar--pruebas">
+    <button class="back-btn" type="button" (click)="cambiarMenu(0)">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Volver</span>
+    </button>
+  </div>
   <form [formGroup]="form" class="form-container">
 
     <div class="section">
@@ -131,6 +138,12 @@
 
   <!-- Testimoniales -->
 <div *ngIf="menu === 2">
+    <div class="card-toolbar card-toolbar--pruebas">
+    <button class="back-btn" type="button" (click)="cambiarMenu(0)">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Volver</span>
+    </button>
+  </div>
   <form [formGroup]="form" class="form-container">
     <div class="section">
       <h2 class="titulo-seccion">Formulario de Testimonial</h2>
@@ -214,6 +227,12 @@
 
 <!-- Pericias -->
 <div *ngIf="menu === 3">
+    <div class="card-toolbar card-toolbar--pruebas">
+    <button class="back-btn" type="button" (click)="cambiarMenu(0)">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Volver</span>
+    </button>
+  </div>
   <form [formGroup]="form" class="form-container">
     <div class="section">
       <h2 class="titulo-seccion">Formulario de Pericia</h2>
