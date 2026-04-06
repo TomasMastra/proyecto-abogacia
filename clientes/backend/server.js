@@ -417,7 +417,7 @@ app.get("/expedientes/mediaciones", async (req, res) => {
         AND LOWER(e.tipo_registro) = 'mediacion'
         AND LOWER(e.estado) NOT IN ('cerrado con acuerdo', 'cobrado')
         ${filtroUsuario}
-      ORDER BY e.fecha_inicio ASC;
+      ORDER BY e.fecha_inicio DESC;
     `;
 
     const result = await pgPool.query(query, params);
