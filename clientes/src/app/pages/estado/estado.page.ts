@@ -75,19 +75,23 @@ export class EstadoPage implements OnInit {
   protected form: FormGroup;
 
   expediente: any;
+  /// Busqueda
   numero: string = '';
   anio: string = '';
-  menu: string = '1';
-  honorario: string = '';
-  jueces: JuezModel[] = [];
-  juezSeleccionado: any;
-
-  juzSel: any;
-
   tipos: any[] = ['CCF', 'COM', 'CIV', 'CC'];
   tipoSeleccionado: any;
+
+  // Menu
+  menu: string = '1';
+
+  //honorario: string = '';
+  jueces: JuezModel[] = [];
+  //juezSeleccionado: any;
+
+  //juzSel: any;
+
   juzgados: JuzgadoModel[] = [];
-  juzgadoSeleccionado: any;
+  //juzgadoSeleccionado: any;
 /*
 estados: any[] = [
   'Sorteado',
@@ -160,15 +164,15 @@ estados: any[] = [
   estados: string[] = ESTADOS_EXPEDIENTE.filter(
     e => !COBRADO_BLOQUEADO.includes(e)
   );
-  estadoSeleccionado: any;
+  //estadoSeleccionado: any;
 
   honorarios: any[] = ['Regulacion 1º instancia', 'Difiere regulacion 1º instancia', 'Costas por su orden'];
-  honorarioSeleccionado: any = 'Regulacion 1º instancia';
+  //honorarioSeleccionado: any = 'Regulacion 1º instancia';
 
   private destroy$ = new Subject<void>();
   
   valorUMA: number = 70709;
-  cantidadUMA: number | null = null;
+  //cantidadUMA: number | null = null;
   montoUMA: number | null = null;
 
     uma: any[] = [];
@@ -200,18 +204,18 @@ subEstadosHonorariosDiferido = ESTADOS_HONORARIOS_DIFERIDO;
 subEstadosHonorariosFirme = ESTADOS_HONORARIOS_FIRME;
 
 // Capital
-estadoCapitalSeleccionado: string | null = null;
-subEstadoCapitalSeleccionado: string | null = null;
-fechaCapitalSubestado: string | null = null;
+//estadoCapitalSeleccionado: string | null = null;
+//subEstadoCapitalSeleccionado: string | null = null;
+//fechaCapitalSubestado: string | null = null;
 
-montoLiquidacionCapital: number | null = null;
+//montoLiquidacionCapital: number | null = null;
 
 // Honorarios
-estadoHonorariosSeleccionado: string | null = null;
-subEstadoHonorariosSeleccionado: string | null = null;
-fechaHonorariosSubestado: string | null = null;
+//estadoHonorariosSeleccionado: string | null = null;
+//subEstadoHonorariosSeleccionado: string | null = null;
+//fechaHonorariosSubestado: string | null = null;
 
-sala: string | null = null;
+//sala: string | null = null;
 
 deshabilitarApeladoOFirme = false;
 
@@ -242,35 +246,35 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
       private umaService: UmaService
     ) {
   
-      this.resetearCamposEstadoYHonorarios();
+      //this.resetearCamposEstadoYHonorarios();
 
       this.form = new FormGroup(
         {
+          estado: new FormControl('', [Validators.required]),
           honorario: new FormControl('', [Validators.required]),
           fecha_sentencia: new FormControl('', [Validators.required/*, this.fechaMayorA("2024-09-23")*/]),
           juez: new FormControl('', [Validators.required]),
           //monto: new FormControl('', [Validators.required]),
           tipo: new FormControl(''),
-
           ultimo_movimiento: new FormControl('', [Validators.required]),
 
           // Capital
           estadoCapitalSeleccionado: new FormControl('', [Validators.required]),
           subEstadoCapitalSeleccionado: new FormControl('', [Validators.required]),
           fechaCapitalSubestado: new FormControl('', [Validators.required]),
-
           montoLiquidacionCapital: new FormControl(''),
 
           // Honorarios
           estadoHonorariosSeleccionado: new FormControl('', [Validators.required]),
           subEstadoHonorariosSeleccionado: new FormControl('', [Validators.required]),
           fechaHonorariosSubestado: new FormControl('', [Validators.required]),
-
           cantidadUMA: new FormControl(''),
           umaSeleccionado: new FormControl(null, Validators.required),
-          sala: new FormControl(''),
           montoAcuerdo: new FormControl(''),
+
           fecha_atencion: new FormControl(''),
+          sala: new FormControl(''),
+          requiere_atencion: new FormControl(false),
 
           honorariosExtrasSeleccionados: new FormControl([]),  
 
@@ -300,9 +304,22 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
         }
       );    
 
+      this.resetearCamposEstadoYHonorarios();
 
       this.form.get('honorario')?.valueChanges.subscribe((valorSeleccionado) => {
-        this.actualizarMonto(valorSeleccionado);
+        this.actualizarMonto();
+      });
+
+      this.form.get('umaSeleccionado')?.valueChanges.subscribe(() => {
+        this.calcularMontoUMA();
+      });
+
+      this.form.get('cantidadUMA')?.valueChanges.subscribe(() => {
+        this.calcularMontoUMA();
+      });
+
+      this.form.get('montoAcuerdo')?.valueChanges.subscribe(() => {
+        this.calcularMontoUMA();
       });
 
       this.cargarJueces();
@@ -352,6 +369,7 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
 
   }*/
 
+  /*
   calcularMontoUMA() {
   const umaSel = this.form.get('umaSeleccionado')?.value;          // objeto UMA o 'acuerdo'
   const cantRaw = this.form.get('cantidadUMA')?.value;
@@ -388,7 +406,43 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
       ? null
       : Number(montoAcuerdo);
   }
+}*/
+
+calcularMontoUMA() {
+  const umaSel = this.form.get('umaSeleccionado')?.value;
+  const cantRaw = this.form.get('cantidadUMA')?.value;
+  const montoAcuerdoRaw = this.form.get('montoAcuerdo')?.value;
+
+  const cant = (cantRaw === '' || cantRaw === null || cantRaw === undefined)
+    ? null
+    : Number(cantRaw);
+
+  const montoAcuerdo = (montoAcuerdoRaw === '' || montoAcuerdoRaw === null || montoAcuerdoRaw === undefined)
+    ? null
+    : Number(montoAcuerdoRaw);
+
+  this.umaSeleccionado = umaSel;
+
+  if (umaSel && umaSel !== 'acuerdo') {
+    this.form.get('cantidadUMA')?.setValidators([Validators.required, Validators.min(0)]);
+    //this.form.get('cantidadUMA')?.updateValueAndValidity({ emitEvent: false });
+
+    this.form.get('montoAcuerdo')?.clearValidators();
+    //this.form.get('montoAcuerdo')?.updateValueAndValidity({ emitEvent: false });
+
+    const valorUMA = Number(umaSel.valor ?? 0);
+    this.montoUMA = (cant === null || isNaN(cant)) ? null : valorUMA * cant;
+  } else {
+    this.form.get('cantidadUMA')?.clearValidators();
+    //this.form.get('cantidadUMA')?.updateValueAndValidity({ emitEvent: false });
+
+    this.form.get('montoAcuerdo')?.setValidators([Validators.required, Validators.min(0)]);
+    //this.form.get('montoAcuerdo')?.updateValueAndValidity({ emitEvent: false });
+
+    this.montoUMA = montoAcuerdo;
+  }
 }
+
 cambioTipoHonorarioExtra(valores: string[]) {
   this.honorariosExtrasSeleccionados = valores;
 
@@ -517,9 +571,9 @@ cambioTipoHonorarioExtra(valores: string[]) {
 
 //busca un expediente por los campos solicitados (numero, año y tipo de juzgado)
 buscar() {
-  const tipo = this.form.value.tipo;
+  //const tipo = this.form.value.tipo;
 
-  if (!this.numero || !this.anio || !tipo) {
+  if (!this.numero || !this.anio || !this.tipoSeleccionado) {
     Swal.fire({
       toast: true,
       position: "top-end",
@@ -533,7 +587,7 @@ buscar() {
 
   const inicio = performance.now();  // ⏱️
 
-  this.expedienteService.getClientePorNumeroYAnio(this.numero, this.anio, tipo).subscribe(
+  this.expedienteService.getClientePorNumeroYAnio(this.numero, this.anio, this.tipoSeleccionado).subscribe(
     (expedientes) => {
       const fin = performance.now();
       console.log('⏱️ Tiempo búsqueda front (ms):', fin - inicio);
@@ -557,7 +611,7 @@ buscar() {
       });
 
       this.menu = '2';
-      this.estadoSeleccionado = this.expediente.estado;
+      this.form.get('estado')?.setValue(this.expediente.estado);
       this.llenarFormularioConExpediente(this.expediente);
       this.asignarDatos();
       this.calcularMontoUMA();
@@ -591,7 +645,7 @@ buscar() {
 
   //Cambia de menu cuando el usuario encuentra un expediente para los datos ingresados
   cambiarMenu(menu: string){
-    this.juzgadoSeleccionado = null;
+    this.form.get('estado')?.setValue(null);
     this.numero = '';
     this.anio = '';
     this.menu = menu;
@@ -678,7 +732,7 @@ buscar() {
     
       actualizarEstado() {
 
-        if (this.estadoSeleccionado == 'Sentencia') {
+        if (this.form.get('estado')?.value == 'Sentencia') {
           const hoy = new Date().toISOString().split('T')[0];
         this.actualizarCobrado();
 
@@ -705,12 +759,16 @@ buscar() {
           }
         }
       
-        const esSentencia = this.estadoSeleccionado === 'Sentencia';
+        const esSentencia = this.form.get('estado')?.value === 'Sentencia';
 
         let fechaReciente: Date | null = null;
+
         const fechaSentencia = this.form.value.fecha_sentencia ? new Date(this.form.value.fecha_sentencia) : null;
-        const fechaCapital = this.fechaCapitalSubestado ? new Date(this.fechaCapitalSubestado) : null;
-        const fechaHonorarios = this.fechaHonorariosSubestado ? new Date(this.fechaHonorariosSubestado) : null;
+        const fechaCapital = this.form.get('fechaCapitalSubestado')?.value ? new Date(this.form.get('fechaCapitalSubestado')?.value) : null;
+        const fechaHonorarios = this.form.get('fechaHonorariosSubestado')?.value ? new Date(this.form.get('fechaHonorariosSubestado')?.value) : null;
+
+        const juez = this.form.get('juez')?.value;
+
       
         [fechaSentencia, fechaCapital, fechaHonorarios].forEach((f) => {
           if (f && (!fechaReciente || f > fechaReciente)) {
@@ -740,13 +798,13 @@ buscar() {
             numero: this.expediente.numero,
             anio: this.expediente.anio,
             demandadoModel: this.expediente.demandadoModel,
-            estado: this.estadoSeleccionado,
+            estado: this.form.get('estado')?.value,
             sala_radicacion: null,
             honorario: esSentencia && this.form.value.honorario?.trim() !== '' ? this.form.value.honorario : null,
             fecha_inicio: this.expediente?.fecha_inicio,
             fecha_sentencia: esSentencia && this.form.value.fecha_sentencia ? this.form.value.fecha_sentencia : null,
             hora_sentencia: null,
-            juez_id: esSentencia && this.juezSeleccionado ? this.juezSeleccionado.id : null,
+            juez_id: esSentencia && juez ? juez.id : null,
             juezModel: { id: '', nombre: '', apellido: '', estado: '' },
             juicio: this.expediente?.juicio,
             ultimo_movimiento: this.form.value.ultimo_movimiento,
@@ -760,28 +818,28 @@ buscar() {
 
             valorUMA: this.form.get('umaSeleccionado')?.value?.valor,
             procurador_id:  this.expediente.procurador_id,
-            sala: this.sala,
+            sala: this.form.get('sala')?.value,
             requiere_atencion: this.form.value.requiere_atencion,
             fecha_atencion: this.form.value.fecha_atencion ?? null,
 
             // Capital
-            estadoCapitalSeleccionado: esSentencia ? this.estadoCapitalSeleccionado ?? null : null,
-            subEstadoCapitalSeleccionado: esSentencia ? this.subEstadoCapitalSeleccionado ?? null : null,
-            fechaCapitalSubestado: esSentencia ? this.fechaCapitalSubestado ?? null : null,
+            estadoCapitalSeleccionado: esSentencia ? this.form.get('estadoCapitalSeleccionado')?.value ?? null : null,
+            subEstadoCapitalSeleccionado: esSentencia ? this.form.get('subEstadoCapitalSeleccionado')?.value ?? null : null,
+            fechaCapitalSubestado: esSentencia ? this.form.get('fechaCapitalSubestado')?.value ?? null : null,
             estadoLiquidacionCapitalSeleccionado: null,
             fechaLiquidacionCapital: null,
-            montoLiquidacionCapital: esSentencia ? this.montoLiquidacionCapital ?? null : null,
+            montoLiquidacionCapital: esSentencia ? this.form.get('montoLiquidacionCapital')?.value ?? null : null,
             capitalCobrado: this.expediente?.capitalCobrado,
       
             // Honorarios
-            estadoHonorariosSeleccionado: esSentencia ? this.estadoHonorariosSeleccionado ?? null : null,
-            subEstadoHonorariosSeleccionado: esSentencia ? this.subEstadoHonorariosSeleccionado ?? null : null,
-            fechaHonorariosSubestado: esSentencia ? this.fechaHonorariosSubestado ?? null : null,
+            estadoHonorariosSeleccionado: esSentencia ? this.form.get('estadoHonorariosSeleccionado')?.value ?? null : null,
+            subEstadoHonorariosSeleccionado: esSentencia ? this.form.get('subEstadoHonorariosSeleccionado')?.value ?? null : null,
+            fechaHonorariosSubestado: esSentencia ? this.form.get('fechaHonorariosSubestado')?.value ?? null : null,
             estadoLiquidacionHonorariosSeleccionado: null,
             fechaLiquidacionHonorarios: null,
             montoLiquidacionHonorarios: esSentencia ? this.montoUMA ?? null : null,
             honorarioCobrado: this.expediente?.honorarioCobrado,
-            cantidadUMA: esSentencia ? this.cantidadUMA ?? null : null,
+            cantidadUMA: esSentencia ? this.form.get('cantidadUMA')?.value ?? null : null,
 
             numeroCliente: this.expediente?.numeroCliente ??  null,
             minutosSinLuz: this.expediente?.minutosSinLuz ??  null,
@@ -879,7 +937,10 @@ buscar() {
         }
       }
 
-      actualizarMonto(honorario: string) {
+      actualizarMonto() {
+
+        const honorario = this.form.get('honorario')?.value;
+
         const montos = {
           'Regulacion 1º instancia': this.expediente.monto,
           'Difiere regulacion 1º instancia': 0.00,
@@ -891,7 +952,7 @@ buscar() {
       }
 
         
- //ver       
+/*
 asignarDatos() {
 
   this.montoUMA = this.expediente.montoLiquidacionHonorarios;
@@ -911,7 +972,7 @@ asignarDatos() {
   // Juez
   if (this.expediente.juez_id) {
     const juezEncontrado = this.jueces.find(juez => juez.id === this.expediente.juez_id);
-    if (juezEncontrado) this.juezSeleccionado = juezEncontrado;
+    if (juezEncontrado) this.form.get('juez')?.value = juezEncontrado;
   }
 
   this.ultimo_movimiento = this.expediente.ultimo_movimiento
@@ -999,41 +1060,129 @@ asignarDatos() {
   });
 
   this.actualizarValidacionesCondicionales();
+}*/
+
+
+asignarDatos() {
+  this.montoUMA = this.expediente.montoLiquidacionHonorarios ?? null;
+
+  const honorario =
+    this.expediente.honorario ?? 'Regulacion 1º instancia';
+
+  const fechaSentenciaFormateada = this.expediente.fecha_sentencia
+    ? new Date(this.expediente.fecha_sentencia).toISOString().split('T')[0]
+    : null;
+
+  const juezEncontrado = this.expediente.juez_id
+    ? this.jueces.find(juez => juez.id === this.expediente.juez_id) ?? null
+    : null;
+
+  const ultimoMovimiento = this.expediente.ultimo_movimiento
+    ? new Date(this.expediente.ultimo_movimiento).toISOString().split('T')[0]
+    : null;
+
+  const fechaAtencion = this.expediente.fecha_atencion
+    ? new Date(this.expediente.fecha_atencion).toISOString().split('T')[0]
+    : null;
+
+  const estadoCapitalSeleccionado = this.expediente.estadoCapitalSeleccionado ?? null;
+  const subEstadoCapitalSeleccionado = this.expediente.subEstadoCapitalSeleccionado ?? null;
+  const fechaCapitalSubestado = this.expediente.fechaCapitalSubestado
+    ? new Date(this.expediente.fechaCapitalSubestado).toISOString().split('T')[0]
+    : null;
+  const montoLiquidacionCapital = this.expediente.montoLiquidacionCapital ?? null;
+
+  const estadoHonorariosSeleccionado = this.expediente.estadoHonorariosSeleccionado ?? null;
+  const subEstadoHonorariosSeleccionado = this.expediente.subEstadoHonorariosSeleccionado ?? null;
+  const fechaHonorariosSubestado = this.expediente.fechaHonorariosSubestado
+    ? new Date(this.expediente.fechaHonorariosSubestado).toISOString().split('T')[0]
+    : null;
+
+  const sala = this.expediente.sala ?? null;
+  const cantidadUMA = this.expediente.cantidadUMA ?? 0;
+
+  let umaValue: any = null;
+  let montoAcuerdo: number | null = null;
+
+  if (this.expediente.valorUMA == null) {
+    umaValue = 'acuerdo';
+    montoAcuerdo = this.expediente.montoLiquidacionHonorarios ?? 0;
+    this.montoUMA = montoAcuerdo;
+  } else {
+    umaValue = this.uma.find(u => u.valor == this.expediente.valorUMA) ?? null;
+  }
+
+  this.tipoSeleccionado = this.expediente.tipo ?? null;
+
+  this.form.patchValue({
+    estado: this.expediente.estado ?? '',
+    honorario,
+    fecha_sentencia: fechaSentenciaFormateada,
+    juez: juezEncontrado,
+    ultimo_movimiento: ultimoMovimiento,
+    tipo: this.tipoSeleccionado,
+
+    estadoCapitalSeleccionado,
+    subEstadoCapitalSeleccionado,
+    fechaCapitalSubestado,
+    montoLiquidacionCapital,
+
+    estadoHonorariosSeleccionado,
+    subEstadoHonorariosSeleccionado,
+    fechaHonorariosSubestado,
+
+    cantidadUMA,
+    umaSeleccionado: umaValue,
+    montoAcuerdo,
+    sala,
+    requiere_atencion: this.expediente.requiere_atencion ?? false,
+    fecha_atencion: fechaAtencion
+  });
+
+  this.umaSeleccionado = this.form.get('umaSeleccionado')?.value;
+  this.calcularMontoUMA();
+
+  Object.keys(this.form.controls).forEach(field => {
+    const control = this.form.get(field);
+    control?.markAsTouched({ onlySelf: true });
+    control?.updateValueAndValidity();
+  });
+
+  this.actualizarValidacionesCondicionales();
 }
 
 //esta bien
 resetearCamposEstadoYHonorarios() {
-  // Capital
-  this.estadoCapitalSeleccionado = null;
-  this.subEstadoCapitalSeleccionado = null;
-  this.fechaCapitalSubestado = null;
-  this.montoLiquidacionCapital = null;
-
-  // Honorarios
-  this.estadoHonorariosSeleccionado = null;
-  this.subEstadoHonorariosSeleccionado = null;
-  this.fechaHonorariosSubestado = null;
-  this.cantidadUMA =  0;
+  this.form.patchValue({
+    estadoCapitalSeleccionado: null,
+    subEstadoCapitalSeleccionado: null,
+    fechaCapitalSubestado: null,
+    montoLiquidacionCapital: null,
+    estadoHonorariosSeleccionado: null,
+    subEstadoHonorariosSeleccionado: null,
+    fechaHonorariosSubestado: null,
+    cantidadUMA: 0
+  });
 }
 
 //esta bien
 actualizarHonorario() {
-  if (this.honorarioSeleccionado === 'Difiere regulacion 1º instancia') {
-    this.estadoHonorariosSeleccionado = 'diferido';
-    this.subEstadoHonorariosSeleccionado = 'diferido';
+  const honorario = this.form.get('honorario')?.value;
 
-    this.form.get('estadoHonorariosSeleccionado')?.setValue('diferido');
-    this.form.get('subEstadoHonorariosSeleccionado')?.setValue('diferido');
+  if (honorario === 'Difiere regulacion 1º instancia') {
+    this.form.patchValue({
+      estadoHonorariosSeleccionado: 'diferido',
+      subEstadoHonorariosSeleccionado: 'diferido'
+    });
   } else {
-    this.estadoHonorariosSeleccionado = null;
-    this.subEstadoHonorariosSeleccionado = null;
-
-    this.form.get('estadoHonorariosSeleccionado')?.setValue(null);
-    this.form.get('subEstadoHonorariosSeleccionado')?.setValue(null);
+    this.form.patchValue({
+      estadoHonorariosSeleccionado: null,
+      subEstadoHonorariosSeleccionado: null
+    });
   }
 }
 
-//ver
+/*
 public actualizarValidacionesCondicionales() {
   
   const subEstadoCapital = this.form.get('subEstadoCapitalSeleccionado');
@@ -1054,14 +1203,6 @@ public actualizarValidacionesCondicionales() {
     sala?.clearValidators();
 
   }
-
-/*if (requiereAtencionValor == true) {
-  fechaAtencion?.setValidators([Validators.required]);
-} else {
-  fechaAtencion?.clearValidators();
-  fechaAtencion?.setValue(null);
-}
-fechaAtencion?.updateValueAndValidity();*/
 
 
   // Capital
@@ -1101,6 +1242,60 @@ fechaAtencion?.updateValueAndValidity();*/
 Object.keys(this.form.controls).forEach((campo) => {
   this.form.get(campo)?.updateValueAndValidity();
 });
+}*/
+
+public actualizarValidacionesCondicionales() {
+  const estadoCapital = this.form.get('estadoCapitalSeleccionado')?.value;
+  const subEstadoCapitalValor = this.form.get('subEstadoCapitalSeleccionado')?.value;
+
+  const subEstadoCapital = this.form.get('subEstadoCapitalSeleccionado');
+  const fechaCapitalSubestado = this.form.get('fechaCapitalSubestado');
+  const montoLiquidacionCapital = this.form.get('montoLiquidacionCapital');
+
+  const subEstadoHonorarios = this.form.get('subEstadoHonorariosSeleccionado');
+  const fechaHonorariosSubestado = this.form.get('fechaHonorariosSubestado');
+  const sala = this.form.get('sala');
+
+  if (this.expediente?.juzgadoModel?.tipo === 'CCF' || this.expediente?.juzgadoModel?.tipo === 'COM') {
+    sala?.setValidators([Validators.required]);
+  } else {
+    sala?.clearValidators();
+  }
+  sala?.updateValueAndValidity();
+
+  // Capital
+  if (estadoCapital === 'firme' || this.expediente?.estadoCapitalSeleccionado === 'firme') {
+    subEstadoCapital?.setValidators([Validators.required]);
+    fechaCapitalSubestado?.setValidators([Validators.required]);
+
+    if (
+      subEstadoCapitalValor === 'liquidacion practicada' ||
+      this.expediente?.subEstadoCapitalSeleccionado === 'firme'
+    ) {
+      montoLiquidacionCapital?.setValidators([Validators.required]);
+    } else {
+      montoLiquidacionCapital?.clearValidators();
+    }
+  } else {
+    subEstadoCapital?.setValidators([Validators.required]);
+    fechaCapitalSubestado?.setValidators([Validators.required]);
+    montoLiquidacionCapital?.clearValidators();
+  }
+
+  subEstadoCapital?.updateValueAndValidity();
+  fechaCapitalSubestado?.updateValueAndValidity();
+  montoLiquidacionCapital?.updateValueAndValidity();
+
+  // Honorarios
+  subEstadoHonorarios?.setValidators([Validators.required]);
+  fechaHonorariosSubestado?.setValidators([Validators.required]);
+
+  subEstadoHonorarios?.updateValueAndValidity();
+  fechaHonorariosSubestado?.updateValueAndValidity();
+
+  Object.keys(this.form.controls).forEach((campo) => {
+    this.form.get(campo)?.updateValueAndValidity();
+  });
 }
 //esta bien
 actualizarCobrado() {
@@ -1351,16 +1546,12 @@ private llenarFormularioConExpediente(expediente: ExpedienteModel) {
 
 cambiarEstado(tipo: 'honorario' | 'capital') {
   if (tipo === 'honorario') {
-    this.subEstadoHonorariosSeleccionado = null;
     this.form.get('subEstadoHonorariosSeleccionado')?.setValue(null);
-  } else {
-    //this.estadoCapitalSeleccionado = null;
-    //this.form.get('estadoCapitalSeleccionado')?.setValue(null);
-    
-    this.subEstadoCapitalSeleccionado = null;
+    this.form.get('subEstadoHonorariosSeleccionado')?.setValue(null);
+  } else { 
+    this.form.get('subEstadoCapitalSeleccionado')?.setValue(null);
     this.form.get('subEstadoCapitalSeleccionado')?.setValue(null);
 
-    // 🔁 Forzamos la validación del campo estadoCapitalSeleccionado
     const estadoCtrl = this.form.get('estadoCapitalSeleccionado');
     estadoCtrl?.markAsTouched();
     estadoCtrl?.markAsDirty();
@@ -1846,8 +2037,8 @@ getSubestadosPorEstado(tipo: string, estado: string): string[] {
 
 
 validarEjecucion(): any {
-  const estado = this.estadoCapitalSeleccionado;
-  const subestado = this.subEstadoCapitalSeleccionado;
+  const estado = this.form.get('estadoCapitalSeleccionado')?.value;
+  const subestado = this.form.get('subEstadoCapitalSeleccionado')?.value;
 
   if (estado === 'firme' && subestado?.toLowerCase() === 'embargo ejecutado') {
     const ejecucionCargada =
@@ -1863,7 +2054,9 @@ validarEjecucion(): any {
   return true;
 }
 
-mostrarMontoCapital(estado: string): boolean {
+mostrarMontoCapital(): boolean {
+  const estado = this.form.get('estado')?.value; 
+
   const habilitados = [
     'liquidacion practicada',
     'liquidacion traslado - cedula',
@@ -1890,6 +2083,7 @@ mostrarMontoCapital(estado: string): boolean {
 
   return habilitados.includes(estado);
 }
+
 
 
 }

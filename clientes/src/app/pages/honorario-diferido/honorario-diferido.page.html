@@ -85,6 +85,7 @@
 
               <!-- CAPITAL -->
               <tr
+                class="expediente-start"
                 [class.row-giro]="tieneEstadoGiroPorTipo(item, 'capital')"
                 [class.hover-group]="item.hover"
                 (mouseenter)="item.hover = true"
@@ -131,8 +132,8 @@
                   <ng-container *ngIf="item.montoLiquidacionCapital != null; else sinMonto">
                     <span class="monto-final">
                       {{ ((item.esPagoParcial == 1 || item.esPagoParcial === true)
-                          ? (calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id) - (item.capitalPagoParcial || 0))
-                          : calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id)) | currency:'$' }}
+                          ? (calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.procurador_id) - (item.capitalPagoParcial || 0))
+                          : calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.procurador_id)) | currency:'$' }}
                     </span>
                     <button *ngIf="!item.capitalCobrado" mat-icon-button color="primary"
                       class="cobrar-btn" matTooltip="Cobrar capital" (click)="cobrar('capital', item)">
@@ -141,7 +142,7 @@
                     <mat-icon *ngIf="item.capitalCobrado" class="cobrado-icon">check_circle</mat-icon>
                   </ng-container>
                   <ng-template #sinMonto>—</ng-template>
-                </td>
+                </td> 
 
                 <td *ngIf="estado === 'cobrado' && (item.capitalCobrado == true || item.esPagoParcial == true)" class="td-cobrado">
                   <span *ngIf="item.esPagoParcial != 1">{{ item.capitalPagoParcial | currency:'$' }}</span>
@@ -172,7 +173,7 @@
                 <td *ngIf="mostrarHonorario(item) && estado == 'sentencia'" class="td-pct">{{ item.montoLiquidacionHonorarios | currency:'$' }}</td>
                 <td *ngIf="mostrarHonorario(item) && estado == 'cobrado'" class="td-fecha">{{ item.fecha_cobro?.split('T')[0] }}</td>
                 <td *ngIf="mostrarHonorario(item)" class="td-final" [class.td-giro]="tieneEstadoGiroPorTipo(item, 'honorarios')">
-                  <span class="monto-final">{{ calcularCobroFinalHonorario(item.montoLiquidacionHonorarios, item.usuario_id) | currency:'$' }}</span>
+                  <span class="monto-final">{{ calcularCobroFinalHonorario(item.montoLiquidacionHonorarios, item.usuario_id, item.procurador_id) | currency:'$' }}</span>
                   <button *ngIf="!item.honorarioCobrado" mat-icon-button color="primary" class="cobrar-btn" matTooltip="Cobrar honorario" (click)="cobrar('honorario', item)">
                     <mat-icon>attach_money</mat-icon>
                   </button>
@@ -197,7 +198,7 @@
                 <td *ngIf="mostrarAlzada(item) && estado == 'sentencia'" class="td-pct">{{ item.montoAcuerdo_alzada | currency:'$' }}</td>
                 <td *ngIf="mostrarAlzada(item) && estado == 'cobrado'" class="td-fecha">{{ item.fechaCobroAlzada?.split('T')[0] }}</td>
                 <td *ngIf="mostrarAlzada(item)" class="td-final" [class.td-giro]="tieneEstadoGiroPorTipo(item, 'alzada')">
-                  {{ calcularCobroFinalHonorario(item.montoAcuerdo_alzada, item.usuario_id) | currency:'$' }}
+                  {{ calcularCobroFinalHonorario(item.montoAcuerdo_alzada, item.usuario_id, item.procurador_id) | currency:'$' }}
                   <button *ngIf="!item.honorarioAlzadaCobrado" mat-icon-button color="primary" class="cobrar-btn" (click)="cobrar('alzada', item)"><mat-icon>attach_money</mat-icon></button>
                   <mat-icon *ngIf="item.honorarioAlzadaCobrado" class="cobrado-icon">check_circle</mat-icon>
                 </td>
@@ -220,7 +221,7 @@
                 <td *ngIf="mostrarEjecucion(item) && estado == 'sentencia'" class="td-pct">{{ item.montoHonorariosEjecucion | currency:'$' }}</td>
                 <td *ngIf="mostrarEjecucion(item) && estado == 'cobrado'" class="td-fecha">{{ item.fechaCobroEjecucion?.split('T')[0] }}</td>
                 <td *ngIf="mostrarEjecucion(item)" class="td-final">
-                  {{ calcularCobroFinalHonorario(item.montoHonorariosEjecucion, item.usuario_id) | currency:'$' }}
+                  {{ calcularCobroFinalHonorario(item.montoHonorariosEjecucion, item.usuario_id, item.procurador_id) | currency:'$' }}
                   <button *ngIf="!item.honorarioEjecucionCobrado" mat-icon-button color="primary" class="cobrar-btn" (click)="cobrar('ejecucion', item)"><mat-icon>attach_money</mat-icon></button>
                   <mat-icon *ngIf="item.honorarioEjecucionCobrado" class="cobrado-icon">check_circle</mat-icon>
                 </td>
@@ -243,7 +244,7 @@
                 <td *ngIf="mostrarDiferencia(item) && estado == 'sentencia'" class="td-pct">{{ item.montoHonorariosDiferencia | currency:'$' }}</td>
                 <td *ngIf="mostrarDiferencia(item) && estado == 'cobrado'" class="td-fecha">{{ item.fechaCobroDiferencia?.split('T')[0] }}</td>
                 <td *ngIf="mostrarDiferencia(item)" class="td-final">
-                  {{ calcularCobroFinalHonorario(item.montoHonorariosDiferencia, item.usuario_id) | currency:'$' }}
+                  {{ calcularCobroFinalHonorario(item.montoHonorariosDiferencia, item.usuario_id, item.procurador_id) | currency:'$' }}
                   <button *ngIf="!item.honorarioDiferenciaCobrado" mat-icon-button color="primary" class="cobrar-btn" (click)="cobrar('diferencia', item)"><mat-icon>attach_money</mat-icon></button>
                   <mat-icon *ngIf="item.honorarioDiferenciaCobrado" class="cobrado-icon">check_circle</mat-icon>
                 </td>

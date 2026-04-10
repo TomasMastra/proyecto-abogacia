@@ -183,3 +183,100 @@ td { padding: 12px 16px; color: $c-text; vertical-align: middle; }
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+
+/* ============================================================
+   NORMALIZACIÓN TIPOGRÁFICA — JUZGADOS
+============================================================ */
+
+.page-title {
+  font-size: 2rem;
+  line-height: 1.08;
+}
+
+/* buscador */
+.search-wrap {
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 0 14px;
+}
+
+.search-wrap .search-input {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.search-wrap .search-input::placeholder {
+  font-size: 1rem;
+}
+
+.search-wrap .search-icon {
+  font-size: 1.2rem;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+/* botón principal */
+.btn {
+  font-size: 1rem;
+}
+
+.btn--primary mat-icon {
+  font-size: 1.12rem;
+  width: 1.12rem;
+  height: 1.12rem;
+}
+
+/* tabla */
+table {
+  font-size: 1rem;
+}
+
+thead tr th {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+tbody tr td {
+  font-size: 1rem;
+  line-height: 1.38;
+}
+
+.td-nombre {
+  font-size: 1rem;
+}
+
+.tipo-chip {
+  font-size: 0.9rem;
+  padding: 5px 12px;
+  font-weight: 700;
+}
+
+/* acciones */
+.action-icon-btn mat-icon {
+  font-size: 1.12rem;
+  width: 1.12rem;
+  height: 1.12rem;
+}
+
+/* empty */
+.empty-row {
+  font-size: 1rem;
+}
+
+.empty-row mat-icon {
+  font-size: 2rem;
+  width: 2rem;
+  height: 2rem;
+}
+
+/* skeleton */
+.skeleton-cell {
+  height: 1rem;
+}
+
+/* paginator */
+::ng-deep .mat-mdc-paginator {
+  font-size: 0.95rem;
+}

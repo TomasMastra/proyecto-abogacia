@@ -1,0 +1,50 @@
+<div class="page-wrapper configuracion-page">
+
+  <div class="page-header">
+    <h1 class="page-title">Configuración</h1>
+  </div>
+
+  <div class="section-card">
+
+    <div class="section-card-header">
+      <div class="section-card-icon">🔤</div>
+      <div>
+        <div class="section-card-title">Tamaño de fuente</div>
+        <div class="section-card-subtitle">
+          Elegí cómo querés ver el texto en toda la aplicación
+        </div>
+      </div>
+    </div>
+
+    <div class="font-options-grid">
+
+      <div
+        class="font-option"
+        *ngFor="let opcion of opciones"
+        [class.active]="fontSize === opcion.value"
+        (click)="cambiarTamano(opcion.value)"
+      >
+
+        <div class="font-preview"
+             [ngClass]="opcion.value">
+          Aa
+        </div>
+
+        <div class="font-info">
+          <div class="font-name">{{ opcion.label }}</div>
+          <div class="font-desc">
+            {{ getDescripcion(opcion.value) }}
+          </div>
+        </div>
+
+        <div class="font-check" *ngIf="fontSize === opcion.value">
+          ✔
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

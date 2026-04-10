@@ -249,6 +249,17 @@
   }
 }
 
+:root {
+  --app-font-scale: 1;
+}
+
+html {
+  font-size: calc(24px * var(--app-font-scale));
+}
+
+body {
+  font-size: 5rem !important;
+}
 
 @import "@ionic/angular/css/core.css";
 @import "@ionic/angular/css/normalize.css";

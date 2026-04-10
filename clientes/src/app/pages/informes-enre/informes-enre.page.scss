@@ -411,3 +411,26 @@ td {
   background: #ffffff;
   font-family: 'Poppins', sans-serif;
 }
+
+
+/* normalización tipográfica */
+.search-wrap .search-input { font-size: 0.875rem; }
+.search-wrap .search-icon { font-size: 1.0625rem; width: 1.0625rem; height: 1.0625rem; }
+
+.filter-select { font-size: 0.875rem; }
+.filter-select-wrap .select-arrow { font-size: 1.125rem; width: 1.125rem; height: 1.125rem; }
+
+.tab-btn { font-size: 0.875rem; }
+.tab-count { font-size: 0.6875rem; }
+
+table { font-size: 0.875rem; }
+thead tr th { font-size: 0.6875rem; }
+
+.badge,
+.antiguedad-chip { font-size: 0.75rem; }
+
+.btn-accion { font-size: 0.75rem; }
+
+.empty-row { font-size: 0.875rem; }
+
+::ng-deep .mat-mdc-paginator { font-size: 0.875rem; }

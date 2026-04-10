@@ -88,6 +88,7 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
   private cargaToken = 0;
   estadoHonorarioSeleccionado: any;
   procuradorSeleccionado: string = '';
+  
 estadosHonorarios: string[] = [
   'espera que vuelva',
   'honorario se intima',
@@ -763,17 +764,54 @@ calcularCobroFinal(monto: number | null, porcentaje: number, usuario_id: number)
   return 0;
 }
 
-
+/*
 calcularCobroFinalHonorario(monto: number | null, usuario_id: number): number {
-  
   if (monto != null && usuario_id != null) {
     const usuario = this.listaUsuarios.find(u => u.id === usuario_id);
     if (usuario && usuario.porcentajeHonorarios != null) {
-    return (monto * (100 - usuario.porcentajeHonorarios)) / 100;
-
+      return (monto * (100 - usuario.porcentajeHonorarios)) / 100;
     }
   }
   return 0;
+}*/
+
+calcularCobroFinalHonorario(
+  monto: number | null,
+  usuario_id: number | null,
+  procurador_id: number | null
+): number {
+  if (monto == null || usuario_id == null || procurador_id == null) {
+    return 0;
+  }
+
+  const ADMIN_ID = 7;
+
+  // Si ambos son tu papá, cobra el 100%
+  if (usuario_id === ADMIN_ID && procurador_id === ADMIN_ID) {
+    return monto;
+  }
+
+  // Si ambos son el mismo otro abogado, tu papá cobra el complemento de ese abogado
+  if (usuario_id === procurador_id) {
+    const usuario = this.listaUsuarios.find(u => u.id === usuario_id);
+    if (!usuario) return 0;
+
+    const porcentaje = Number(usuario.porcentajeHonorarios ?? 0);
+    return (monto * (100 - porcentaje)) / 100;
+  }
+
+  // Si uno es tu papá y el otro no, buscar al otro abogado
+  const otroId = usuario_id === ADMIN_ID ? procurador_id : usuario_id;
+  const otroUsuario = this.listaUsuarios.find(u => u.id === otroId);
+
+  if (!otroUsuario) {
+    return 0;
+  }
+
+  const porcentajeOtro = Number(otroUsuario.porcentajeHonorarios ?? 0);
+
+  // Tu papá cobra el complemento del otro
+  return (monto * (100 - porcentajeOtro)) / 100;
 }
 
 getCantidadColumnas(item: any): number {
@@ -1060,6 +1098,18 @@ onPageChange(event: PageEvent): void {
   this.pageSize = event.pageSize;
   this.pageIndex = event.pageIndex;
   this.actualizarPagina();
+}
+
+getRowspan(item: any): number {
+  let total = 0;
+
+  if (this.mostrarCapital(item)) total++;
+  if (this.mostrarHonorario(item)) total++;
+  if (this.mostrarAlzada(item)) total++;
+  if (this.mostrarEjecucion(item)) total++;
+  if (this.mostrarDiferencia(item)) total++;
+
+  return total || 1;
 }
 
 }

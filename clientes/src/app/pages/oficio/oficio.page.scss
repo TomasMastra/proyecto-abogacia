@@ -196,3 +196,98 @@ $ease:       cubic-bezier(0.4, 0, 0.2, 1);
     border-color: #94a3b8;
   }
 }
+
+
+
+/* ============================================================
+   NORMALIZACIÓN TIPOGRÁFICA — OFICIO / PRUEBAS
+   pegar abajo de todo
+============================================================ */
+
+.content {
+  font-size: 1rem;
+}
+
+.card-title {
+  font-size: 1.12rem;
+}
+
+.card-subtitle {
+  font-size: 0.94rem;
+}
+
+.menu-card-icon {
+  mat-icon {
+    font-size: 1.45rem;
+    width: 1.45rem;
+    height: 1.45rem;
+  }
+}
+
+.back-btn {
+  font-size: 1rem;
+
+  mat-icon {
+    font-size: 1.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
+.titulo-seccion {
+  font-size: 1.45rem;
+}
+
+.form-container {
+  font-size: 1rem;
+}
+
+.full-width {
+  ::ng-deep {
+    .mat-mdc-form-field-infix {
+      font-size: 1rem;
+    }
+
+    .mat-mdc-input-element {
+      font-size: 1rem !important;
+    }
+
+    .mat-mdc-select-value {
+      font-size: 1rem !important;
+    }
+
+    .mdc-floating-label {
+      font-size: 0.95rem !important;
+    }
+
+    .mat-mdc-select-arrow {
+      transform: scale(1.15);
+    }
+
+    .mat-datepicker-toggle-default-icon,
+    .mat-mdc-icon-button mat-icon,
+    .mat-icon {
+      font-size: 1.15rem !important;
+      width: 1.15rem !important;
+      height: 1.15rem !important;
+    }
+  }
+}
+
+.mat-option {
+  font-size: 0.98rem;
+}
+
+.boton-guardar {
+  font-size: 1rem;
+
+  mat-icon {
+    font-size: 1.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
+h2 {
+  font-size: 1.35rem;
+}

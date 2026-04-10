@@ -9,8 +9,14 @@
       <h1 class="page-title">Estados de Expediente</h1>
     </div>
 
-    <div class="search-card">
-      <h2 class="search-card-title">Buscar expediente</h2>
+    <div class="section-card">
+      <div class="section-card-header">
+        <div class="section-card-icon">🔍</div>
+        <div>
+          <div class="section-card-title">Buscar expediente</div>
+          <div class="section-card-subtitle">Ingresá el número y año del expediente</div>
+        </div>
+      </div>
 
       <div class="search-fields">
         <div class="field-group">
@@ -33,13 +39,13 @@
 
         <div class="field-group">
           <label class="field-label">Tipo de juzgado</label>
-          <form [formGroup]="form">
-            <mat-form-field appearance="outline" class="tipo-field">
-              <mat-select formControlName="tipo">
-                <mat-option *ngFor="let tipo of tipos" [value]="tipo">{{ tipo }}</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </form>
+          <div class="select-wrap">
+            <select class="field-select" [(ngModel)]="tipoSeleccionado" [ngModelOptions]="{ standalone: true }">
+              <option value="">Seleccioná el tipo</option>
+              <option *ngFor="let tipo of tipos" [value]="tipo">{{ tipo }}</option>
+            </select>
+            <mat-icon class="select-chevron">expand_more</mat-icon>
+          </div>
         </div>
       </div>
 
@@ -64,7 +70,6 @@
     </div>
 
     @if(expediente.estado != 'Cobrado') {
-
       <!-- Info del expediente -->
       <div class="exp-info-card">
         <div class="exp-info-row">
@@ -75,26 +80,32 @@
         <div class="exp-caratula">{{ expediente?.caratula }}</div>
       </div>
 
-      <div class="form-card" style="padding: 20px 24px;">
-        <form [formGroup]="form">
+      <form [formGroup]="form">
 
-          <!-- Estado + fechas -->
-          <div class="section-divider">
-            <span>Estado general</span>
+        <!-- ── CARD 1: Estado general ── -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-icon">📋</div>
+            <div>
+              <div class="section-card-title">Resumen del expediente</div>
+              <div class="section-card-subtitle">Información general del estado actual</div>
+            </div>
           </div>
 
-          <div class="fields-row">
+          <div class="fields-grid-2">
             <div class="field-group">
-              <label class="field-label">Estado del expediente</label>
-              <mat-form-field appearance="outline" class="full-field">
-                <mat-select [(ngModel)]="estadoSeleccionado" [ngModelOptions]="{standalone: true}">
-                  <mat-option *ngFor="let estado of estados" [value]="estado">{{ estado }}</mat-option>
-                </mat-select>
-              </mat-form-field>
+              <label class="field-label">Estado del expediente <span class="required-star">*</span></label>
+              <div class="select-wrap">
+                <select class="field-select" formControlName="estado">
+                  <option value="">Seleccioná el estado</option>
+                  <option *ngFor="let estado of estados" [value]="estado">{{ estado }}</option>
+                </select>
+                <mat-icon class="select-chevron">expand_more</mat-icon>
+              </div>
             </div>
 
             <div class="field-group">
-              <label class="field-label">Último movimiento</label>
+              <label class="field-label">Último movimiento <span class="required-star">*</span></label>
               <input type="date" class="field-input" formControlName="ultimo_movimiento">
             </div>
 
@@ -103,165 +114,196 @@
               <input type="date" class="field-input" formControlName="fecha_atencion">
             </div>
           </div>
+        </div>
 
-          <!-- Sentencia -->
-          <ng-container *ngIf="estadoSeleccionado=='Sentencia'">
+        <!-- ── CARD 2: Datos de sentencia ── -->
+        <ng-container *ngIf="form.get('estado')?.value === 'Sentencia'">
 
-            <div class="section-divider">
-              <span>Detalles de la sentencia</span>
+          <div class="section-card">
+            <div class="section-card-header">
+              <div class="section-card-icon">⚖️</div>
+              <div>
+                <div class="section-card-title">Datos de sentencia</div>
+                <div class="section-card-subtitle">Información de la resolución judicial</div>
+              </div>
             </div>
 
-            <div class="fields-row">
+            <div class="fields-grid-2">
               <div class="field-group">
-                <label class="field-label">Honorario</label>
-                <mat-form-field appearance="outline" class="full-field">
-                  <mat-select formControlName="honorario" [(ngModel)]="honorarioSeleccionado"
-                    (selectionChange)="actualizarMonto($event.value); actualizarValidacionesCondicionales(); actualizarHonorario()">
-                    <mat-option *ngFor="let h of honorarios" [value]="h">{{ h }}</mat-option>
-                  </mat-select>
-                  <mat-error *ngIf="form.controls?.['honorario']?.invalid && form.controls?.['honorario']?.touched">
-                    Requerido
-                  </mat-error>
-                </mat-form-field>
+                <label class="field-label">Juez <span class="required-star">*</span></label>
+                <div class="select-wrap">
+                  <select class="field-select" formControlName="juez">
+                    <option [ngValue]="null">Seleccioná el juez</option>
+                    <option *ngFor="let j of jueces" [ngValue]="j">
+                      {{ j.nombre }} {{ j.apellido }}
+                    </option>
+                  </select>
+                  <mat-icon class="select-chevron">expand_more</mat-icon>
+                </div>
+                <div class="field-error" *ngIf="form.controls?.['juez']?.invalid && form.controls?.['juez']?.touched">Requerido</div>
               </div>
 
               <div class="field-group">
-                <label class="field-label">Juez</label>
-                <mat-form-field appearance="outline" class="full-field">
-                  <mat-select formControlName="juez" [(ngModel)]="juezSeleccionado">
-                    <mat-option *ngFor="let j of jueces" [value]="j">{{ j.nombre }} {{ j.apellido }}</mat-option>
-                  </mat-select>
-                  <mat-error *ngIf="form.controls?.['juez']?.invalid && form.controls?.['juez']?.touched">
-                    Requerido
-                  </mat-error>
-                </mat-form-field>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label">Fecha sentencia</label>
+                <label class="field-label">Fecha sentencia <span class="required-star">*</span></label>
                 <input type="date" class="field-input" formControlName="fecha_sentencia">
               </div>
+
+              <div class="field-group field-sala" *ngIf="expediente.juzgadoModel?.tipo === 'CCF' || expediente.juzgadoModel?.tipo === 'COM'">
+                <label class="field-label">Sala</label>
+                <div class="select-wrap">
+                  <select class="field-select" formControlName="sala">
+                    <option *ngFor="let s of (expediente.juzgadoModel?.tipo === 'CCF' ? ['Sin asignar','I','II','III'] : ['Sin asignar','A','B','C','D','E','F'])" [value]="s">{{ s }}</option>
+                  </select>
+                  <mat-icon class="select-chevron">expand_more</mat-icon>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── CARD 3: Liquidación de honorarios ── -->
+          <div class="section-card" *ngIf="expediente.honorarioCobrado != 1">
+            <div class="section-card-header">
+              <div class="section-card-icon">🧮</div>
+              <div>
+                <div class="section-card-title">Liquidación de honorarios</div>
+                <div class="section-card-subtitle">Cálculo de honorarios profesionales</div>
+              </div>
             </div>
 
-            <!-- UMA -->
-            <div class="fields-row" *ngIf="expediente.honorarioCobrado != 1">
+            <div class="fields-grid-2">
+              <div class="field-group">
+                <label class="field-label">Honorario <span class="required-star">*</span></label>
+                <div class="field-hint">Tipo de regulación aplicada al caso</div>
+                <div class="select-wrap">
+                  <select class="field-select" formControlName="honorario"
+                    (change)="actualizarMonto(); actualizarValidacionesCondicionales(); actualizarHonorario()">
+                    <option value="">Seleccioná el honorario</option>
+                    <option *ngFor="let h of honorarios" [value]="h">{{ h }}</option>
+                  </select>
+                  <mat-icon class="select-chevron">expand_more</mat-icon>
+                </div>
+                <div class="field-error" *ngIf="form.controls?.['honorario']?.invalid && form.controls?.['honorario']?.touched">Requerido</div>
+              </div>
+
+              <div class="field-group" *ngIf="umaSeleccionado != 'acuerdo'">
+                <label class="field-label">Selección UMA <span class="required-star">*</span></label>
+                <div class="field-hint">Base usada para calcular honorarios</div>
+                <div class="select-wrap">
+                  <select class="field-select" formControlName="umaSeleccionado"
+                    >
+                    <option [ngValue]="'acuerdo'">Acuerdo</option>
+                    <option *ngFor="let u of uma" [ngValue]="u">{{ u.valor }}</option>
+                  </select>
+                  <mat-icon class="select-chevron">expand_more</mat-icon>
+                </div>
+              </div>
+
               <div class="field-group" *ngIf="umaSeleccionado != 'acuerdo'">
                 <label class="field-label">Cantidad UMA</label>
                 <input class="field-input" type="number" placeholder="Cantidad de UMA"
-                  formControlName="cantidadUMA" [(ngModel)]="cantidadUMA"
-                  (ngModelChange)="calcularMontoUMA()">
+                  formControlName="cantidadUMA"
+                  >
               </div>
 
-              <div class="field-group">
-                <label class="field-label">Seleccioná UMA</label>
-                <mat-form-field appearance="outline" class="full-field">
-                  <mat-select formControlName="umaSeleccionado" [compareWith]="compararUMA"
-                    (selectionChange)="calcularMontoUMA()">
-                    <mat-option value="acuerdo">Acuerdo</mat-option>
-                    <mat-option *ngFor="let u of uma" [value]="u">{{ u.valor }}</mat-option>
-                  </mat-select>
-                </mat-form-field>
+              <div class="field-group" *ngIf="umaSeleccionado == 'acuerdo'">
+                <label class="field-label">Selección UMA <span class="required-star">*</span></label>
+                <div class="field-hint">Base usada para calcular honorarios</div>
+                <div class="select-wrap">
+                  <select class="field-select" formControlName="umaSeleccionado"
+                   >
+                    <option value="acuerdo">Acuerdo</option>
+                    <option *ngFor="let u of uma" [ngValue]="u">{{ u.valor }}</option>
+                  </select>
+                  <mat-icon class="select-chevron">expand_more</mat-icon>
+                </div>
               </div>
 
               <div class="field-group" *ngIf="umaSeleccionado == 'acuerdo'">
                 <label class="field-label">Monto acuerdo</label>
-                <input class="field-input" type="number" placeholder="Monto"
-                  formControlName="montoAcuerdo" [(ngModel)]="montoUMA">
-              </div>
-
-              <div class="field-group">
-                <label class="field-label">Monto honorario calculado</label>
-                <div class="monto-display">{{ montoUMA | number:'1.0-0' | currency:'$' }}</div>
-              </div>
-            </div>
-
-            <!-- Sala -->
-            <div class="fields-row">
-              <div class="field-group" *ngIf="expediente.juzgadoModel?.tipo === 'CCF'">
-                <label class="field-label">Sala</label>
-                <mat-form-field appearance="outline" class="full-field">
-                  <mat-select formControlName="sala" [(ngModel)]="sala" name="sala">
-                    <mat-option *ngFor="let s of ['Sin asignar','I','II','III']" [value]="s">{{ s }}</mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
-              <div class="field-group" *ngIf="expediente.juzgadoModel?.tipo === 'COM'">
-                <label class="field-label">Sala</label>
-                <mat-form-field appearance="outline" class="full-field">
-                  <mat-select formControlName="sala" [(ngModel)]="sala" name="sala">
-                    <mat-option *ngFor="let s of ['Sin asignar','A','B','C','D','E','F']" [value]="s">{{ s }}</mat-option>
-                  </mat-select>
-                </mat-form-field>
+                <div class="field-hint">Ingresar el monto pactado si corresponde</div>
+                <div class="input-prefix-wrap">
+                  <span class="input-prefix">$</span>
+                  <input class="field-input with-prefix" type="number" placeholder="0"
+                    formControlName="montoAcuerdo">
+                </div>
               </div>
             </div>
 
-            <!-- CAPITAL -->
-            <div class="section-divider"><span>Capital</span></div>
+            <!-- Resultado calculado -->
+            <div class="monto-calculado-panel">
+              <div class="monto-calculado-badge">CALCULADO</div>
+              <div class="monto-calculado-label">Monto honorario calculado</div>
+              <div class="monto-calculado-value">{{ montoUMA | currency:'$':'symbol':'1.0-0' }}</div>
+            </div>
+          </div>
+
+          <!-- ── CARD 4: Capital ── -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <div class="section-card-icon">🏦</div>
+              <div>
+                <div class="section-card-title">Capital</div>
+                <div class="section-card-subtitle">Situación del crédito principal</div>
+              </div>
+            </div>
 
             <ng-container *ngIf="!expediente.capitalCobrado">
-              <div class="fields-row">
+              <div class="fields-grid-2">
                 <div class="field-group">
-                  <label class="field-label">Estado del Capital</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="estadoCapitalSeleccionado" name="estadoCapitalSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales(); cambiarEstado('capital')">
-                        <mat-option *ngFor="let estado of estadosCapital" [value]="estado">
-                          {{ estado }}
-                        </mat-option>
-                    </mat-select>
-                  </mat-form-field>
+                  <label class="field-label">Estado del Capital <span class="required-star">*</span></label>
+                  <div class="field-hint">Situación actual del crédito principal</div>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="estadoCapitalSeleccionado"
+                      (change)="actualizarValidacionesCondicionales(); cambiarEstado('capital')">
+                      <option value="">Seleccioná el estado</option>
+                      <option *ngFor="let estado of estadosCapital" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Subestado capital apelado -->
-                <div class="field-group" *ngIf="estadoCapitalSeleccionado == 'apelado'">
+                <div class="field-group" *ngIf="form.get('estadoCapitalSeleccionado')?.value == 'apelado'">
                   <label class="field-label">Subestado</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="subEstadoCapitalSeleccionado" name="subEstadoCapitalSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales()">
-                      <mat-option *ngFor="let estado of subEstadosCapitalApelado" [value]="estado">
-                        {{ estado }}
-                      </mat-option>
-                    </mat-select>
-                  </mat-form-field>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="subEstadoCapitalSeleccionado"
+                      (change)="actualizarValidacionesCondicionales()">
+                      <option *ngFor="let estado of subEstadosCapitalApelado" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Subestado capital pendiente -->
-                <div class="field-group" *ngIf="estadoCapitalSeleccionado == 'pendiente'">
+                <div class="field-group" *ngIf="form.get('estadoCapitalSeleccionado')?.value == 'pendiente'">
                   <label class="field-label">Subestado</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="subEstadoCapitalSeleccionado" name="subEstadoCapitalSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales()">
-                        <mat-option *ngFor="let estado of subEstadosCapitalPendiente" [value]="estado">
-                          {{ estado }}
-                        </mat-option>                    
-                      </mat-select>
-                  </mat-form-field>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="subEstadoCapitalSeleccionado"
+                      (change)="actualizarValidacionesCondicionales()">
+                      <option *ngFor="let estado of subEstadosCapitalPendiente" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Subestado capital firme -->
-                <div class="field-group" *ngIf="estadoCapitalSeleccionado == 'firme'">
+                <div class="field-group" *ngIf="form.get('estadoCapitalSeleccionado')?.value == 'firme'">
                   <label class="field-label">Estado liquidación</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="subEstadoCapitalSeleccionado" name="subEstadoCapitalSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales()">
-                        <mat-option *ngFor="let estado of subEstadosCapitalFirme" [value]="estado">
-                          {{ estado }}
-                        </mat-option>
-                    </mat-select>
-                  </mat-form-field>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="subEstadoCapitalSeleccionado"
+                      (change)="actualizarValidacionesCondicionales()">
+                      <option *ngFor="let estado of subEstadosCapitalFirme" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Fecha capital -->
-                <div class="field-group" *ngIf="estadoCapitalSeleccionado">
+                <div class="field-group" *ngIf="form.get('estadoCapitalSeleccionado')?.value">
                   <label class="field-label">Fecha</label>
-                  <input type="date" class="field-input" [(ngModel)]="fechaCapitalSubestado" name="fechaCapitalSubestado">
+                  <input type="date" class="field-input" formControlName="fechaCapitalSubestado">
                 </div>
 
-                <!-- Monto capital -->
-                <div class="field-group" *ngIf="mostrarMontoCapital(subEstadoCapitalSeleccionado!)">
+                <div class="field-group" *ngIf="mostrarMontoCapital()">
                   <label class="field-label">Monto Capital</label>
                   <input class="field-input" type="number" placeholder="Monto Capital"
-                    [(ngModel)]="montoLiquidacionCapital" name="montoLiquidacionCapital">
+                    formControlName="montoLiquidacionCapital">
                 </div>
               </div>
             </ng-container>
@@ -269,95 +311,92 @@
             <div class="cobrado-banner" *ngIf="expediente.capitalCobrado">
               <mat-icon>check_circle</mat-icon> Capital cobrado
             </div>
+          </div>
 
-            <!-- HONORARIOS -->
-            <div class="section-divider"><span>Honorarios</span></div>
+          <!-- ── CARD 5: Honorarios ── -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <div class="section-card-icon">⚖️</div>
+              <div>
+                <div class="section-card-title">Honorarios</div>
+                <div class="section-card-subtitle">Estado de los honorarios profesionales</div>
+              </div>
+            </div>
 
             <ng-container *ngIf="!expediente.honorarioCobrado">
-              <div class="fields-row">
+              <div class="fields-grid-2">
 
-                <!-- Estado honorarios regulacion -->
-                <div class="field-group" *ngIf="honorarioSeleccionado != 'Difiere regulacion 1º instancia'">
-                  <label class="field-label">Estado de Honorarios</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="estadoHonorariosSeleccionado" name="estadoHonorariosSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales(); cambiarEstado('honorario')">
-                        <mat-option *ngFor="let estado of estadosHonorarios" [value]="estado">
-                        {{ estado }}
-                      </mat-option>
-                    </mat-select>
-                  </mat-form-field>
+                <div class="field-group" *ngIf="form.get('honorario')?.value != 'Difiere regulacion 1º instancia'">
+                  <label class="field-label">Estado de Honorarios <span class="required-star">*</span></label>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="estadoHonorariosSeleccionado"
+                      (change)="actualizarValidacionesCondicionales(); cambiarEstado('honorario')">
+                      <option value="">Seleccioná el estado</option>
+                      <option *ngFor="let estado of estadosHonorarios" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Estado honorarios difiere -->
-                <div class="field-group" *ngIf="honorarioSeleccionado == 'Difiere regulacion 1º instancia'">
-                  <label class="field-label">Estado de Honorarios</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="estadoHonorariosSeleccionado" name="estadoHonorariosSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales()">
-                    <mat-option *ngFor="let estado of estadoHonorarioDiferido" [value]="estado">
-                      {{ estado }}
-                    </mat-option>                    
-                  </mat-select>
-                  </mat-form-field>
+                <div class="field-group" *ngIf="form.get('honorario')?.value == 'Difiere regulacion 1º instancia'">
+                  <label class="field-label">Estado de Honorarios <span class="required-star">*</span></label>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="estadoHonorariosSeleccionado"
+                      (change)="actualizarValidacionesCondicionales()">
+                      <option value="">Seleccioná el estado</option>
+                      <option *ngFor="let estado of estadoHonorarioDiferido" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Subestado honorarios apelado -->
-                <div class="field-group" *ngIf="estadoHonorariosSeleccionado === 'apelado'">
+                <div class="field-group" *ngIf="form.get('estadoHonorariosSeleccionado')?.value === 'apelado'">
                   <label class="field-label">Subestado</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales()">
-                        <mat-option *ngFor="let estado of subEstadosHonorariosApelado" [value]="estado">
-                          {{ estado }}
-                        </mat-option>
-                    </mat-select>
-                  </mat-form-field>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="subEstadoHonorariosSeleccionado"
+                      (change)="actualizarValidacionesCondicionales()">
+                      <option *ngFor="let estado of subEstadosHonorariosApelado" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Subestado honorarios pendiente -->
-                <div class="field-group" *ngIf="estadoHonorariosSeleccionado === 'pendiente'">
+                <div class="field-group" *ngIf="form.get('estadoHonorariosSeleccionado')?.value === 'pendiente'">
                   <label class="field-label">Subestado</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales()">
-                        <mat-option *ngFor="let estado of subEstadosHonorariosPendiente" [value]="estado">
-                          {{ estado }}
-                        </mat-option>
-                    </mat-select>
-                  </mat-form-field>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="subEstadoHonorariosSeleccionado"
+                      (change)="actualizarValidacionesCondicionales()">
+                      <option *ngFor="let estado of subEstadosHonorariosPendiente" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Subestado honorarios diferido -->
-                <div class="field-group" *ngIf="estadoHonorariosSeleccionado === 'diferido'">
+                <div class="field-group" *ngIf="form.get('estadoHonorariosSeleccionado')?.value === 'diferido'">
                   <label class="field-label">Subestado</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales()">
-                      <mat-option *ngFor="let estado of subEstadosHonorariosDiferido" [value]="estado">
-                        {{ estado }}
-                      </mat-option>                    
-                      </mat-select>
-                  </mat-form-field>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="subEstadoHonorariosSeleccionado"
+                      (change)="actualizarValidacionesCondicionales()">
+                      <option *ngFor="let estado of subEstadosHonorariosDiferido" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Subestado honorarios firme -->
-                <div class="field-group" *ngIf="estadoHonorariosSeleccionado === 'firme'">
+                <div class="field-group" *ngIf="form.get('estadoHonorariosSeleccionado')?.value === 'firme'">
                   <label class="field-label">Estado liquidación</label>
-                  <mat-form-field appearance="outline" class="full-field">
-                    <mat-select [(ngModel)]="subEstadoHonorariosSeleccionado" name="subEstadoHonorariosSeleccionado"
-                      (selectionChange)="actualizarValidacionesCondicionales()">
-                    <mat-option *ngFor="let estado of subEstadosHonorariosFirme" [value]="estado">
-                      {{ estado }}
-                    </mat-option>
-                    </mat-select>
-                  </mat-form-field>
+                  <div class="select-wrap">
+                    <select class="field-select" formControlName="subEstadoHonorariosSeleccionado"
+                      (change)="actualizarValidacionesCondicionales()">
+                      <option *ngFor="let estado of subEstadosHonorariosFirme" [value]="estado">{{ estado }}</option>
+                    </select>
+                    <mat-icon class="select-chevron">expand_more</mat-icon>
+                  </div>
                 </div>
 
-                <!-- Fecha honorarios -->
-                <div class="field-group" *ngIf="estadoHonorariosSeleccionado">
+                <div class="field-group" *ngIf="form.get('estadoHonorariosSeleccionado')?.value">
                   <label class="field-label">Fecha</label>
-                  <input type="date" class="field-input" [(ngModel)]="fechaHonorariosSubestado" name="fechaHonorariosSubestado">
+                  <input type="date" class="field-input" formControlName="fechaHonorariosSubestado">
                 </div>
 
               </div>
@@ -367,7 +406,6 @@
               <mat-icon>check_circle</mat-icon> Honorario cobrado
             </div>
 
-            <!-- Botones extras -->
             <div class="extras-row">
               <button class="btn-extra" (click)="abrirModalAlzada()">
                 <mat-icon>{{ expediente.estadoHonorariosAlzadaSeleccionado ? 'edit' : 'add' }}</mat-icon>
@@ -382,23 +420,32 @@
                 {{ expediente.estadoHonorariosDiferenciaSeleccionado ? 'Editar Diferencia' : 'Agregar Diferencia' }}
               </button>
             </div>
-
-          </ng-container>
-
-          <!-- Botón guardar -->
-          <div class="save-row">
-            <button class="btn-guardar" (click)="actualizarEstado()">
-              <mat-icon>save</mat-icon>
-              Actualizar estado
-            </button>
           </div>
 
-        </form>
-      </div>
+        </ng-container>
+
+        <div class="save-row">
+          <button class="btn-guardar" (click)="actualizarEstado()">
+            <mat-icon>save</mat-icon>
+            Actualizar estado
+          </button>
+        </div>
+
+      </form>
 
     }
 
     @if(expediente.estado == 'Cobrado') {
+
+      <div class="exp-info-card">
+        <div class="exp-info-row">
+          <span class="exp-num">{{ expediente?.numero }}/{{ expediente.anio }}</span>
+          <span class="exp-juzgado">{{ expediente.juzgadoModel?.nombre }}</span>
+          <span class="exp-juicio" *ngIf="expediente?.juicio">{{ expediente?.juicio }}</span>
+        </div>
+        <div class="exp-caratula">{{ expediente?.caratula }}</div>
+      </div>
+
       <div class="cobrado-full-banner">
         <mat-icon>check_circle</mat-icon>
         Expediente Cobrado

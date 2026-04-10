@@ -22,7 +22,6 @@
           <option value="todos">Todos los estados</option>
           <option *ngFor="let est of estados" [value]="est">{{ est }}</option>
         </select>
-        <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
 
       <div class="filter-select-wrap">
@@ -30,7 +29,6 @@
           <option value="">Todas las partes</option>
           <option *ngFor="let p of partes" [value]="p">{{ p }}</option>
         </select>
-        <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
 
       <div class="filter-select-wrap">
@@ -38,7 +36,6 @@
           <option value="">Todos los demandados</option>
           <option *ngFor="let d of demandados" [value]="d.id">{{ d.nombre }}</option>
         </select>
-        <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
     </div>
 

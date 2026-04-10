@@ -162,8 +162,8 @@ tbody tr {
   transition: background 0.15s $ease;
 
   &.hover-group { background: #f8fafc; }
-  &.row-giro { background: rgba(127, 29, 29, 0.06); }
-  &.row-giro.hover-group { background: rgba(127, 29, 29, 0.1); }
+  //&.row-giro { background: rgba(127, 29, 29, 0.06); }
+  //&.row-giro.hover-group { background: rgba(127, 29, 29, 0.1); }
 }
 
 td {
@@ -209,7 +209,7 @@ td {
   display: flex;
   align-items: center;
   gap: 4px;
-  &.td-giro { color: #b91c1c; font-weight: 600; }
+  //&.td-giro { color: #b91c1c; font-weight: 600; }
 }
 
 .sort-arrow { margin-left: 4px; color: $c-blue-mid; }
@@ -240,7 +240,6 @@ td {
 // ── Banners cobrado / pendiente ───────────────────────────────
 .td-cobrado-banner {
   text-align: center;
-  background: #f0fdf4;
 }
 
 .cobrado-label {
@@ -251,7 +250,7 @@ td {
 
 .td-pendiente-banner {
   text-align: center;
-  background: #fffbeb;
+  //background: #fffbeb;
 }
 
 .pendiente-label {
@@ -306,4 +305,109 @@ td {
   border-radius: 0 0 14px 14px;
   font-family: 'Poppins', sans-serif;
   font-size: 13px;
+}
+
+
+/* normalización tipográfica */
+.search-wrap .search-input { font-size: 0.875rem; }
+.search-wrap .search-icon { font-size: 1.0625rem; width: 1.0625rem; height: 1.0625rem; }
+
+.filter-select,
+::ng-deep .mat-mdc-select-value,
+::ng-deep .mdc-floating-label {
+  font-size: 0.875rem !important;
+}
+
+table { font-size: 0.875rem; }
+thead tr th { font-size: 0.6875rem; }
+
+.expediente-num { font-size: 0.875rem; }
+.td-caratula,
+.td-monto,
+.td-pct,
+.td-final { font-size: 0.8125rem; }
+
+.td-estado,
+.td-fecha,
+.cobrado-label,
+.pendiente-label,
+.td-cobrado { font-size: 0.75rem; }
+
+.badge,
+.antiguedad-chip { font-size: 0.75rem; }
+
+.cobrar-btn mat-icon,
+.restore-btn mat-icon {
+  font-size: 1.125rem !important;
+  width: 1.125rem !important;
+  height: 1.125rem !important;
+}
+
+.empty-row,
+.total-row {
+  font-size: 0.875rem;
+}
+
+::ng-deep .mat-mdc-paginator { font-size: 0.875rem; }
+
+
+.td-tipo {
+  position: relative;
+}
+
+.row-cobrado .td-tipo::before,
+.row-giro .td-tipo::before,
+.row-pendiente .td-tipo::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 999px;
+}
+/*
+.row-cobrado .td-tipo::before {
+  background: #16a34a;
+}*/
+
+.row-giro .td-tipo::before {
+  background: #dc2626;
+}
+
+.row-pendiente .td-tipo::before {
+  background: #d97706;
+}
+
+.expediente-group-start td {
+  border-top: 12px solid #eef2f7;
+}
+
+.expediente-group-even td {
+  background: #fcfdff;
+}
+
+.expediente-group-odd td {
+  background: #ffffff;
+}
+
+/* separación entre expedientes */
+.expediente-start td {
+  border-top: 10px solid #f1f5f9;
+}
+
+
+/* separación visual entre expedientes */
+.table-wrap table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.expediente-start td {
+  border-top: 12px solid #eef2f7;
+}
+
+/* que el primer expediente no arranque con separación extra */
+tbody tr.expediente-start:first-child td {
+  border-top: none;
 }

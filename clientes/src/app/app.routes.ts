@@ -51,9 +51,15 @@ export const routes: Routes = [
       { path: 'graficos',       loadComponent: () => import('./pages/graficos/graficos.page').then(m => m.GraficosPage), canActivate: [AdminGuard] },
       { path: 'control-anio-expedientes', loadComponent: () => import('./pages/control-anio-expedientes/control-anio-expedientes.page').then(m => m.ControlAnioExpedientesPage), canActivate: [AdminGuard] },
       { path: 'calendario',     loadComponent: () => import('./pages/calendario/calendario.page').then(m => m.CalendarioPage), canActivate: [AdminGuard] },
+      {
+        path: 'configuracion',
+        loadComponent: () => import('./pages/configuracion/configuracion.page').then( m => m.ConfiguracionPage)
+      },
     ],
   },
 
   // ── Wildcard ─────────────────────────────────────────────
   { path: '**', redirectTo: 'login' },
+
+
 ];

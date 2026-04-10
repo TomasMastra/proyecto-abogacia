@@ -148,3 +148,12 @@ select {
   padding: 16px;
   box-shadow: var(--shadow);
 }
+
+
+:root {
+  --font-base: 30px;
+}
+
+html {
+  font-size: var(--font-base, 16px);
+}

@@ -162,8 +162,18 @@
       (click)="goTo('control-anio-expedientes')"
       [matTooltip]="collapsed ? 'Correcciones ENRE' : ''"
       matTooltipPosition="right">
-      <mat-icon>settings</mat-icon>
+      <mat-icon>alarm</mat-icon>
       <span class="nav-label">Correcciones ENRE</span>
+    </button>
+
+
+    <button class="nav-item"
+      *ngIf="esAdmin"
+      [matTooltip]="collapsed ? 'configuracion' : ''"
+      matTooltipPosition="right"
+      [class.active]="isActive('configuracion')" (click)="goTo('configuracion')">
+      <mat-icon>settings</mat-icon>
+      <span class="nav-label">configuracion</span>
     </button>
 
     <button class="nav-item nav-logout"

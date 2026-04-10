@@ -342,3 +342,51 @@ $ease:       cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Poppins', sans-serif;
   font-size: 13px;
 }
+
+
+/* nuevos tamaños de texto */
+
+.page-title { font-size: 1.6rem; }
+
+.search-input { font-size: 0.875rem; }
+
+.btn { font-size: 0.875rem; }
+
+.table-header { font-size: 0.6875rem; }
+
+.empty-state p { font-size: 0.875rem; }
+
+.cliente-nombre { font-size: 0.875rem; }
+
+.cliente-email { font-size: 0.75rem; }
+
+.detail-label { font-size: 0.75rem; }
+
+.exp-chip { font-size: 0.75rem; }
+
+.no-exp { font-size: 0.75rem; }
+
+::ng-deep .mat-mdc-paginator { font-size: 0.875rem; }
+
+
+/* buscador */
+.search-wrap {
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 0 14px;
+}
+
+.search-wrap .search-input {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.search-wrap .search-input::placeholder {
+  font-size: 1rem;
+}
+
+.search-wrap .search-icon {
+  font-size: 1.2rem;
+  width: 1.2rem;
+  height: 1.2rem;
+}

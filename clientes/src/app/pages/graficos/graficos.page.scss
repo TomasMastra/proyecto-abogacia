@@ -154,3 +154,25 @@ $ease:       cubic-bezier(0.4, 0, 0.2, 1);
     height: auto !important;
   }
 }
+
+
+/* normalización tipográfica */
+.control-label { font-size: 0.75rem; }
+
+.filter-select,
+.chart-select,
+.range-select {
+  font-size: 0.875rem;
+}
+
+.filter-select-wrap mat-icon,
+.select-wrap mat-icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.chart-title { font-size: 1rem; }
+
+.empty-state p { font-size: 0.875rem; }
+.empty-state mat-icon { font-size: 3rem; width: 3rem; height: 3rem; }

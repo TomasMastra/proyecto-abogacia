@@ -186,3 +186,78 @@ td { padding: 11px 14px; color: $c-text; vertical-align: middle; }
   border-radius: 0 0 14px 14px;
   font-family: 'Poppins', sans-serif;
 }
+
+/* normalización tipográfica */
+.search-wrap .search-input { font-size: 0.875rem; }
+.search-wrap .search-icon { font-size: 1.0625rem; width: 1.0625rem; height: 1.0625rem; }
+
+.btn { font-size: 0.875rem; }
+.btn--primary mat-icon { font-size: 1.0625rem; width: 1.0625rem; height: 1.0625rem; }
+
+table { font-size: 0.875rem; }
+thead tr th { font-size: 0.6875rem; }
+.tipo-chip { font-size: 0.75rem; }
+
+.action-icon-btn mat-icon { font-size: 1.0625rem; width: 1.0625rem; height: 1.0625rem; }
+
+.empty-row { font-size: 0.875rem; }
+.empty-row mat-icon { font-size: 2rem; width: 2rem; height: 2rem; }
+
+.estado-chip {
+  font-size: 0.75rem;
+}
+
+::ng-deep .mat-mdc-paginator { font-size: 0.875rem; }
+
+/* ============================================================
+   AJUSTE SELECTS — CONSULTAS
+============================================================ */
+
+.filter-select-wrap {
+  flex: 1;
+  min-width: 220px;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+.filter-select-wrap--wide {
+  flex: 1;
+  min-width: 220px;
+}
+
+.filter-select {
+  width: 100%;
+  height: 44px;
+  padding: 0 42px 0 14px;
+  border-radius: 10px;
+  box-sizing: border-box;
+
+  font-size: 1rem;
+  line-height: 1.2;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filter-select-wrap .select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+
+  font-size: 1.2rem;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.toolbar {
+  align-items: stretch;
+}
