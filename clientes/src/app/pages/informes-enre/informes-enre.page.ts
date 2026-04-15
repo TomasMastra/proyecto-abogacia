@@ -84,7 +84,7 @@ export class InformesEnrePage {
       tiene_cortes: null,
       dias_cortes: null,
       observaciones: '',
-      estado: 'pendiente_relevamiento',
+      //estado: 'pendiente_relevamiento',
       estado_descripcion: 'Pendiente de relevamiento'
     };
   }
@@ -121,17 +121,17 @@ export class InformesEnrePage {
 
       return {
         ...item,
-        estado: estadoCalculado.estado,
+        estado_calculado: estadoCalculado.estado,
         estado_descripcion: estadoCalculado.descripcion
       };
     });
 
-    this.listaParaReactivarOriginal = enriquecida.filter(x => x.estado === 'pendiente_relevamiento');
+    this.listaParaReactivarOriginal = enriquecida.filter(x => x.estado_calculado  === 'pendiente_relevamiento');
     this.listaEnTramiteOriginal = enriquecida.filter(
-      x => x.estado === 'informe_pedido' || x.estado === 'informe_respondido_pendiente_cortes'
+      x => x.estado_calculado === 'informe_pedido' || x.estado_calculado === 'informe_respondido_pendiente_cortes'
     );
-    this.listaConCortesOriginal = enriquecida.filter(x => x.estado === 'con_cortes');
-    this.listaSinCortesOriginal = enriquecida.filter(x => x.estado === 'sin_cortes');
+    this.listaConCortesOriginal = enriquecida.filter(x => x.estado_calculado  === 'con_cortes');
+    this.listaSinCortesOriginal = enriquecida.filter(x => x.estado_calculado  === 'sin_cortes');
 
     this.listaParaReactivar = [...this.listaParaReactivarOriginal];
     this.listaEnTramite = [...this.listaEnTramiteOriginal];
@@ -218,39 +218,20 @@ agruparPorExpediente(data: any[]) {
   }
 
 obtenerEstado(item: any): { estado: string; descripcion: string } {
-  const estado = item.estado_reclamo || item.estado;
+  const estadoOriginal =
+    item?.estado_reclamo ?? item?.estado ?? 'pendiente_relevamiento';
 
-  if (estado === 'informe_pedido') {
-    return {
-      estado: 'informe_pedido',
-      descripcion: 'Informe pedido'
-    };
-  }
-
-  if (estado === 'informe_respondido_pendiente_cortes') {
-    return {
-      estado: 'informe_respondido_pendiente_cortes',
-      descripcion: 'Falta definir si tiene cortes'
-    };
-  }
-
-  if (estado === 'con_cortes') {
-    return {
-      estado: 'con_cortes',
-      descripcion: 'Con cortes'
-    };
-  }
-
-  if (estado === 'sin_cortes') {
-    return {
-      estado: 'sin_cortes',
-      descripcion: 'Sin cortes'
-    };
-  }
+  const descripciones: Record<string, string> = {
+    informe_pedido: 'Informe pedido',
+    informe_respondido_pendiente_cortes: 'Falta definir si tiene cortes',
+    con_cortes: 'Con cortes',
+    sin_cortes: 'Sin cortes',
+    pendiente_relevamiento: 'Pendiente de relevamiento'
+  };
 
   return {
-    estado: 'pendiente_relevamiento',
-    descripcion: 'Pendiente de relevamiento'
+    estado: estadoOriginal,
+    descripcion: descripciones[estadoOriginal] || 'Pendiente de relevamiento'
   };
 }
 
@@ -268,6 +249,7 @@ obtenerEstado(item: any): { estado: string; descripcion: string } {
       observaciones: item.observaciones || ''
     };
   }
+
 abrirModalEditar(item: any) {
   this.modoEdicion = true;
   this.modalAbierto = true;
@@ -293,6 +275,7 @@ abrirModalEditar(item: any) {
     this.expedienteSeleccionado = null;
     this.formModal = this.getFormVacio();
   }
+
 guardarModal() {
   if (!this.expedienteSeleccionado) return;
 
@@ -408,7 +391,7 @@ deshacerCambios(item: any) {
     fecha_pedido_informe: null,
     tiene_cortes: null,
     dias_cortes: null,
-    estado_reclamo: null
+    estado_reclamo: 'pendiente_relevamiento'
   };
 
   this.expedientesService.actualizarExpediente(idExpediente, expedienteActualizado).subscribe({

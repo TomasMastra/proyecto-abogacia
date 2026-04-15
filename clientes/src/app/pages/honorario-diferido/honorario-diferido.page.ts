@@ -38,6 +38,18 @@ import { UsuarioService } from 'src/app/services/usuario.service';
 
 import Swal from 'sweetalert2'
 
+import {
+  ESTADOS_CAPITAL_APELADO,
+  ESTADOS_CAPITAL_PENDIENTE,
+  ESTADOS_CAPITAL_FIRME
+} from 'src/app/config/estados-capital.config';
+
+import {
+  ESTADOS_HONORARIOS_APELADO,
+  ESTADOS_HONORARIOS_PENDIENTE,
+  ESTADOS_HONORARIOS_DIFERIDO,
+  ESTADOS_HONORARIOS_FIRME
+} from 'src/app/config/estados-honorario.config';
 
 @Component({
   selector: 'app-honorario-diferido',
@@ -75,7 +87,7 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
   expedientesCargados = false;
 
   // Paginador
-  pageSize: number = 20;
+  pageSize: number = 500;
   pageIndex: number = 0;
   honorariosPaginados: any[] = [];
 
@@ -88,7 +100,7 @@ export class HonorarioDiferidoPage implements OnInit, OnDestroy {
   private cargaToken = 0;
   estadoHonorarioSeleccionado: any;
   procuradorSeleccionado: string = '';
-  
+  /*
 estadosHonorarios: string[] = [
   'espera que vuelva',
   'honorario se intima',
@@ -118,7 +130,26 @@ estadosHonorarios: string[] = [
   'embargo citese de venta',
   'giro - consentido', // este es diferente de 'giro - consiente'
   'solicita se regulan'
-];
+];*/
+
+  subEstadosCapitalApelado = ESTADOS_CAPITAL_APELADO;
+  subEstadosCapitalPendiente = ESTADOS_CAPITAL_PENDIENTE;
+  subEstadosCapitalFirme = ESTADOS_CAPITAL_FIRME;
+
+  subEstadosHonorariosApelado = ESTADOS_HONORARIOS_APELADO;
+  subEstadosHonorariosPendiente = ESTADOS_HONORARIOS_PENDIENTE;
+  subEstadosHonorariosDiferido = ESTADOS_HONORARIOS_DIFERIDO;
+  subEstadosHonorariosFirme = ESTADOS_HONORARIOS_FIRME;
+
+estadosHonorarios: string[] = Array.from(new Set([
+  ...ESTADOS_CAPITAL_APELADO,
+  ...ESTADOS_CAPITAL_PENDIENTE,
+  ...ESTADOS_CAPITAL_FIRME,
+  ...ESTADOS_HONORARIOS_APELADO,
+  ...ESTADOS_HONORARIOS_PENDIENTE,
+  ...ESTADOS_HONORARIOS_DIFERIDO,
+  ...ESTADOS_HONORARIOS_FIRME
+])).sort((a, b) => a.localeCompare(b));
 
   constructor(
     private expedienteService: ExpedientesService,
@@ -1021,7 +1052,7 @@ tieneEstadoGiroPorTipo(item: any, tipo: string): boolean {
 
 
 
-
+/*
 restaurarCobro(item: any) {
   Swal.fire({
     icon: 'warning',
@@ -1081,6 +1112,75 @@ restaurarCobro(item: any) {
         Swal.fire({
           icon: 'error',
           title: 'Error al restaurar',
+          text: e?.error?.message || 'Intentalo de nuevo'
+        });
+      }
+    });
+  });
+}*/
+
+restaurarCobro(item: any) {
+  Swal.fire({
+    icon: 'warning',
+    title: '¿Restaurar cobro?',
+    html: 'Esto dejará todos los cobros en <b>no cobrado</b> y limpiará fechas/montos de cobro (no toca los estados).',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, restaurar',
+    cancelButtonText: 'Cancelar'
+  }).then(res => {
+    if (!res.isConfirmed) return;
+
+    // 🔒 CLAVE: preparar el cuerpo ANTES de enviar
+    const body = { ...item };
+
+    body.honorarioCobrado           = 0;
+    body.capitalCobrado             = 0;
+    body.honorarioAlzadaCobrado     = 0;
+    body.honorarioEjecucionCobrado  = 0;
+    body.honorarioDiferenciaCobrado = 0;
+
+    body.fecha_cobro          = null;
+    body.fecha_cobro_capital  = null;
+    body.fechaCobroAlzada     = null;
+    body.fechaCobroEjecucion  = null;
+    body.fechaCobroDiferencia = null;
+
+    body.capitalPagoParcial = null;
+    body.recalcular_caratula = false;
+    body.esPagoParcial = 0;
+    body.estado = 'Sentencia';
+
+    // primero borra pagos, después actualiza expediente
+    this.pagosService.eliminarPagosPorExpediente(item.id).subscribe({
+      next: () => {
+        this.expedienteService.actualizarExpediente(item.id, body).subscribe({
+          next: () => {
+            Object.assign(item, body);
+
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: 'Cobro restaurado',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: (e) => {
+            console.error(e);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al restaurar',
+              text: e?.error?.message || 'Intentalo de nuevo'
+            });
+          }
+        });
+      },
+      error: (e) => {
+        console.error(e);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al borrar pagos',
           text: e?.error?.message || 'Intentalo de nuevo'
         });
       }

@@ -7,7 +7,7 @@ export const ESTADOS_HONORARIOS: string[] = [
   'diferido'
 ];
 
-export const ESTADO_HONORARIO_DIFERIDO = 'diferido';
+/*export const ESTADO_HONORARIO_DIFERIDO = 'diferido';*/
 
 export const ESTADOS_HONORARIOS_APELADO: string[] = [
   'prorrateo - se resuelve',
@@ -24,10 +24,10 @@ export const ESTADOS_HONORARIOS_PENDIENTE: string[] = [
   'sentencia',
   'solicita se regulan'
 ];
-
+/*
 export const ESTADOS_HONORARIOS_DIFERIDO: string[] = [
   'diferido'
-];
+];*/
 
 export const ESTADOS_HONORARIOS_FIRME: string[] = [
   'espera que vuelva',
@@ -46,3 +46,8 @@ export const ESTADOS_HONORARIOS_FIRME: string[] = [
   'giro rechazado',
   'giro'
 ];
+
+
+export const ESTADO_HONORARIO_DIFERIDO = ['diferido'];
+
+export const ESTADOS_HONORARIOS_DIFERIDO = ['diferido'];

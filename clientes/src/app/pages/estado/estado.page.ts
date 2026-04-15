@@ -1166,6 +1166,22 @@ resetearCamposEstadoYHonorarios() {
 }
 
 //esta bien
+/*actualizarHonorario() {
+  const honorario = this.form.get('honorario')?.value;
+
+  if (honorario === 'Difiere regulacion 1º instancia') {
+    this.form.patchValue({
+      estadoHonorariosSeleccionado: 'diferido',
+      subEstadoHonorariosSeleccionado: 'diferido'
+    });
+  } else {
+    this.form.patchValue({
+      estadoHonorariosSeleccionado: null,
+      subEstadoHonorariosSeleccionado: null
+    });
+  }
+}*/
+
 actualizarHonorario() {
   const honorario = this.form.get('honorario')?.value;
 
@@ -2055,7 +2071,7 @@ validarEjecucion(): any {
 }
 
 mostrarMontoCapital(): boolean {
-  const estado = this.form.get('estado')?.value; 
+  const estado = this.form.get('subEstadoCapitalSeleccionado')?.value; 
 
   const habilitados = [
     'liquidacion practicada',

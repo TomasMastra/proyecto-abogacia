@@ -42,7 +42,7 @@ export class RequeridosPage implements OnInit, OnDestroy {
   busqueda: string = '';
   cargando: boolean = true;
 
-  ordenCampo: string = 'dias_ultimo_movimiento';
+  ordenCampo: string = 'fecha_requerido';
   ordenAscendente: boolean = false;
 
   listaUsuarios: UsuarioModel[] = [];
@@ -118,8 +118,7 @@ export class RequeridosPage implements OnInit, OnDestroy {
       .subscribe({
         next: (expedientes) => {
           const filtrados = (expedientes ?? []).filter(e =>
-            e.estado !== 'Sentencia' && e.estado !== 'Cobrado' &&
-            e.estado !== 'eliminado' && e.estado !== 'Archivo' && e.estado !== 'Mediacion'
+            e.estado !== 'eliminado' && e.estado !== 'Archivo' && e.fecha_atencion
           );
           this.expedientesOriginales = filtrados;
           this.expedientes = [...filtrados];
@@ -200,7 +199,7 @@ export class RequeridosPage implements OnInit, OnDestroy {
   }
 
   // ── Ordenamiento ───────────────────────────────────────────
-  get honorariosDiferidosOrdenados(): any[] {
+  /*get honorariosDiferidosOrdenados(): any[] {
     return [...this.expedientes].sort((a, b) => {
       const vA = this.obtenerValorOrden(a, this.ordenCampo);
       const vB = this.obtenerValorOrden(b, this.ordenCampo);
@@ -208,7 +207,65 @@ export class RequeridosPage implements OnInit, OnDestroy {
       if (vA > vB) return this.ordenAscendente ? 1 : -1;
       return 0;
     });
-  }
+  }*/
+
+
+    get honorariosDiferidosOrdenados(): any[] {
+      return [...this.expedientes].sort((a, b) => {
+
+        // 🔴 1. PRIORIDAD: SENTENCIA ARRIBA
+        if (a.estado === 'Sentencia' && b.estado !== 'Sentencia') return -1;
+        if (a.estado !== 'Sentencia' && b.estado === 'Sentencia') return 1;
+
+        // 🔵 2. ORDEN POR FECHA_REQUERIDO
+        if (this.ordenCampo === 'fecha_requerido') {
+          const fechaA = a.fecha_atencion ? new Date(a.fecha_atencion).getTime() : 0;
+          const fechaB = b.fecha_atencion ? new Date(b.fecha_atencion).getTime() : 0;
+          return this.ordenAscendente ? fechaA - fechaB : fechaB - fechaA;
+        }
+
+        // 🟡 3. RESTO NORMAL
+        const vA = this.obtenerValorOrden(a, this.ordenCampo);
+        const vB = this.obtenerValorOrden(b, this.ordenCampo);
+
+        if (vA < vB) return this.ordenAscendente ? -1 : 1;
+        if (vA > vB) return this.ordenAscendente ? 1 : -1;
+        return 0;
+      });
+    }
+
+    obtenerValorOrden(item: any, campo: string): any {
+      switch (campo) {
+        case 'numero':
+          return `${item.numero}/${item.anio}`;
+
+        case 'caratula':
+          return (item.caratula || '').toLowerCase();
+
+        case 'ultimo_movimiento':
+          return item.ultimo_movimiento;
+
+        case 'fecha_requerido':
+          return item.fecha_atencion
+            ? new Date(item.fecha_atencion).getTime()
+            : 0;
+
+        case 'abogado':
+          return this.listaUsuarios.find(u => u.id === item.usuario_id)?.nombre ?? '';
+
+        case 'procurador':
+          return this.listaUsuarios.find(u => u.id === item.procurador_id)?.nombre ?? '';
+
+        case 'dias_ultimo_movimiento':
+          return this.diasDesdeUltimoMovimiento(item.ultimo_movimiento);
+
+        case 'estado':
+          return item.estado;
+
+        default:
+          return '';
+      }
+    }
 
   ordenarPor(campo: string): void {
     if (this.ordenCampo === campo) {
@@ -218,19 +275,6 @@ export class RequeridosPage implements OnInit, OnDestroy {
       this.ordenAscendente = true;
     }
     this.actualizarPagina();
-  }
-
-  obtenerValorOrden(item: any, campo: string): any {
-    switch (campo) {
-      case 'numero':    return `${item.numero}/${item.anio}`;
-      case 'caratula':  return (item.caratula || '').toLowerCase();
-      case 'ultimo_movimiento': return item.ultimo_movimiento;
-      case 'abogado':   return this.listaUsuarios.find(u => u.id === item.usuario_id)?.nombre ?? '';
-      case 'procurador': return this.listaUsuarios.find(u => u.id === item.procurador_id)?.nombre ?? '';
-      case 'dias_ultimo_movimiento': return this.diasDesdeUltimoMovimiento(item.ultimo_movimiento);
-      case 'estado':    return item.estado;
-      default:          return '';
-    }
   }
 
   // ── Helpers ────────────────────────────────────────────────

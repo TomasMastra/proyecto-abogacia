@@ -4,27 +4,47 @@ import { JuezModel } from '../juez/juez.component';
 import { CodigoModel } from '../codigo/codigo.component';
 import { DemandadoModel } from '../demandado/demandado.component';
 
+export interface JurisprudenciaDemandadoModel {
+  id: number;
+  tipo: 'empresa' | 'cliente';
+  nombre?: string | null;
+}
+
 export interface JurisprudenciaModel {
   id: string;
 
   // caso expediente propio
   expediente_id?: number | null;
 
-  // caso expediente ajeno
+  // propio / ajeno
   tipo_expediente?: 'propio' | 'ajeno';
+
+  // caso expediente ajeno
   numero?: number | null;
   anio?: number | null;
   objeto?: string | null;
 
-  fuero: string;
-  demandado_id: number;
-  juzgado_id: number;
-  sentencia: string | null;
-  juez_id: number;
-  camara: string | null;
-  codigo_id: number;
+  // comunes
+  fuero?: string | null;
+  juzgado_id?: number | null;
+  juez_id?: number | null;
+  sentencia?: string | null;
+  camara?: string | null;
+  codigo_id?: number | null;
+
+  // nuevos campos
+  fecha_alzada?: string | null;
+  resultado?: 'favorable' | 'desfavorable' | null;
+  motivo?: string | null;
+
   estado?: string;
   caratula?: string;
+
+  // compatibilidad vieja
+  demandado_id?: number | null;
+
+  // nuevo esquema
+  demandados?: JurisprudenciaDemandadoModel[];
 
   // Models
   expedienteModel?: ExpedienteModel | null;

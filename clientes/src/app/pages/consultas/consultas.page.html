@@ -78,8 +78,6 @@
             <th>Carátula</th>
             <th>Últ. movimiento</th>
             <th>Estado</th>
-            <th>Abogado</th>
-            <th>Procurador</th>
             <th>Juicio</th>
             <th>Días</th>
           </tr>
@@ -96,8 +94,6 @@
               <td><div class="skeleton-chip"></div></td>
               <td><div class="skeleton-line sk-col4"></div></td>
               <td><div class="skeleton-line sk-col5"></div></td>
-              <td><div class="skeleton-line sk-col3"></div></td>
-              <td><div class="skeleton-line sk-col4"></div></td>
             </tr>
           </ng-container>
 
@@ -108,8 +104,6 @@
               <td class="td-caratula">{{ item.caratula }}</td>
               <td>{{ mostrarFecha(item.ultimo_movimiento) || '—' }}</td>
               <td><span class="estado-chip">{{ item.estado }}</span></td>
-              <td>{{ getNombreAbogado(item.usuario_id) }}</td>
-              <td>{{ getNombreAbogado(item.procurador_id) }}</td>
               <td>{{ item.juicio || '—' }}</td>
               <td>
                 <span class="dias-chip" [class.dias-chip--warn]="estadoVencimiento(item).startsWith('⚠')">

@@ -51,6 +51,10 @@ export class PagosService {
       catchError(this.handleError)
     );
   }
+
+  eliminarPagosPorExpediente(expedienteId: number) {
+  return this.http.delete(`${this.apiUrl}/expediente/${expedienteId}`);
+}
 }
 
 

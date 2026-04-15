@@ -5744,7 +5744,7 @@ app.get("/jurisprudencias", async (req, res) => {
 });
 
 // postgres
-app.post("/jurisprudencias", async (req, res) => {
+/*app.post("/jurisprudencias", async (req, res) => {
   const client = await pgPool.connect();
 
   const nextId = async (seq) => {
@@ -5929,6 +5929,328 @@ app.post("/jurisprudencias", async (req, res) => {
         j.codigo_id,
         c.codigo,
         c.descripcion
+      FROM public.jurisprudencias j
+      LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
+      LEFT JOIN public.juez jue ON jue.id = j.juez_id
+      LEFT JOIN public.codigos c ON c.id = j.codigo_id
+      WHERE j.id = $1
+      `,
+      [jurisprudenciaId]
+    );
+
+    return res.status(201).json(rows[0]);
+
+  } catch (err) {
+    try { await client.query("ROLLBACK"); } catch {}
+
+    console.error("POST /jurisprudencias error:", err);
+
+    return res.status(500).json({
+      error: "Error al crear jurisprudencia",
+      message: err.message
+    });
+  } finally {
+    client.release();
+  }
+});*/
+
+app.post("/jurisprudencias", async (req, res) => {
+  const client = await pgPool.connect();
+
+  const nextId = async (seq) => {
+    const { rows } = await client.query(
+      `SELECT nextval($1::regclass) AS id`,
+      [seq]
+    );
+    return Number(rows[0].id);
+  };
+
+  try {
+    let {
+      expediente_id,
+      tipo_expediente,
+      numero,
+      anio,
+      objeto,
+      fuero,
+      demandados,
+      juzgado_id,
+      sentencia,
+      juez_id,
+      camara,
+      codigo_id,
+      fecha_alzada,
+      resultado,
+      motivo
+    } = req.body || {};
+
+    const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
+    let fueroNorm = String(fuero || "").toUpperCase().trim();
+    const resultadoNorm = resultado ? String(resultado).trim().toLowerCase() : null;
+    const motivoNorm = motivo ? String(motivo).trim() : null;
+
+    if (!["propio", "ajeno"].includes(tipoExp)) {
+      return res.status(400).json({
+        error: "tipo_expediente inválido (propio | ajeno)"
+      });
+    }
+
+    await client.query("BEGIN");
+
+    if (tipoExp === "propio") {
+      if (expediente_id === undefined || expediente_id === null || expediente_id === "") {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "expediente_id es obligatorio para expediente propio"
+        });
+      }
+
+      const { rows: expRows } = await client.query(
+        `
+        SELECT
+          e.id,
+          e.numero,
+          e.anio,
+          e.caratula,
+          e.objeto,
+          e.tipo,
+          e.fuero,
+          e.juzgado_id,
+          e.juez_id
+        FROM public.expedientes e
+        WHERE e.id = $1
+        LIMIT 1
+        `,
+        [Number(expediente_id)]
+      );
+
+      const expediente = expRows[0];
+
+      if (!expediente) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: "Expediente no encontrado"
+        });
+      }
+
+      fueroNorm = String(
+        fuero ||
+        expediente.fuero ||
+        expediente.tipo ||
+        ""
+      ).toUpperCase().trim();
+
+      objeto = objeto ?? expediente.objeto ?? null;
+      juzgado_id = juzgado_id || expediente.juzgado_id || null;
+      juez_id = juez_id || expediente.juez_id || null;
+
+      const { rows: relRows } = await client.query(
+        `
+        SELECT
+          jd.tipo,
+          CASE
+            WHEN jd.tipo = 'empresa' THEN jd.id_demandado
+            WHEN jd.tipo = 'cliente' THEN jd.id_cliente
+            ELSE NULL
+          END AS id
+        FROM public.jurisprudencias_demandados jd
+        WHERE 1 = 0
+        `
+      );
+
+      const { rows: demandadosExp } = await client.query(
+        `
+        SELECT
+          ed.tipo,
+          CASE
+            WHEN ed.tipo = 'empresa' THEN ed.id_demandado
+            WHEN ed.tipo = 'cliente' THEN ed.id_cliente
+            ELSE NULL
+          END AS id
+        FROM public.expedientes_demandados ed
+        WHERE ed.id_expediente = $1
+        `,
+        [Number(expediente_id)]
+      );
+
+      if ((!Array.isArray(demandados) || demandados.length === 0) && demandadosExp.length > 0) {
+        demandados = demandadosExp
+          .filter(d => d.id)
+          .map(d => ({
+            id: Number(d.id),
+            tipo: String(d.tipo || "").toLowerCase().trim()
+          }));
+      }
+    }
+
+    if (!FUEROS.includes(fueroNorm)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "Fuero inválido"
+      });
+    }
+
+    if (!camara || codigo_id === undefined || codigo_id === null || codigo_id === "") {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "Faltan datos obligatorios"
+      });
+    }
+
+    if (
+      tipoExp === "ajeno" &&
+      (
+        numero === undefined || numero === null || numero === "" ||
+        anio === undefined || anio === null || anio === ""
+      )
+    ) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "numero y anio son obligatorios"
+      });
+    }
+
+    if (
+      juzgado_id === undefined || juzgado_id === null || juzgado_id === "" ||
+      juez_id === undefined || juez_id === null || juez_id === ""
+    ) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "Faltan juzgado o juez"
+      });
+    }
+
+    if (!Array.isArray(demandados) || demandados.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "Debe enviar al menos un demandado"
+      });
+    }
+
+    if (resultadoNorm && !["favorable", "desfavorable"].includes(resultadoNorm)) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "resultado inválido"
+      });
+    }
+
+    let demandadosFinal = demandados
+      .map((d) => ({
+        id: d?.id !== undefined && d?.id !== null && d?.id !== "" ? Number(d.id) : null,
+        tipo: String(d?.tipo || "").toLowerCase().trim()
+      }))
+      .filter((d) => d.id && !Number.isNaN(d.id));
+
+    if (demandadosFinal.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "Los demandados enviados no son válidos"
+      });
+    }
+
+    for (const d of demandadosFinal) {
+      if (d.tipo !== "empresa" && d.tipo !== "cliente") {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: `Tipo de demandado inválido: ${d.tipo}`
+        });
+      }
+    }
+
+    const usados = new Set();
+    demandadosFinal = demandadosFinal.filter((d) => {
+      const key = `${d.tipo}-${d.id}`;
+      if (usados.has(key)) return false;
+      usados.add(key);
+      return true;
+    });
+
+    const jurisprudenciaId = await nextId("public.seq_jurisprudencias");
+
+    await client.query(
+      `
+      INSERT INTO public.jurisprudencias (
+        id,
+        expediente_id,
+        tipo_expediente,
+        numero,
+        anio,
+        objeto,
+        fuero,
+        juzgado_id,
+        sentencia,
+        juez_id,
+        camara,
+        codigo_id,
+        fecha_alzada,
+        resultado,
+        motivo
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      `,
+      [
+        jurisprudenciaId,
+        tipoExp === "propio" ? Number(expediente_id) : null,
+        tipoExp,
+        tipoExp === "ajeno" ? Number(numero) : null,
+        tipoExp === "ajeno" ? Number(anio) : null,
+        objeto ?? null,
+        fueroNorm,
+        Number(juzgado_id),
+        sentencia ? new Date(sentencia) : null,
+        Number(juez_id),
+        String(camara).trim(),
+        Number(codigo_id),
+        fecha_alzada ? new Date(fecha_alzada) : null,
+        resultadoNorm,
+        motivoNorm
+      ]
+    );
+
+    for (const d of demandadosFinal) {
+      const idRel = await nextId("public.seq_jurisprudencias_demandados");
+
+      await client.query(
+        `
+        INSERT INTO public.jurisprudencias_demandados
+          (id, id_jurisprudencia, id_demandado, id_cliente, tipo)
+        VALUES
+          (
+            $1,
+            $2,
+            CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
+            CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
+            $3
+          )
+        `,
+        [idRel, jurisprudenciaId, d.tipo, d.id]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    const { rows } = await client.query(
+      `
+      SELECT
+        j.id,
+        j.expediente_id,
+        j.tipo_expediente,
+        j.numero,
+        j.anio,
+        j.objeto,
+        j.fuero,
+        j.juzgado_id,
+        juz.nombre AS juzgado_nombre,
+        j.sentencia,
+        j.juez_id,
+        jue.nombre AS juez_nombre,
+        j.camara,
+        j.codigo_id,
+        c.codigo,
+        c.descripcion,
+        j.fecha_alzada,
+        j.resultado,
+        j.motivo
       FROM public.jurisprudencias j
       LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
       LEFT JOIN public.juez jue ON jue.id = j.juez_id
@@ -6327,6 +6649,7 @@ app.put("/jurisprudencias/:id", async (req, res) => {
     client.release();
   }
 });
+
 app.get("/expedientes/informes", async (req, res) => {
   try {
     const query = `
@@ -6427,6 +6750,25 @@ app.get("/expedientes/control-anio", async (req, res) => {
     console.error("ERROR OBTENIENDO CONTROL ANIO:", err);
     res.status(500).json({
       error: "Error obteniendo control de año",
+      detalle: err.message
+    });
+  }
+});
+
+app.delete('/pagos/expediente/:expediente_id', async (req, res) => {
+  try {
+    const { expediente_id } = req.params;
+
+    await pgPool.query(
+      `DELETE FROM pagos WHERE expediente_id = $1`,
+      [expediente_id]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error borrando pagos:', err);
+    res.status(500).json({
+      error: 'Error borrando pagos',
       detalle: err.message
     });
   }
