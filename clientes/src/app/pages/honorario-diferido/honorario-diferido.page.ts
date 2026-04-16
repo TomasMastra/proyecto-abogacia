@@ -443,7 +443,7 @@ async cobrar(
       inputValue: esParcial
         ? (sugeridoParcial === '' ? '' : String(sugeridoParcial))
         : (expediente.capitalPagoParcial ||
-           this.calcularCobroFinal(expediente.montoLiquidacionCapital, expediente.porcentaje!, +expediente.usuario_id) || '')
+           this.calcularCobroFinal(expediente.montoLiquidacionCapital, expediente.porcentaje!, +expediente.usuario_id, expediente.procurador_id) || '')
     });
     if (!montoResult.isConfirmed || !montoResult.value) return;
 
@@ -777,6 +777,7 @@ calcularCobro(monto: number | null, porcentaje: number | null): number {
   return 0;
 }
 
+/*
 calcularCobroFinal(monto: number | null, porcentaje: number, usuario_id: number): number {
   
   if (monto != null && porcentaje != null) {
@@ -793,18 +794,57 @@ calcularCobroFinal(monto: number | null, porcentaje: number, usuario_id: number)
   }
   
   return 0;
+}*/
+
+calcularCobroFinal(
+  monto: number | null,
+  porcentaje: number | null,
+  usuario_id: number | null,
+  procurador_id: number | null
+): number {
+
+  if (
+    monto == null ||
+    porcentaje == null ||
+    usuario_id == null ||
+    procurador_id == null
+  ) {
+    return 0;
+  }
+
+  const ADMIN_ID = 7;
+
+  // 1) Primero se divide con el cliente
+  const montoConPorcentajeGeneral = (monto * porcentaje) / 100;
+
+  // 2) Si ambos son tu papá, cobra el 100% de lo que quedó
+  if (usuario_id === ADMIN_ID && procurador_id === ADMIN_ID) {
+    return montoConPorcentajeGeneral;
+  }
+
+  // 3) Si ambos son el mismo otro abogado, tu papá cobra el complemento de ese abogado
+  if (usuario_id === procurador_id) {
+    const usuario = this.listaUsuarios.find(u => u.id === usuario_id);
+    if (!usuario) return 0;
+
+    const porcentajeOtro = Number(usuario.porcentaje ?? 0);
+    return (montoConPorcentajeGeneral * (100 - porcentajeOtro)) / 100;
+  }
+
+  // 4) Si uno es tu papá y el otro no, buscar al otro abogado
+  const otroId = usuario_id === ADMIN_ID ? procurador_id : usuario_id;
+  const otroUsuario = this.listaUsuarios.find(u => u.id === otroId);
+
+  if (!otroUsuario) {
+    return 0;
+  }
+
+  const porcentajeOtro = Number(otroUsuario.porcentaje ?? 0);
+
+  // 5) Tu papá cobra el complemento del otro
+  return (montoConPorcentajeGeneral * (100 - porcentajeOtro)) / 100;
 }
 
-/*
-calcularCobroFinalHonorario(monto: number | null, usuario_id: number): number {
-  if (monto != null && usuario_id != null) {
-    const usuario = this.listaUsuarios.find(u => u.id === usuario_id);
-    if (usuario && usuario.porcentajeHonorarios != null) {
-      return (monto * (100 - usuario.porcentajeHonorarios)) / 100;
-    }
-  }
-  return 0;
-}*/
 
 calcularCobroFinalHonorario(
   monto: number | null,

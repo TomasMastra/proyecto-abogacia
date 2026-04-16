@@ -335,7 +335,7 @@ app.get("/expedientes", async (req, res) => {
         e.id, e.numero, e.anio, e.caratula, e.estado,
         e.juzgado_id, e.usuario_id, e.procurador_id, e.juicio,
         e.ultimo_movimiento, e.fecha_atencion, e."capitalCobrado",
-        e."estadoHonorariosSeleccionado", e.tipo_registro,
+        e."estadoHonorariosSeleccionado", e.tipo_registro, e.codigo_id, e.juez_id, e.juzgado_id, e.fecha_sentencia,
         COALESCE((
           SELECT string_agg(btrim(p.nombre_completo::text), ' | ')
           FROM (
@@ -3746,7 +3746,8 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
       U AS (
         SELECT DISTINCT ON (id)
           id,
-          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios
+          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios,
+          COALESCE(porcentaje, 0)::numeric AS porc_capital
         FROM public.usuario
         ORDER BY id
       ),
@@ -3754,15 +3755,38 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         /* =========================
            CAPITAL NO PARCIAL / LEGACY
-           - NO TOCAR
+           - se mantiene la base actual
+           - ahora se reparte entre abogados
            ========================= */
         SELECT
           'capital'::text AS concepto,
-          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
+          COALESCE(e."capitalPagoParcial", 0)::numeric *
+          CASE
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+             AND e.procurador_id = (SELECT admin_id FROM params)
+              THEN 1.0
+
+            WHEN e.usuario_id = e.procurador_id
+              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
+
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_procurador.porc_capital, 0)) / 100.0
+
+            WHEN e.procurador_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
+
+            ELSE 0.0
+          END AS monto
         FROM public.expedientes e
+        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
+        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.admin_id OR e.usuario_id = p.uid)
+          AND (
+            p.uid = p.admin_id
+            OR e.usuario_id = p.uid
+            OR e.procurador_id = p.uid
+          )
           AND (
             COALESCE(e."esPagoParcial", false) = false
             OR NOT EXISTS (
@@ -3779,26 +3803,51 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         /* =========================
            CAPITAL PARCIAL REAL
-           - NO TOCAR
+           - se mantiene la base actual
+           - ahora se reparte entre abogados
            ========================= */
         SELECT
           'capital'::text AS concepto,
-          COALESCE(SUM(pc.monto), 0)::numeric AS monto
+          COALESCE(SUM(pc.monto), 0)::numeric *
+          CASE
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+             AND e.procurador_id = (SELECT admin_id FROM params)
+              THEN 1.0
+
+            WHEN e.usuario_id = e.procurador_id
+              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
+
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_procurador.porc_capital, 0)) / 100.0
+
+            WHEN e.procurador_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
+
+            ELSE 0.0
+          END AS monto
         FROM public.expedientes e
         JOIN public.pagos pc ON pc.expediente_id = e.id
+        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
+        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.admin_id OR e.usuario_id = p.uid)
+          AND (
+            p.uid = p.admin_id
+            OR e.usuario_id = p.uid
+            OR e.procurador_id = p.uid
+          )
           AND COALESCE(e."esPagoParcial", false) = true
           AND pc.tipo_pago = 'capital'
           AND pc.fecha::date >= p.inicio
           AND pc.fecha::date < p.fin
+        GROUP BY
+          e.usuario_id, e.procurador_id,
+          u_usuario.porc_capital, u_procurador.porc_capital
 
         UNION ALL
 
         /* =========================
            HONORARIOS
-           - NUEVA LOGICA
            ========================= */
         SELECT
           'honorarios'::text AS concepto,
@@ -3836,7 +3885,6 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         /* =========================
            ALZADA
-           - NUEVA LOGICA
            ========================= */
         SELECT
           'alzada'::text AS concepto,
@@ -3874,7 +3922,6 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         /* =========================
            EJECUCION
-           - NUEVA LOGICA
            ========================= */
         SELECT
           'ejecucion'::text AS concepto,
@@ -3912,7 +3959,6 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         /* =========================
            DIFERENCIA
-           - NUEVA LOGICA
            ========================= */
         SELECT
           'diferencia'::text AS concepto,
@@ -4208,7 +4254,6 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
     return res.status(500).send("Error en el servidor");
   }
 });*/
-
 app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
   const { anio, mes, usuario_id } = req.query;
   if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
@@ -4244,7 +4289,8 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
       U AS (
         SELECT DISTINCT ON (id)
           id,
-          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios
+          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios,
+          COALESCE(porcentaje, 0)::numeric AS porc_capital
         FROM public.usuario
         ORDER BY id
       ),
@@ -4252,7 +4298,8 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         /* =========================
            CAPITAL NO PARCIAL / LEGACY
-           - NO TOCAR
+           - se mantiene la base actual
+           - ahora se reparte entre abogados
            ========================= */
         SELECT
           e.id AS expediente_id,
@@ -4260,11 +4307,33 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           e.anio AS anio_expediente,
           e.caratula,
           'capital'::text AS concepto,
-          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
+          COALESCE(e."capitalPagoParcial", 0)::numeric *
+          CASE
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+             AND e.procurador_id = (SELECT admin_id FROM params)
+              THEN 1.0
+
+            WHEN e.usuario_id = e.procurador_id
+              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
+
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_procurador.porc_capital, 0)) / 100.0
+
+            WHEN e.procurador_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
+
+            ELSE 0.0
+          END AS monto
         FROM public.expedientes e
+        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
+        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.admin_id OR e.usuario_id = p.uid)
+          AND (
+            p.uid = p.admin_id
+            OR e.usuario_id = p.uid
+            OR e.procurador_id = p.uid
+          )
           AND (
             COALESCE(e."esPagoParcial", false) = false
             OR NOT EXISTS (
@@ -4281,7 +4350,8 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         /* =========================
            CAPITAL PARCIAL REAL
-           - NO TOCAR
+           - se mantiene la base actual
+           - ahora se reparte entre abogados
            ========================= */
         SELECT
           e.id AS expediente_id,
@@ -4289,23 +4359,47 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           e.anio AS anio_expediente,
           e.caratula,
           'capital'::text AS concepto,
-          COALESCE(SUM(pc.monto), 0)::numeric AS monto
+          COALESCE(SUM(pc.monto), 0)::numeric *
+          CASE
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+             AND e.procurador_id = (SELECT admin_id FROM params)
+              THEN 1.0
+
+            WHEN e.usuario_id = e.procurador_id
+              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
+
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_procurador.porc_capital, 0)) / 100.0
+
+            WHEN e.procurador_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
+
+            ELSE 0.0
+          END AS monto
         FROM public.expedientes e
         JOIN public.pagos pc ON pc.expediente_id = e.id
+        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
+        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.admin_id OR e.usuario_id = p.uid)
+          AND (
+            p.uid = p.admin_id
+            OR e.usuario_id = p.uid
+            OR e.procurador_id = p.uid
+          )
           AND COALESCE(e."esPagoParcial", false) = true
           AND pc.tipo_pago = 'capital'
           AND pc.fecha::date >= p.inicio
           AND pc.fecha::date < p.fin
-        GROUP BY e.id, e.numero, e.anio, e.caratula
+        GROUP BY
+          e.id, e.numero, e.anio, e.caratula,
+          e.usuario_id, e.procurador_id,
+          u_usuario.porc_capital, u_procurador.porc_capital
 
         UNION ALL
 
         /* =========================
            HONORARIOS
-           - NUEVA LOGICA
            ========================= */
         SELECT
           e.id AS expediente_id,
@@ -4315,39 +4409,20 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           'honorarios'::text AS concepto,
           COALESCE(e."montoLiquidacionHonorarios", 0)::numeric *
           CASE
-            /* si quien consulta no es admin, mantener su porcentaje propio */
-            WHEN (SELECT uid FROM params) <> (SELECT admin_id FROM params) THEN
-              CASE
-                WHEN (SELECT uid FROM params) = e.usuario_id
-                  THEN COALESCE(u_usuario.porc_honorarios, 0) / 100.0
-                WHEN (SELECT uid FROM params) = e.procurador_id
-                  THEN COALESCE(u_procurador.porc_honorarios, 0) / 100.0
-                ELSE 0.0
-              END
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+             AND e.procurador_id = (SELECT admin_id FROM params)
+              THEN 1.0
 
-            /* si consulta admin, aplicar logica de tu papa */
-            ELSE
-              CASE
-                /* ambos son admin => 100% */
-                WHEN e.usuario_id = (SELECT admin_id FROM params)
-                 AND e.procurador_id = (SELECT admin_id FROM params)
-                  THEN 1.0
+            WHEN e.usuario_id = e.procurador_id
+              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
 
-                /* ambos son el mismo otro abogado => admin cobra complemento */
-                WHEN e.usuario_id = e.procurador_id
-                  THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
 
-                /* usuario es admin, el otro es procurador */
-                WHEN e.usuario_id = (SELECT admin_id FROM params)
-                  THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
+            WHEN e.procurador_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
 
-                /* procurador es admin, el otro es usuario */
-                WHEN e.procurador_id = (SELECT admin_id FROM params)
-                  THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
-                /* caso raro: dos distintos y ninguno admin */
-                ELSE 0.0
-              END
+            ELSE 0.0
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
@@ -4366,7 +4441,6 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         /* =========================
            ALZADA
-           - NUEVA LOGICA
            ========================= */
         SELECT
           e.id AS expediente_id,
@@ -4376,27 +4450,20 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           'alzada'::text AS concepto,
           COALESCE(e."montoAcuerdo_alzada", 0)::numeric *
           CASE
-            WHEN (SELECT uid FROM params) <> (SELECT admin_id FROM params) THEN
-              CASE
-                WHEN (SELECT uid FROM params) = e.usuario_id
-                  THEN COALESCE(u_usuario.porc_honorarios, 0) / 100.0
-                WHEN (SELECT uid FROM params) = e.procurador_id
-                  THEN COALESCE(u_procurador.porc_honorarios, 0) / 100.0
-                ELSE 0.0
-              END
-            ELSE
-              CASE
-                WHEN e.usuario_id = (SELECT admin_id FROM params)
-                 AND e.procurador_id = (SELECT admin_id FROM params)
-                  THEN 1.0
-                WHEN e.usuario_id = e.procurador_id
-                  THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-                WHEN e.usuario_id = (SELECT admin_id FROM params)
-                  THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-                WHEN e.procurador_id = (SELECT admin_id FROM params)
-                  THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-                ELSE 0.0
-              END
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+             AND e.procurador_id = (SELECT admin_id FROM params)
+              THEN 1.0
+
+            WHEN e.usuario_id = e.procurador_id
+              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
+
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
+
+            WHEN e.procurador_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
+
+            ELSE 0.0
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
@@ -4415,7 +4482,6 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         /* =========================
            EJECUCION
-           - NUEVA LOGICA
            ========================= */
         SELECT
           e.id AS expediente_id,
@@ -4425,27 +4491,20 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           'ejecucion'::text AS concepto,
           COALESCE(e."montoHonorariosEjecucion", 0)::numeric *
           CASE
-            WHEN (SELECT uid FROM params) <> (SELECT admin_id FROM params) THEN
-              CASE
-                WHEN (SELECT uid FROM params) = e.usuario_id
-                  THEN COALESCE(u_usuario.porc_honorarios, 0) / 100.0
-                WHEN (SELECT uid FROM params) = e.procurador_id
-                  THEN COALESCE(u_procurador.porc_honorarios, 0) / 100.0
-                ELSE 0.0
-              END
-            ELSE
-              CASE
-                WHEN e.usuario_id = (SELECT admin_id FROM params)
-                 AND e.procurador_id = (SELECT admin_id FROM params)
-                  THEN 1.0
-                WHEN e.usuario_id = e.procurador_id
-                  THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-                WHEN e.usuario_id = (SELECT admin_id FROM params)
-                  THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-                WHEN e.procurador_id = (SELECT admin_id FROM params)
-                  THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-                ELSE 0.0
-              END
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+             AND e.procurador_id = (SELECT admin_id FROM params)
+              THEN 1.0
+
+            WHEN e.usuario_id = e.procurador_id
+              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
+
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
+
+            WHEN e.procurador_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
+
+            ELSE 0.0
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
@@ -4464,7 +4523,6 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         /* =========================
            DIFERENCIA
-           - NUEVA LOGICA
            ========================= */
         SELECT
           e.id AS expediente_id,
@@ -4474,27 +4532,20 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           'diferencia'::text AS concepto,
           COALESCE(e."montoHonorariosDiferencia", 0)::numeric *
           CASE
-            WHEN (SELECT uid FROM params) <> (SELECT admin_id FROM params) THEN
-              CASE
-                WHEN (SELECT uid FROM params) = e.usuario_id
-                  THEN COALESCE(u_usuario.porc_honorarios, 0) / 100.0
-                WHEN (SELECT uid FROM params) = e.procurador_id
-                  THEN COALESCE(u_procurador.porc_honorarios, 0) / 100.0
-                ELSE 0.0
-              END
-            ELSE
-              CASE
-                WHEN e.usuario_id = (SELECT admin_id FROM params)
-                 AND e.procurador_id = (SELECT admin_id FROM params)
-                  THEN 1.0
-                WHEN e.usuario_id = e.procurador_id
-                  THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-                WHEN e.usuario_id = (SELECT admin_id FROM params)
-                  THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-                WHEN e.procurador_id = (SELECT admin_id FROM params)
-                  THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-                ELSE 0.0
-              END
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+             AND e.procurador_id = (SELECT admin_id FROM params)
+              THEN 1.0
+
+            WHEN e.usuario_id = e.procurador_id
+              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
+
+            WHEN e.usuario_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
+
+            WHEN e.procurador_id = (SELECT admin_id FROM params)
+              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
+
+            ELSE 0.0
           END AS monto
         FROM public.expedientes e
         LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
@@ -4816,6 +4867,8 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
       return res.status(400).send("Falta usuario_id válido");
     }
 
+    const ADMIN_ID = 7;
+
     const { rows } = await pgPool.query(
       `
       WITH uma_val AS (
@@ -4826,44 +4879,19 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
         SELECT DISTINCT ON (id)
           id,
           COALESCE(porcentaje, 0)::numeric AS p_cap,
-          COALESCE("porcentajeHonorarios", porcentaje, 0)::numeric AS p_hon
+          COALESCE("porcentajeHonorarios", 0)::numeric AS p_hon
         FROM public.usuario
         ORDER BY id
       ),
       pendientes AS (
         SELECT
-          e.id, e.numero, e.anio, e.caratula,
+          e.id,
+          e.numero,
+          e.anio,
+          e.caratula,
 
           /* =========================
-             FACTOR CAPITAL (mi parte)
-             ========================= */
-          CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_cap,0) / 100.0)
-                WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_cap,0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS f_cap,
-
-          /* =========================
-             FACTOR HONORARIOS (mi parte)
-             ========================= */
-          CASE
-            WHEN e.usuario_id = 7 THEN
-              CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
-                WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS f_hon,
-
-          /* =========================
-             CAPITAL (pendiente para MI)
+             CAPITAL pendiente para mi papá
              ========================= */
           CASE
             WHEN e."fecha_cobro_capital" IS NULL
@@ -4873,14 +4901,14 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
               * (COALESCE(e.porcentaje, 100)::numeric / 100.0)
               * (
                   CASE
-                    WHEN e.usuario_id = 7 THEN
-                      CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
-                    ELSE
-                      CASE
-                        WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_cap,0) / 100.0)
-                        WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_cap,0)) / 100.0)
-                        ELSE 0.0
-                      END
+                    WHEN e.usuario_id = $1::int AND e.procurador_id = $1::int THEN 1.0
+                    WHEN e.usuario_id = e.procurador_id THEN
+                      (100 - COALESCE(u_usuario.p_cap, 0)) / 100.0
+                    WHEN e.usuario_id = $1::int THEN
+                      (100 - COALESCE(u_procurador.p_cap, 0)) / 100.0
+                    WHEN e.procurador_id = $1::int THEN
+                      (100 - COALESCE(u_usuario.p_cap, 0)) / 100.0
+                    ELSE 0.0
                   END
                 ),
               2
@@ -4889,7 +4917,7 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
           END AS "pendienteCapital",
 
           /* =========================
-             HONORARIOS (pendiente para MI)
+             HONORARIOS pendiente para mi papá
              ========================= */
           CASE
             WHEN e."fecha_cobro" IS NULL THEN
@@ -4899,25 +4927,23 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
                     WHEN LOWER(COALESCE(e."subEstadoHonorariosSeleccionado", '')) IN ('giro', 'da en pago parcial', 'da en pago total')
                       THEN COALESCE(e."montoLiquidacionHonorarios", 0)::numeric
                     ELSE
-                      (
-                        CASE
-                          WHEN COALESCE(e."montoLiquidacionHonorarios", 0) > 0
-                            THEN COALESCE(e."montoLiquidacionHonorarios", 0)::numeric
-                          ELSE (COALESCE(e."cantidadUMA", 0)::numeric * (SELECT valoruma FROM uma_val))
-                        END
-                      )
+                      CASE
+                        WHEN COALESCE(e."montoLiquidacionHonorarios", 0) > 0
+                          THEN COALESCE(e."montoLiquidacionHonorarios", 0)::numeric
+                        ELSE (COALESCE(e."cantidadUMA", 0)::numeric * (SELECT valoruma FROM uma_val))
+                      END
                   END
                 )
                 * (
                     CASE
-                      WHEN e.usuario_id = 7 THEN
-                        CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
-                      ELSE
-                        CASE
-                          WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
-                          WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
-                          ELSE 0.0
-                        END
+                      WHEN e.usuario_id = $1::int AND e.procurador_id = $1::int THEN 1.0
+                      WHEN e.usuario_id = e.procurador_id THEN
+                        (100 - COALESCE(u_usuario.p_hon, 0)) / 100.0
+                      WHEN e.usuario_id = $1::int THEN
+                        (100 - COALESCE(u_procurador.p_hon, 0)) / 100.0
+                      WHEN e.procurador_id = $1::int THEN
+                        (100 - COALESCE(u_usuario.p_hon, 0)) / 100.0
+                      ELSE 0.0
                     END
                   ),
                 2
@@ -4926,7 +4952,7 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
           END AS "pendienteHonorarios",
 
           /* =========================
-             ALZADA (pendiente para MI)
+             ALZADA pendiente para mi papá
              ========================= */
           CASE
             WHEN e."fechaCobroAlzada" IS NULL THEN
@@ -4934,14 +4960,14 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
                 COALESCE(e."montoAcuerdo_alzada", 0)::numeric
                 * (
                     CASE
-                      WHEN e.usuario_id = 7 THEN
-                        CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
-                      ELSE
-                        CASE
-                          WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
-                          WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
-                          ELSE 0.0
-                        END
+                      WHEN e.usuario_id = $1::int AND e.procurador_id = $1::int THEN 1.0
+                      WHEN e.usuario_id = e.procurador_id THEN
+                        (100 - COALESCE(u_usuario.p_hon, 0)) / 100.0
+                      WHEN e.usuario_id = $1::int THEN
+                        (100 - COALESCE(u_procurador.p_hon, 0)) / 100.0
+                      WHEN e.procurador_id = $1::int THEN
+                        (100 - COALESCE(u_usuario.p_hon, 0)) / 100.0
+                      ELSE 0.0
                     END
                   ),
                 2
@@ -4950,7 +4976,7 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
           END AS "pendienteAlzada",
 
           /* =========================
-             EJECUCIÓN (pendiente para MI)
+             EJECUCION pendiente para mi papá
              ========================= */
           CASE
             WHEN e."fechaCobroEjecucion" IS NULL THEN
@@ -4958,14 +4984,14 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
                 COALESCE(e."montoHonorariosEjecucion", 0)::numeric
                 * (
                     CASE
-                      WHEN e.usuario_id = 7 THEN
-                        CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
-                      ELSE
-                        CASE
-                          WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
-                          WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
-                          ELSE 0.0
-                        END
+                      WHEN e.usuario_id = $1::int AND e.procurador_id = $1::int THEN 1.0
+                      WHEN e.usuario_id = e.procurador_id THEN
+                        (100 - COALESCE(u_usuario.p_hon, 0)) / 100.0
+                      WHEN e.usuario_id = $1::int THEN
+                        (100 - COALESCE(u_procurador.p_hon, 0)) / 100.0
+                      WHEN e.procurador_id = $1::int THEN
+                        (100 - COALESCE(u_usuario.p_hon, 0)) / 100.0
+                      ELSE 0.0
                     END
                   ),
                 2
@@ -4974,7 +5000,7 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
           END AS "pendienteEjecucion",
 
           /* =========================
-             DIFERENCIA (pendiente para MI)
+             DIFERENCIA pendiente para mi papá
              ========================= */
           CASE
             WHEN e."fechaCobroDiferencia" IS NULL THEN
@@ -4982,14 +5008,14 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
                 COALESCE(e."montoHonorariosDiferencia", 0)::numeric
                 * (
                     CASE
-                      WHEN e.usuario_id = 7 THEN
-                        CASE WHEN $1::int = 7 THEN 1.0 ELSE 0.0 END
-                      ELSE
-                        CASE
-                          WHEN $1::int = e.usuario_id THEN (COALESCE(u.p_hon,0) / 100.0)
-                          WHEN $1::int = 7           THEN ((100 - COALESCE(u.p_hon,0)) / 100.0)
-                          ELSE 0.0
-                        END
+                      WHEN e.usuario_id = $1::int AND e.procurador_id = $1::int THEN 1.0
+                      WHEN e.usuario_id = e.procurador_id THEN
+                        (100 - COALESCE(u_usuario.p_hon, 0)) / 100.0
+                      WHEN e.usuario_id = $1::int THEN
+                        (100 - COALESCE(u_procurador.p_hon, 0)) / 100.0
+                      WHEN e.procurador_id = $1::int THEN
+                        (100 - COALESCE(u_usuario.p_hon, 0)) / 100.0
+                      ELSE 0.0
                     END
                   ),
                 2
@@ -4998,7 +5024,8 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
           END AS "pendienteDiferencia"
 
         FROM public.expedientes e
-        LEFT JOIN U u ON u.id = e.usuario_id
+        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
+        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         WHERE e.estado <> 'eliminado'
       )
       SELECT
@@ -5016,19 +5043,27 @@ app.get("/expedientes/honorarios-pendientes", async (req, res) => {
           0
         ) AS "totalGeneral"
       FROM pendientes
-      WHERE ("pendienteCapital" + "pendienteHonorarios" + "pendienteAlzada" + "pendienteEjecucion" + "pendienteDiferencia") > 0;
+      WHERE (
+        "pendienteCapital"
+        + "pendienteHonorarios"
+        + "pendienteAlzada"
+        + "pendienteEjecucion"
+        + "pendienteDiferencia"
+      ) > 0;
       `,
-      [usuarioId]
+      [ADMIN_ID]
     );
 
     const total = Number(rows?.[0]?.totalGeneral ?? 0);
     return res.status(200).json(total);
   } catch (err) {
     console.error("Error al calcular honorarios pendientes:", err);
-    return res.status(500).json({ error: "Error al calcular honorarios pendientes", message: err.message });
+    return res.status(500).json({
+      error: "Error al calcular honorarios pendientes",
+      message: err.message
+    });
   }
 });
-
 
 // postgres
 app.get("/expedientes/expedientes-activos", async (req, res) => {
@@ -5668,8 +5703,17 @@ app.get("/jurisprudencias", async (req, res) => {
         j.id,
         j.expediente_id,
         j.tipo_expediente,
-        j.numero,
-        j.anio,
+
+        CASE
+          WHEN j.tipo_expediente = 'propio' THEN e.numero
+          ELSE j.numero
+        END AS numero,
+
+        CASE
+          WHEN j.tipo_expediente = 'propio' THEN e.anio
+          ELSE j.anio
+        END AS anio,
+
         j.objeto,
         j.fuero,
         j.juzgado_id,
@@ -5683,6 +5727,9 @@ app.get("/jurisprudencias", async (req, res) => {
         c.descripcion,
         j.estado,
         e.caratula,
+        j.fecha_alzada,
+        j.resultado,
+        j.motivo,
 
         COALESCE(
           (
@@ -5723,7 +5770,7 @@ app.get("/jurisprudencias", async (req, res) => {
       ) c ON true
 
       LEFT JOIN LATERAL (
-        SELECT e.caratula
+        SELECT e.caratula, e.numero, e.anio
         FROM public.expedientes e
         WHERE e.id = j.expediente_id
         LIMIT 1
@@ -5953,7 +6000,6 @@ app.get("/jurisprudencias", async (req, res) => {
     client.release();
   }
 });*/
-
 app.post("/jurisprudencias", async (req, res) => {
   const client = await pgPool.connect();
 
@@ -5966,7 +6012,7 @@ app.post("/jurisprudencias", async (req, res) => {
   };
 
   try {
-    let {
+    const {
       expediente_id,
       tipo_expediente,
       numero,
@@ -5975,17 +6021,14 @@ app.post("/jurisprudencias", async (req, res) => {
       fuero,
       demandados,
       juzgado_id,
-      sentencia,
-      juez_id,
       camara,
       codigo_id,
-      fecha_alzada,
       resultado,
       motivo
     } = req.body || {};
 
     const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
-    let fueroNorm = String(fuero || "").toUpperCase().trim();
+    const fueroNorm = fuero ? String(fuero).toUpperCase().trim() : null;
     const resultadoNorm = resultado ? String(resultado).trim().toLowerCase() : null;
     const motivoNorm = motivo ? String(motivo).trim() : null;
 
@@ -5995,105 +6038,9 @@ app.post("/jurisprudencias", async (req, res) => {
       });
     }
 
-    await client.query("BEGIN");
-
-    if (tipoExp === "propio") {
-      if (expediente_id === undefined || expediente_id === null || expediente_id === "") {
-        await client.query("ROLLBACK");
-        return res.status(400).json({
-          error: "expediente_id es obligatorio para expediente propio"
-        });
-      }
-
-      const { rows: expRows } = await client.query(
-        `
-        SELECT
-          e.id,
-          e.numero,
-          e.anio,
-          e.caratula,
-          e.objeto,
-          e.tipo,
-          e.fuero,
-          e.juzgado_id,
-          e.juez_id
-        FROM public.expedientes e
-        WHERE e.id = $1
-        LIMIT 1
-        `,
-        [Number(expediente_id)]
-      );
-
-      const expediente = expRows[0];
-
-      if (!expediente) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({
-          error: "Expediente no encontrado"
-        });
-      }
-
-      fueroNorm = String(
-        fuero ||
-        expediente.fuero ||
-        expediente.tipo ||
-        ""
-      ).toUpperCase().trim();
-
-      objeto = objeto ?? expediente.objeto ?? null;
-      juzgado_id = juzgado_id || expediente.juzgado_id || null;
-      juez_id = juez_id || expediente.juez_id || null;
-
-      const { rows: relRows } = await client.query(
-        `
-        SELECT
-          jd.tipo,
-          CASE
-            WHEN jd.tipo = 'empresa' THEN jd.id_demandado
-            WHEN jd.tipo = 'cliente' THEN jd.id_cliente
-            ELSE NULL
-          END AS id
-        FROM public.jurisprudencias_demandados jd
-        WHERE 1 = 0
-        `
-      );
-
-      const { rows: demandadosExp } = await client.query(
-        `
-        SELECT
-          ed.tipo,
-          CASE
-            WHEN ed.tipo = 'empresa' THEN ed.id_demandado
-            WHEN ed.tipo = 'cliente' THEN ed.id_cliente
-            ELSE NULL
-          END AS id
-        FROM public.expedientes_demandados ed
-        WHERE ed.id_expediente = $1
-        `,
-        [Number(expediente_id)]
-      );
-
-      if ((!Array.isArray(demandados) || demandados.length === 0) && demandadosExp.length > 0) {
-        demandados = demandadosExp
-          .filter(d => d.id)
-          .map(d => ({
-            id: Number(d.id),
-            tipo: String(d.tipo || "").toLowerCase().trim()
-          }));
-      }
-    }
-
-    if (!FUEROS.includes(fueroNorm)) {
-      await client.query("ROLLBACK");
+    if (tipoExp === "propio" && (expediente_id === undefined || expediente_id === null || expediente_id === "")) {
       return res.status(400).json({
-        error: "Fuero inválido"
-      });
-    }
-
-    if (!camara || codigo_id === undefined || codigo_id === null || codigo_id === "") {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        error: "Faltan datos obligatorios"
+        error: "expediente_id es obligatorio para expediente propio"
       });
     }
 
@@ -6104,66 +6051,95 @@ app.post("/jurisprudencias", async (req, res) => {
         anio === undefined || anio === null || anio === ""
       )
     ) {
-      await client.query("ROLLBACK");
       return res.status(400).json({
         error: "numero y anio son obligatorios"
       });
     }
 
-    if (
-      juzgado_id === undefined || juzgado_id === null || juzgado_id === "" ||
-      juez_id === undefined || juez_id === null || juez_id === ""
-    ) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        error: "Faltan juzgado o juez"
-      });
+    if (tipoExp === "ajeno") {
+      if (!fueroNorm) {
+        return res.status(400).json({
+          error: "fuero es obligatorio para expediente ajeno"
+        });
+      }
+
+      if (
+        juzgado_id === undefined || juzgado_id === null || juzgado_id === ""
+      ) {
+        return res.status(400).json({
+          error: "juzgado_id es obligatorio para expediente ajeno"
+        });
+      }
+
+      if (!camara || !String(camara).trim()) {
+        return res.status(400).json({
+          error: "camara es obligatoria para expediente ajeno"
+        });
+      }
+
+      if (
+        codigo_id === undefined || codigo_id === null || codigo_id === ""
+      ) {
+        return res.status(400).json({
+          error: "codigo_id es obligatorio para expediente ajeno"
+        });
+      }
+
+      if (!resultadoNorm) {
+        return res.status(400).json({
+          error: "resultado es obligatorio para expediente ajeno"
+        });
+      }
+
+      if (!motivoNorm) {
+        return res.status(400).json({
+          error: "motivo es obligatorio para expediente ajeno"
+        });
+      }
     }
 
-    if (!Array.isArray(demandados) || demandados.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        error: "Debe enviar al menos un demandado"
-      });
+    if (tipoExp === "propio") {
+      if (!resultadoNorm) {
+        return res.status(400).json({
+          error: "resultado es obligatorio para expediente propio"
+        });
+      }
+
+      if (!motivoNorm) {
+        return res.status(400).json({
+          error: "motivo es obligatorio para expediente propio"
+        });
+      }
     }
 
-    if (resultadoNorm && !["favorable", "desfavorable"].includes(resultadoNorm)) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        error: "resultado inválido"
-      });
-    }
+    const demandadosArray = Array.isArray(demandados) ? demandados : [];
 
-    let demandadosFinal = demandados
+    let demandadosFinal = demandadosArray
       .map((d) => ({
         id: d?.id !== undefined && d?.id !== null && d?.id !== "" ? Number(d.id) : null,
         tipo: String(d?.tipo || "").toLowerCase().trim()
       }))
       .filter((d) => d.id && !Number.isNaN(d.id));
 
-    if (demandadosFinal.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        error: "Los demandados enviados no son válidos"
+    if (demandadosFinal.length > 0) {
+      for (const d of demandadosFinal) {
+        if (d.tipo !== "empresa" && d.tipo !== "cliente") {
+          return res.status(400).json({
+            error: `Tipo de demandado inválido: ${d.tipo}`
+          });
+        }
+      }
+
+      const usados = new Set();
+      demandadosFinal = demandadosFinal.filter((d) => {
+        const key = `${d.tipo}-${d.id}`;
+        if (usados.has(key)) return false;
+        usados.add(key);
+        return true;
       });
     }
 
-    for (const d of demandadosFinal) {
-      if (d.tipo !== "empresa" && d.tipo !== "cliente") {
-        await client.query("ROLLBACK");
-        return res.status(400).json({
-          error: `Tipo de demandado inválido: ${d.tipo}`
-        });
-      }
-    }
-
-    const usados = new Set();
-    demandadosFinal = demandadosFinal.filter((d) => {
-      const key = `${d.tipo}-${d.id}`;
-      if (usados.has(key)) return false;
-      usados.add(key);
-      return true;
-    });
+    await client.query("BEGIN");
 
     const jurisprudenciaId = await nextId("public.seq_jurisprudencias");
 
@@ -6178,13 +6154,13 @@ app.post("/jurisprudencias", async (req, res) => {
         objeto,
         fuero,
         juzgado_id,
-        sentencia,
-        juez_id,
         camara,
         codigo_id,
-        fecha_alzada,
         resultado,
-        motivo
+        motivo,
+        juez_id,
+        sentencia,
+        fecha_alzada
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       `,
@@ -6195,36 +6171,44 @@ app.post("/jurisprudencias", async (req, res) => {
         tipoExp === "ajeno" ? Number(numero) : null,
         tipoExp === "ajeno" ? Number(anio) : null,
         objeto ?? null,
-        fueroNorm,
-        Number(juzgado_id),
-        sentencia ? new Date(sentencia) : null,
-        Number(juez_id),
-        String(camara).trim(),
-        Number(codigo_id),
-        fecha_alzada ? new Date(fecha_alzada) : null,
+        tipoExp === "ajeno" ? fueroNorm : null,
+        tipoExp === "ajeno"
+          ? (juzgado_id !== undefined && juzgado_id !== null && juzgado_id !== "" ? Number(juzgado_id) : null)
+          : null,
+        tipoExp === "ajeno" ? String(camara).trim() : null,
+        tipoExp === "ajeno"
+          ? (codigo_id !== undefined && codigo_id !== null && codigo_id !== "" ? Number(codigo_id) : null)
+          : null,
         resultadoNorm,
-        motivoNorm
+        motivoNorm,
+
+        // estos tres ya no se usan en el alta nueva
+        null, // juez_id
+        null, // sentencia
+        null  // fecha_alzada
       ]
     );
 
-    for (const d of demandadosFinal) {
-      const idRel = await nextId("public.seq_jurisprudencias_demandados");
+    if (demandadosFinal.length > 0) {
+      for (const d of demandadosFinal) {
+        const idRel = await nextId("public.seq_jurisprudencias_demandados");
 
-      await client.query(
-        `
-        INSERT INTO public.jurisprudencias_demandados
-          (id, id_jurisprudencia, id_demandado, id_cliente, tipo)
-        VALUES
-          (
-            $1,
-            $2,
-            CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
-            CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
-            $3
-          )
-        `,
-        [idRel, jurisprudenciaId, d.tipo, d.id]
-      );
+        await client.query(
+          `
+          INSERT INTO public.jurisprudencias_demandados
+            (id, id_jurisprudencia, id_demandado, id_cliente, tipo)
+          VALUES
+            (
+              $1,
+              $2,
+              CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
+              CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
+              $3
+            )
+          `,
+          [idRel, jurisprudenciaId, d.tipo, d.id]
+        );
+      }
     }
 
     await client.query("COMMIT");
@@ -6417,7 +6401,7 @@ app.post("/pagos-capital/agregar", async (req, res) => {
 });
 
 // postgres
-app.put("/jurisprudencias/:id", async (req, res) => {
+/*app.put("/jurisprudencias/:id", async (req, res) => {
   const client = await pgPool.connect();
 
   const nextId = async (seq) => {
@@ -6441,7 +6425,6 @@ app.put("/jurisprudencias/:id", async (req, res) => {
       numero,
       anio,
       objeto,
-      fuero,
       demandados,
       juzgado_id,
       sentencia,
@@ -6470,7 +6453,7 @@ app.put("/jurisprudencias/:id", async (req, res) => {
       });
     }
 
-    if (!FUEROS.includes(fueroNorm)) {
+    if (fueroNorm && !FUEROS.includes(fueroNorm)) {
       return res.status(400).json({
         error: "Fuero inválido"
       });
@@ -6554,13 +6537,12 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         numero = $4,
         anio = $5,
         objeto = $6,
-        fuero = $7,
-        juzgado_id = $8,
-        sentencia = $9,
-        juez_id = $10,
-        camara = $11,
-        codigo_id = $12,
-        estado = $13
+        juzgado_id = $7,
+        sentencia = $8,
+        juez_id = $9,
+        camara = $10,
+        codigo_id = $11,
+        estado = $12
       WHERE id = $1
       `,
       [
@@ -6616,7 +6598,6 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         j.numero,
         j.anio,
         j.objeto,
-        j.fuero,
         j.juzgado_id,
         juz.nombre AS juzgado_nombre,
         j.sentencia,
@@ -6648,7 +6629,333 @@ app.put("/jurisprudencias/:id", async (req, res) => {
   } finally {
     client.release();
   }
+});*/
+
+
+app.put("/jurisprudencias/:id", async (req, res) => {
+  const client = await pgPool.connect();
+
+  const nextId = async (seq) => {
+    const { rows } = await client.query(
+      `SELECT nextval($1::regclass) AS id`,
+      [seq]
+    );
+    return Number(rows[0].id);
+  };
+
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+
+    const {
+      expediente_id,
+      tipo_expediente,
+      numero,
+      anio,
+      objeto,
+      fuero,
+      demandados,
+      juzgado_id,
+      camara,
+      codigo_id,
+      estado,
+      resultado,
+      motivo,
+      juez_id
+    } = req.body || {};
+
+    const existe = await client.query(
+      `SELECT id FROM public.jurisprudencias WHERE id = $1`,
+      [id]
+    );
+
+    if (!existe.rowCount) {
+      return res.status(404).json({ error: "Jurisprudencia no encontrada" });
+    }
+
+    const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
+    const fueroNorm = fuero ? String(fuero).toUpperCase().trim() : null;
+    const estadoFinal = estado ?? null;
+    const resultadoNorm = resultado ? String(resultado).trim().toLowerCase() : null;
+    const motivoNorm = motivo ? String(motivo).trim() : null;
+
+    if (!["propio", "ajeno"].includes(tipoExp)) {
+      return res.status(400).json({
+        error: "tipo_expediente inválido (propio | ajeno)"
+      });
+    }
+
+    if (
+      tipoExp === "propio" &&
+      (expediente_id === undefined || expediente_id === null || expediente_id === "")
+    ) {
+      return res.status(400).json({
+        error: "expediente_id es obligatorio para expediente propio"
+      });
+    }
+
+    if (
+      tipoExp === "ajeno" &&
+      (
+        numero === undefined || numero === null || numero === "" ||
+        anio === undefined || anio === null || anio === ""
+      )
+    ) {
+      return res.status(400).json({
+        error: "numero y anio son obligatorios"
+      });
+    }
+
+    if (tipoExp === "ajeno") {
+      if (!fueroNorm) {
+        return res.status(400).json({
+          error: "fuero es obligatorio para expediente ajeno"
+        });
+      }
+
+      if (
+        juzgado_id === undefined || juzgado_id === null || juzgado_id === ""
+      ) {
+        return res.status(400).json({
+          error: "juzgado_id es obligatorio para expediente ajeno"
+        });
+      }
+
+      if (!camara || !String(camara).trim()) {
+        return res.status(400).json({
+          error: "camara es obligatoria para expediente ajeno"
+        });
+      }
+
+      if (
+        codigo_id === undefined || codigo_id === null || codigo_id === ""
+      ) {
+        return res.status(400).json({
+          error: "codigo_id es obligatorio para expediente ajeno"
+        });
+      }
+
+      if (!resultadoNorm) {
+        return res.status(400).json({
+          error: "resultado es obligatorio para expediente ajeno"
+        });
+      }
+
+      if (!motivoNorm) {
+        return res.status(400).json({
+          error: "motivo es obligatorio para expediente ajeno"
+        });
+      }
+    }
+
+    if (tipoExp === "propio") {
+      if (!resultadoNorm) {
+        return res.status(400).json({
+          error: "resultado es obligatorio para expediente propio"
+        });
+      }
+
+      if (!motivoNorm) {
+        return res.status(400).json({
+          error: "motivo es obligatorio para expediente propio"
+        });
+      }
+    }
+
+    const demandadosArray = Array.isArray(demandados) ? demandados : [];
+
+    let demandadosFinal = demandadosArray
+      .map((d) => ({
+        id: d?.id !== undefined && d?.id !== null && d?.id !== "" ? Number(d.id) : null,
+        tipo: String(d?.tipo || "").toLowerCase().trim()
+      }))
+      .filter((d) => d.id && !Number.isNaN(d.id));
+
+    if (demandadosFinal.length > 0) {
+      for (const d of demandadosFinal) {
+        if (d.tipo !== "empresa" && d.tipo !== "cliente") {
+          return res.status(400).json({
+            error: `Tipo de demandado inválido: ${d.tipo}`
+          });
+        }
+      }
+
+      const usados = new Set();
+      demandadosFinal = demandadosFinal.filter((d) => {
+        const key = `${d.tipo}-${d.id}`;
+        if (usados.has(key)) return false;
+        usados.add(key);
+        return true;
+      });
+    }
+
+    await client.query("BEGIN");
+
+    await client.query(
+      `
+      UPDATE public.jurisprudencias
+      SET
+        expediente_id = $2,
+        tipo_expediente = $3,
+        numero = $4,
+        anio = $5,
+        objeto = $6,
+        fuero = $7,
+        juzgado_id = $8,
+        sentencia = $9,
+        juez_id = $10,
+        camara = $11,
+        codigo_id = $12,
+        estado = $13,
+        fecha_alzada = $14,
+        resultado = $15,
+        motivo = $16
+      WHERE id = $1
+      `,
+      [
+        id,
+        tipoExp === "propio" ? Number(expediente_id) : null,
+        tipoExp,
+        tipoExp === "ajeno" ? Number(numero) : null,
+        tipoExp === "ajeno" ? Number(anio) : null,
+        objeto ?? null,
+        tipoExp === "ajeno" ? fueroNorm : null,
+        tipoExp === "ajeno"
+          ? (juzgado_id !== undefined && juzgado_id !== null && juzgado_id !== "" ? Number(juzgado_id) : null)
+          : null,
+        null, // sentencia
+        tipoExp === "propio"
+          ? (juez_id !== undefined && juez_id !== null && juez_id !== "" ? Number(juez_id) : null)
+          : null,
+        tipoExp === "ajeno" ? String(camara).trim() : null,
+        tipoExp === "ajeno"
+          ? (codigo_id !== undefined && codigo_id !== null && codigo_id !== "" ? Number(codigo_id) : null)
+          : null,
+        estadoFinal,
+        null, // fecha_alzada
+        resultadoNorm,
+        motivoNorm
+      ]
+    );
+
+    await client.query(
+      `DELETE FROM public.jurisprudencias_demandados WHERE id_jurisprudencia = $1`,
+      [id]
+    );
+
+    if (tipoExp === "ajeno" && demandadosFinal.length > 0) {
+      for (const d of demandadosFinal) {
+        const idRel = await nextId("public.seq_jurisprudencias_demandados");
+
+        await client.query(
+          `
+          INSERT INTO public.jurisprudencias_demandados
+            (id, id_jurisprudencia, id_demandado, id_cliente, tipo)
+          VALUES
+            (
+              $1,
+              $2,
+              CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
+              CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
+              $3
+            )
+          `,
+          [idRel, id, d.tipo, d.id]
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+
+    const { rows } = await client.query(
+      `
+      SELECT
+        j.id,
+        j.expediente_id,
+        j.tipo_expediente,
+        j.numero,
+        j.anio,
+        j.objeto,
+        j.fuero,
+        j.juzgado_id,
+        juz.nombre AS juzgado_nombre,
+        j.sentencia,
+        j.juez_id,
+        jue.nombre AS juez_nombre,
+        j.camara,
+        j.codigo_id,
+        j.estado,
+        c.codigo,
+        c.descripcion,
+        j.fecha_alzada,
+        j.resultado,
+        j.motivo
+      FROM public.jurisprudencias j
+      LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
+      LEFT JOIN public.juez jue ON jue.id = j.juez_id
+      LEFT JOIN public.codigos c ON c.id = j.codigo_id
+      WHERE j.id = $1
+      `,
+      [id]
+    );
+
+    return res.json(rows[0]);
+
+  } catch (err) {
+    try { await client.query("ROLLBACK"); } catch {}
+    console.error("PUT /jurisprudencias/:id error:", err);
+    return res.status(500).json({
+      error: "Error al modificar jurisprudencia",
+      message: err.message
+    });
+  } finally {
+    client.release();
+  }
 });
+
+app.delete("/jurisprudencias/:id", async (req, res) => {
+  const client = await pgPool.connect();
+
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+
+    const existe = await client.query(
+      `SELECT id FROM public.jurisprudencias WHERE id = $1`,
+      [id]
+    );
+
+    if (!existe.rowCount) {
+      return res.status(404).json({ error: "Jurisprudencia no encontrada" });
+    }
+
+    await client.query(
+      `
+      UPDATE public.jurisprudencias
+      SET estado = 'eliminado'
+      WHERE id = $1
+      `,
+      [id]
+    );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /jurisprudencias/:id error:", err);
+    return res.status(500).json({
+      error: "Error al eliminar jurisprudencia",
+      message: err.message
+    });
+  } finally {
+    client.release();
+  }
+});
+
 
 app.get("/expedientes/informes", async (req, res) => {
   try {

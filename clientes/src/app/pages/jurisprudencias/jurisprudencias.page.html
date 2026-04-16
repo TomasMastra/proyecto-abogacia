@@ -41,14 +41,17 @@
             <tr *ngFor="let j of listaPaginada">
               <td class="td-caratula">
                     <ng-container *ngIf="j.tipo_expediente?.toLowerCase() === 'propio'; else expedienteAjeno">
-                      {{ j.caratula ? j.caratula : 'Sin carátula' }}
-                    </ng-container>
+                        {{ j.numero && j.anio
+                            ? (j.numero + '/' + j.anio + ' - ' + (j.caratula || 'Sin carátula'))
+                            : (j.caratula || 'Sin carátula')
+                        }}                    
+                        </ng-container>
 
                     <!-- Si NO es propio -->
                     <ng-template #expedienteAjeno>
                       {{
                         j.numero && j.anio
-                          ? (j.numero + '/' + j.anio)
+                          ? (j.numero + '/' + j.anio + ' ' + j.fuero)
                           : 'Sin datos'
                       }}
                     </ng-template>
