@@ -3710,7 +3710,6 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   }
 });*/
 
-
 app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const { anio, mes, usuario_id } = req.query;
   if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
@@ -3746,8 +3745,7 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
       U AS (
         SELECT DISTINCT ON (id)
           id,
-          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios,
-          COALESCE(porcentaje, 0)::numeric AS porc_capital
+          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios
         FROM public.usuario
         ORDER BY id
       ),
@@ -3755,31 +3753,13 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         /* =========================
            CAPITAL NO PARCIAL / LEGACY
-           - se mantiene la base actual
-           - ahora se reparte entre abogados
+           - YA es el monto de tu papá
+           - NO se divide
            ========================= */
         SELECT
           'capital'::text AS concepto,
-          COALESCE(e."capitalPagoParcial", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
-
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_capital, 0)) / 100.0
-
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
-
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -3803,32 +3783,14 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         /* =========================
            CAPITAL PARCIAL REAL
-           - se mantiene la base actual
-           - ahora se reparte entre abogados
+           - YA es el monto de tu papá
+           - NO se divide
            ========================= */
         SELECT
           'capital'::text AS concepto,
-          COALESCE(SUM(pc.monto), 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
-
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_capital, 0)) / 100.0
-
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
-
-            ELSE 0.0
-          END AS monto
+          COALESCE(SUM(pc.monto), 0)::numeric AS monto
         FROM public.expedientes e
         JOIN public.pagos pc ON pc.expediente_id = e.id
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -3840,9 +3802,6 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
           AND pc.tipo_pago = 'capital'
           AND pc.fecha::date >= p.inicio
           AND pc.fecha::date < p.fin
-        GROUP BY
-          e.usuario_id, e.procurador_id,
-          u_usuario.porc_capital, u_procurador.porc_capital
 
         UNION ALL
 
@@ -3856,16 +3815,12 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
             WHEN e.usuario_id = (SELECT admin_id FROM params)
              AND e.procurador_id = (SELECT admin_id FROM params)
               THEN 1.0
-
             WHEN e.usuario_id = e.procurador_id
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             WHEN e.usuario_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-
             WHEN e.procurador_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             ELSE 0.0
           END AS monto
         FROM public.expedientes e
@@ -3893,16 +3848,12 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
             WHEN e.usuario_id = (SELECT admin_id FROM params)
              AND e.procurador_id = (SELECT admin_id FROM params)
               THEN 1.0
-
             WHEN e.usuario_id = e.procurador_id
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             WHEN e.usuario_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-
             WHEN e.procurador_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             ELSE 0.0
           END AS monto
         FROM public.expedientes e
@@ -3930,16 +3881,12 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
             WHEN e.usuario_id = (SELECT admin_id FROM params)
              AND e.procurador_id = (SELECT admin_id FROM params)
               THEN 1.0
-
             WHEN e.usuario_id = e.procurador_id
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             WHEN e.usuario_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-
             WHEN e.procurador_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             ELSE 0.0
           END AS monto
         FROM public.expedientes e
@@ -3967,16 +3914,12 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
             WHEN e.usuario_id = (SELECT admin_id FROM params)
              AND e.procurador_id = (SELECT admin_id FROM params)
               THEN 1.0
-
             WHEN e.usuario_id = e.procurador_id
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             WHEN e.usuario_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-
             WHEN e.procurador_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             ELSE 0.0
           END AS monto
         FROM public.expedientes e
@@ -4254,6 +4197,7 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
     return res.status(500).send("Error en el servidor");
   }
 });*/
+
 app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
   const { anio, mes, usuario_id } = req.query;
   if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
@@ -4289,8 +4233,7 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
       U AS (
         SELECT DISTINCT ON (id)
           id,
-          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios,
-          COALESCE(porcentaje, 0)::numeric AS porc_capital
+          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios
         FROM public.usuario
         ORDER BY id
       ),
@@ -4298,8 +4241,8 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         /* =========================
            CAPITAL NO PARCIAL / LEGACY
-           - se mantiene la base actual
-           - ahora se reparte entre abogados
+           - YA es el monto de tu papá
+           - NO se divide
            ========================= */
         SELECT
           e.id AS expediente_id,
@@ -4307,26 +4250,8 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           e.anio AS anio_expediente,
           e.caratula,
           'capital'::text AS concepto,
-          COALESCE(e."capitalPagoParcial", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
-
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_capital, 0)) / 100.0
-
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
-
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -4350,8 +4275,8 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         /* =========================
            CAPITAL PARCIAL REAL
-           - se mantiene la base actual
-           - ahora se reparte entre abogados
+           - YA es el monto de tu papá
+           - NO se divide
            ========================= */
         SELECT
           e.id AS expediente_id,
@@ -4359,27 +4284,9 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           e.anio AS anio_expediente,
           e.caratula,
           'capital'::text AS concepto,
-          COALESCE(SUM(pc.monto), 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
-
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_capital, 0)) / 100.0
-
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_capital, 0)) / 100.0
-
-            ELSE 0.0
-          END AS monto
+          COALESCE(SUM(pc.monto), 0)::numeric AS monto
         FROM public.expedientes e
         JOIN public.pagos pc ON pc.expediente_id = e.id
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -4391,10 +4298,7 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           AND pc.tipo_pago = 'capital'
           AND pc.fecha::date >= p.inicio
           AND pc.fecha::date < p.fin
-        GROUP BY
-          e.id, e.numero, e.anio, e.caratula,
-          e.usuario_id, e.procurador_id,
-          u_usuario.porc_capital, u_procurador.porc_capital
+        GROUP BY e.id, e.numero, e.anio, e.caratula
 
         UNION ALL
 
@@ -4412,16 +4316,12 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
             WHEN e.usuario_id = (SELECT admin_id FROM params)
              AND e.procurador_id = (SELECT admin_id FROM params)
               THEN 1.0
-
             WHEN e.usuario_id = e.procurador_id
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             WHEN e.usuario_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-
             WHEN e.procurador_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             ELSE 0.0
           END AS monto
         FROM public.expedientes e
@@ -4453,16 +4353,12 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
             WHEN e.usuario_id = (SELECT admin_id FROM params)
              AND e.procurador_id = (SELECT admin_id FROM params)
               THEN 1.0
-
             WHEN e.usuario_id = e.procurador_id
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             WHEN e.usuario_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-
             WHEN e.procurador_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             ELSE 0.0
           END AS monto
         FROM public.expedientes e
@@ -4494,16 +4390,12 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
             WHEN e.usuario_id = (SELECT admin_id FROM params)
              AND e.procurador_id = (SELECT admin_id FROM params)
               THEN 1.0
-
             WHEN e.usuario_id = e.procurador_id
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             WHEN e.usuario_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-
             WHEN e.procurador_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             ELSE 0.0
           END AS monto
         FROM public.expedientes e
@@ -4535,16 +4427,12 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
             WHEN e.usuario_id = (SELECT admin_id FROM params)
              AND e.procurador_id = (SELECT admin_id FROM params)
               THEN 1.0
-
             WHEN e.usuario_id = e.procurador_id
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             WHEN e.usuario_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-
             WHEN e.procurador_id = (SELECT admin_id FROM params)
               THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-
             ELSE 0.0
           END AS monto
         FROM public.expedientes e
