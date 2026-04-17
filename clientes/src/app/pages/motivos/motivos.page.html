@@ -1,0 +1,101 @@
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Motivos</h1>
+  </div>
+
+  <div class="list-card">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input class="search-input" placeholder="Buscar por nombre..."
+          [(ngModel)]="busqueda" (ngModelChange)="filtrar()" />
+      </div>
+
+      <!-- Filtro por tipo -->
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="tipoSeleccionado" (change)="filtrar()">
+          <option value="">Todos los tipos</option>
+          <option *ngFor="let tipo of tiposDisponibles" [value]="tipo">{{ tipo | titlecase }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="agregarMotivo()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar motivo</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Skeleton -->
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
+
+          <!-- Datos -->
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let motivo of listaPaginada">
+              <td class="td-nombre">{{ motivo.nombre }}</td>
+              <td>
+                <span class="tipo-chip tipo-chip--{{ motivo.tipo }}">{{ motivo.tipo | titlecase }}</span>
+              </td>
+              <td>
+                <span class="estado-chip estado-chip--{{ motivo.estado }}">{{ motivo.estado | titlecase }}</span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar" (click)="modificarMotivo(motivo)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar" (click)="eliminarMotivo(motivo)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Empty state -->
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="4" class="empty-row">
+                <mat-icon>list_alt</mat-icon>
+                No se encontraron motivos
+              </td>
+            </tr>
+          </ng-container>
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginador -->
+    <mat-paginator
+      [length]="motivos.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
+</div>

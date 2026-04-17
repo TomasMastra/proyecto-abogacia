@@ -24,6 +24,8 @@ import { CodigoModel } from 'src/app/models/codigo/codigo.component';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
 import { ExpedienteModel } from 'src/app/models/expediente/expediente.component';
 
+import { MotivosService } from 'src/app/services/motivos.service';
+import { MotivoModel } from 'src/app/models/motivo/motivo.component';
 import Swal from 'sweetalert2';
 import { IonItem, IonList, IonLabel } from "@ionic/angular/standalone";
 
@@ -53,6 +55,8 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
   jueces: JuezModel[] = [];
   codigos: CodigoModel[] = [];
   expedientes: ExpedienteModel[] = [];
+  motivos: MotivoModel[] = [];
+  motivosOriginales: MotivoModel[] = [];
 
   cargando = true;
   busqueda = '';
@@ -67,6 +71,7 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
     private jurisprudenciasService: JurisprudenciasService,
     private clientesService: ClientesService,
     private demandadosService: DemandadosService,
+    private motivoService: MotivosService,
     private juzgadosService: JuzgadosService,
     private juezService: JuezService,
     private codigosService: CodigosService,
@@ -83,16 +88,17 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
     this.juzgadosService.getJuzgados().subscribe(j => { this.juzgadosOriginales = j || []; this.juzgados = [...this.juzgadosOriginales]; });
     this.juezService.getJuez().subscribe(j => this.jueces = j || []);
     this.codigosService.getCodigos().subscribe(c => this.codigos = c || []);
+    this.cargarMotivos();
     this.expepedientesService.getExpedientes().subscribe({
-  next: (e) => {
-    console.log('EXPEDIENTES CARGADOS:', e);
-    this.expedientes = e || [];
-  },
-  error: (err) => {
-    console.error('ERROR GET EXPEDIENTES:', err);
-    this.expedientes = [];
-  }
-});
+      next: (e) => {
+        console.log('EXPEDIENTES CARGADOS:', e);
+        this.expedientes = e || [];
+      },
+      error: (err) => {
+        console.error('ERROR GET EXPEDIENTES:', err);
+        this.expedientes = [];
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -119,6 +125,20 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
         this.jurisprudenciasOriginales = [];
         this.cargando = false;
         this.cdr.detectChanges();
+      }
+    });
+  }
+
+  cargarMotivos(): void {
+    this.motivoService.getMotivos().subscribe({
+      next: (motivos) => {
+        this.motivosOriginales = (motivos ?? []).filter(m => m.estado !== 'eliminado');
+        this.motivos = [...this.motivosOriginales];
+      },
+      error: (err) => {
+        console.error('Error al obtener motivos:', err);
+        this.motivos = [];
+        this.motivosOriginales = [];
       }
     });
   }
@@ -299,7 +319,6 @@ async agregarJurisprudencias(): Promise<void> {
   const norm = (s: any) =>
     (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
-  const motivosDisponibles = ['Firma falsificada'];
 
   const renderExpedientes = (select: HTMLSelectElement, lista: any[]) => {
     select.innerHTML =
@@ -482,7 +501,7 @@ async agregarJurisprudencias(): Promise<void> {
 
         <select id="motivoIdPropio" class="swal2-select campo-unificado">
           <option value="">Seleccionar motivo</option>
-          ${motivosDisponibles.map(m => `<option value="${m}">${m}</option>`).join('')}
+          ${(this.motivos || []).map(m => `<option value="${m.id}">${m.nombre}</option>`).join('')}
         </select>
       </div>
 
@@ -543,7 +562,7 @@ async agregarJurisprudencias(): Promise<void> {
 
         <select id="motivoIdAjeno" class="swal2-select campo-unificado">
           <option value="">Seleccionar motivo</option>
-          ${motivosDisponibles.map(m => `<option value="${m}">${m}</option>`).join('')}
+          ${(this.motivos || []).map(m => `<option value="${m.id}">${m.nombre}</option>`).join('')}
         </select>
       </div>
     `,
@@ -639,7 +658,7 @@ async agregarJurisprudencias(): Promise<void> {
       const expedienteId = (document.getElementById('expedienteId') as HTMLSelectElement)?.value ?? '';
       const juezIdPropio = (document.getElementById('juezIdPropio') as HTMLSelectElement)?.value ?? '';
       const resultadoPropio = (document.querySelector('#bloqueExpedientePropio input[name="resultado"]:checked') as HTMLInputElement)?.value ?? '';
-      const motivoPropio = (document.getElementById('motivoIdPropio') as HTMLSelectElement)?.value ?? '';
+      const motivoIdPropio = (document.getElementById('motivoIdPropio') as HTMLSelectElement)?.value ?? '';
 
       const numeroExt = (document.getElementById('numeroExterno') as HTMLInputElement)?.value ?? '';
       const anioExt = (document.getElementById('anioExterno') as HTMLInputElement)?.value ?? '';
@@ -649,7 +668,7 @@ async agregarJurisprudencias(): Promise<void> {
       const codigoIdAj = (document.getElementById('codigoIdAjeno') as HTMLSelectElement)?.value ?? '';
       const sentenciaAj = (document.getElementById('sentenciaAjeno') as HTMLInputElement)?.value ?? '';
       const resultadoAj = (document.querySelector('#bloqueExpedienteAjeno input[name="resultado"]:checked') as HTMLInputElement)?.value ?? '';
-      const motivoAj = (document.getElementById('motivoIdAjeno') as HTMLSelectElement)?.value ?? '';
+      const motivoIdAj = (document.getElementById('motivoIdAjeno') as HTMLSelectElement)?.value ?? '';
 
       if (!tipo) {
         Swal.showValidationMessage('Seleccioná el tipo de expediente');
@@ -674,7 +693,7 @@ async agregarJurisprudencias(): Promise<void> {
           return null;
         }
 
-        if (!motivoPropio) {
+        if (!motivoIdPropio) {
           Swal.showValidationMessage('Seleccioná el motivo');
           return null;
         }
@@ -694,7 +713,7 @@ async agregarJurisprudencias(): Promise<void> {
           codigo_id: null,
           fecha_alzada: null,
           resultado: resultadoPropio || null,
-          motivo: motivoPropio || null,
+          motivo_id: Number(motivoIdPropio),
         };
       }
 
@@ -738,7 +757,7 @@ async agregarJurisprudencias(): Promise<void> {
         return null;
       }
 
-      if (!motivoAj) {
+      if (!motivoIdAj) {
         Swal.showValidationMessage('Seleccioná el motivo');
         return null;
       }
@@ -758,7 +777,7 @@ async agregarJurisprudencias(): Promise<void> {
         codigo_id: Number(codigoIdAj),
         fecha_alzada: null,
         resultado: resultadoAj || null,
-        motivo: motivoAj || null,
+        motivo_id: Number(motivoIdAj),
       };
     }
   });
@@ -792,7 +811,6 @@ async modificarJurisprudencia(j: any): Promise<void> {
   const norm = (s: any) =>
     (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
-  const motivosDisponibles = ['Firma falsificada'];
   const tipoActual = (j.tipo_expediente || (j.expediente_id ? 'propio' : 'ajeno')).toLowerCase();
 
   const renderExpedientes = (select: HTMLSelectElement, lista: any[], selectedId?: any) => {
@@ -985,7 +1003,9 @@ async modificarJurisprudencia(j: any): Promise<void> {
 
         <select id="motivoIdPropio" class="swal2-select campo-unificado">
           <option value="">Seleccionar motivo</option>
-          ${motivosDisponibles.map(m => `<option value="${m}" ${j.motivo === m ? 'selected' : ''}>${m}</option>`).join('')}
+          ${(this.motivos || []).map(m =>
+            `<option value="${m.id}" ${String(m.id) === String(j.motivo_id) ? 'selected' : ''}>${m.nombre}</option>`
+          ).join('')}
         </select>
       </div>
 
@@ -1043,7 +1063,9 @@ async modificarJurisprudencia(j: any): Promise<void> {
 
         <select id="motivoIdAjeno" class="swal2-select campo-unificado">
           <option value="">Seleccionar motivo</option>
-          ${motivosDisponibles.map(m => `<option value="${m}" ${j.motivo === m ? 'selected' : ''}>${m}</option>`).join('')}
+          ${(this.motivos || []).map(m =>
+            `<option value="${m.id}" ${String(m.id) === String(j.motivo_id) ? 'selected' : ''}>${m.nombre}</option>`
+          ).join('')}
         </select>
       </div>
     `,
@@ -1210,7 +1232,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
           codigo_id: null,
           fecha_alzada: null,
           resultado: resultadoPropio || null,
-          motivo: motivoPropio || null,
+          motivo_id: Number(motivoPropio),
         };
       }
 
@@ -1274,7 +1296,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
         codigo_id: Number(codigoIdAj),
         fecha_alzada: null,
         resultado: resultadoAj || null,
-        motivo: motivoAj || null,
+        motivo_id: Number(motivoAj),
       };
     }
   });

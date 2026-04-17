@@ -166,36 +166,108 @@ cargarClientes(): void {
   }
 
   // ── Dialogs ───────────────────────────────────────────────
-  abrirDialog(): void {
-    const ref = this.dialog.open(DialogClienteComponent, { width: '500px', disableClose: true });
-    ref.afterClosed().subscribe((cliente: ClienteModel) => {
-      if (!cliente) return;
+abrirDialog(): void {
+  const ref = this.dialog.open(DialogClienteComponent, { width: '500px', disableClose: true });
+
+  ref.afterClosed().subscribe((cliente: ClienteModel) => {
+    if (!cliente) return;
+
+    Swal.fire({
+      title: '¿Agregar cliente?',
+      text: 'Se va a registrar un nuevo cliente',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, agregar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      Swal.fire({
+        title: 'Guardando...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
       this.clienteService.addCliente(cliente).subscribe({
         next: (response) => {
           cliente.id = response.id;
+
           const cache = this.clienteService.clientesSubject.value || [];
           this.clienteService.clientesSubject.next([...cache, cliente]);
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Cliente agregado',
+            text: 'Se guardó correctamente'
+          });
+
           if (this.busqueda) this.buscar();
           else this.cargarClientes();
         },
-        error: (err) => console.error('Error al agregar cliente:', err)
+        error: (err) => {
+          console.error('Error al agregar cliente:', err);
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo agregar el cliente'
+          });
+        }
       });
     });
-  }
+  });
+}
 
-  abrirModificar(cliente: ClienteModel): void {
-    const ref = this.dialog.open(DialogClienteModificarComponent, { width: '500px', data: cliente, disableClose: true });
-    ref.afterClosed().subscribe((modificado: ClienteModel) => {
-      if (!modificado) return;
+abrirModificar(cliente: ClienteModel): void {
+  const ref = this.dialog.open(DialogClienteModificarComponent, {
+    width: '500px',
+    data: cliente,
+    disableClose: true
+  });
+
+  ref.afterClosed().subscribe((modificado: ClienteModel) => {
+    if (!modificado) return;
+
+    Swal.fire({
+      title: '¿Guardar cambios?',
+      text: 'Se van a actualizar los datos del cliente',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, guardar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      Swal.fire({
+        title: 'Actualizando...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
       this.clienteService.actualizarCliente(modificado.id, modificado).subscribe({
         next: () => {
           this.clienteService.limpiarClientes();
           this.cargarClientes();
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Cliente actualizado',
+            text: 'Los cambios se guardaron correctamente'
+          });
         },
-        error: (err) => console.error('Error al actualizar cliente:', err)
+        error: (err) => {
+          console.error('Error al actualizar cliente:', err);
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo actualizar el cliente'
+          });
+        }
       });
     });
-  }
+  });
+}
 
   eliminarCliente(cliente: ClienteModel): void {
     Swal.fire({

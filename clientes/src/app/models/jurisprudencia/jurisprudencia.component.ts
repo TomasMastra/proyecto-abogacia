@@ -35,8 +35,9 @@ export interface JurisprudenciaModel {
   // nuevos campos
   fecha_alzada?: string | null;
   resultado?: 'favorable' | 'desfavorable' | null;
-  motivo?: string | null;
-
+  motivo_id?: number | null;
+  motivo_nombre?: string | null;
+  
   estado?: string;
   caratula?: string;
 

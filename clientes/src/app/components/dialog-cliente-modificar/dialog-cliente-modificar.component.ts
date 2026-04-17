@@ -9,7 +9,8 @@ import { ClientesService } from 'src/app/services/clientes.service';
 import { ClienteModel } from 'src/app/models/cliente/cliente.component';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { IonCheckbox, IonItemSliding } from "@ionic/angular/standalone";
-
+import { MatSelectModule } from '@angular/material/select';
+import { MatOptionModule } from '@angular/material/core';
 
 
 import { MatListModule } from '@angular/material/list';
@@ -28,7 +29,8 @@ import { IonLabel, IonItem } from "@ionic/angular/standalone";
 import Swal from 'sweetalert2';
 
 import { UsuarioService } from 'src/app/services/usuario.service';
-
+import { LocalidadesService } from 'src/app/services/localidades.service';
+import { LocalidadModel } from 'src/app/models/localidad/localidad.component';
 
 function fechaNacimientoValida(control: AbstractControl): ValidationErrors | null {
   if (!control.value) return null;
@@ -49,7 +51,8 @@ function fechaNacimientoValida(control: AbstractControl): ValidationErrors | nul
     MatDialogModule, 
     MatFormFieldModule, 
     MatInputModule, 
-    ReactiveFormsModule
+    ReactiveFormsModule, MatSelectModule,
+    MatOptionModule,
   ]
 })
 export class DialogClienteModificarComponent {
@@ -57,11 +60,14 @@ export class DialogClienteModificarComponent {
   protected form: FormGroup;
   menu: number = 1;
   hoy: Date = new Date();
+  private destroy$ = new Subject<void>(); 
+  localidades: LocalidadModel[] = [];
 
 
   constructor(
     private clienteService: ClientesService,
     private usuarioService: UsuarioService,
+    private localidadService: LocalidadesService,
     public dialogRef: MatDialogRef<DialogClienteModificarComponent>,
     @Inject(MAT_DIALOG_DATA) public data: ClienteModel
   ) {
@@ -73,7 +79,7 @@ export class DialogClienteModificarComponent {
       dni: new FormControl('', [Validators.minLength(7), Validators.maxLength(8), Validators.pattern("^[0-9]+$")]),
       telefono: new FormControl('', [Validators.minLength(6), Validators.maxLength(14), Validators.pattern("^[0-9]+$")]),
       fechaNacimiento: new FormControl('', [fechaNacimientoValida]),
-      direccion: new FormControl(''),
+      localidad: new FormControl(''),
       
 
     });
@@ -92,11 +98,15 @@ export class DialogClienteModificarComponent {
         nombre: data.nombre || '',
         apellido: data.apellido || '',
         fechaNacimiento: fechaFormateada,
-        direccion: data.direccion || '',
+        localidad: data.localidad_id ? Number(data.localidad_id) : null,
         dni: data.dni || '',
         telefono: data.telefono || '',
       });
     }
+  }
+
+    ngOnInit() {
+    this.cargarLocalidades();
   }
 
   closeDialog(): void {
@@ -111,7 +121,7 @@ export class DialogClienteModificarComponent {
         nombre: this.form.value.nombre ?? this.data.nombre,
         apellido: this.form.value.apellido ?? this.data.apellido,
         fecha_nacimiento: this.form.value.fechaNacimiento || this.data.fecha_nacimiento || new Date().toISOString().split('T')[0],
-        direccion: this.form.value.direccion ?? this.data.direccion,
+        localidad_id: this.form.value.localidad ?? null,
         dni: this.form.value.dni ? Number(this.form.value.dni) : this.data.dni,
         telefono: this.form.value.telefono ?? this.data.telefono,
         fecha_creacion: this.data?.fecha_creacion ?? '', 
@@ -136,6 +146,25 @@ export class DialogClienteModificarComponent {
                }
     }
   }
+
+    cargarLocalidades() {
+      this.localidadService.getLocalidades()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(
+          (l) => {
+            this.localidades = l;
+
+            if (this.data?.localidad_id) {
+              this.form.patchValue({
+                localidad: Number(this.data.localidad_id)
+              });
+            }
+          },
+          (error) => {
+            console.error('Error al obtener localidades:', error);
+          }
+        );
+    }
   
 
      public obtenerCamposFaltantes(): string[] {
@@ -143,7 +172,7 @@ export class DialogClienteModificarComponent {
         { nombre: 'Nombre', control: 'nombre' },
         { nombre: 'Apellido', control: 'apellido' },
         { nombre: 'Numero de telefono', control: 'telefono' },
-        { nombre: 'Direccion', control: 'direccion' },
+        //{ nombre: 'Localidad', control: 'localidad' },
         { nombre: 'DNI', control: 'dni' },
         { nombre: 'Fecha de nacimiento', control: 'fechaNacimiento' },
 

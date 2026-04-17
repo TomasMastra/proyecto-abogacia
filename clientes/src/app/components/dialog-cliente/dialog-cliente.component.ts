@@ -7,6 +7,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSelectModule } from '@angular/material/select';
+import { MatOptionModule } from '@angular/material/core';
 import { takeUntil } from 'rxjs/operators';
 
 import { ClientesService } from 'src/app/services/clientes.service';
@@ -24,6 +26,9 @@ import Swal from 'sweetalert2';
 
 import { UsuarioService } from 'src/app/services/usuario.service';
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
+
+import { LocalidadesService } from 'src/app/services/localidades.service';
+import { LocalidadModel } from 'src/app/models/localidad/localidad.component';
 function fechaMediacionValida(control: AbstractControl): ValidationErrors | null {
   if (!control.value) return null;
 
@@ -44,14 +49,11 @@ function fechaNacimientoValida(control: AbstractControl): ValidationErrors | nul
   styleUrls: ['./dialog-cliente.component.scss'],
   standalone: true,
   imports: [IonItem, IonLabel, 
-    CommonModule, 
-    FormsModule,
-    MatButtonModule, 
-    MatDialogModule, 
-    MatFormFieldModule, 
+    CommonModule, FormsModule, MatButtonModule, 
+    MatDialogModule, MatFormFieldModule, 
     MatInputModule, ReactiveFormsModule,
-    MatListModule,  // <-- Agregado
-    MatCheckboxModule // <-- Agregado
+    MatListModule, MatCheckboxModule, MatSelectModule,
+    MatOptionModule,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA] // Agregar esto si usas Ionic
 
@@ -69,6 +71,9 @@ export class DialogClienteComponent{
   listaUsuarios: UsuarioModel[] = [];
   usuarioSeleccionados: any[] = [];
 
+  localidades: LocalidadModel[] = [];
+
+
   private destroy$ = new Subject<void>(); 
 
   hoy: Date = new Date();
@@ -78,6 +83,7 @@ export class DialogClienteComponent{
     private clienteService: ClientesService,
     private usuarioService: UsuarioService,
     private expedienteService: ExpedientesService,
+    private localidadService: LocalidadesService,
     public dialogRef: MatDialogRef<DialogClienteComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {
@@ -85,10 +91,10 @@ export class DialogClienteComponent{
 this.form = new FormGroup({
   nombre: new FormControl('', [Validators.required, Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),
   apellido: new FormControl('', [Validators.required, Validators.pattern("^(?!\\s*$)[a-zA-ZÀ-ÿ\\s]+$")]),
-  dni: new FormControl('', [Validators.minLength(5), Validators.maxLength(8), Validators.pattern("^[0-9]+$")]),
+  dni: new FormControl('', [Validators.minLength(6), Validators.maxLength(8), Validators.pattern("^[0-9]+$")]),
   telefono: new FormControl('', [Validators.minLength(5), Validators.maxLength(14), Validators.pattern("^[0-9]+$")]),
-  fechaNacimiento: new FormControl('', [fechaNacimientoValida]), // ✅ ahora con validador
-  direccion: new FormControl(''),
+  fechaNacimiento: new FormControl('', [fechaNacimientoValida]),
+  localidad: new FormControl(''),
 });
 
     
@@ -98,7 +104,7 @@ this.form = new FormGroup({
         nombre: data.nombre || '',
         apellido: data.apellido || '',
         fechaNacimiento: data.fechaNacimiento || '',
-        direccion: data.direccion || '',
+        localidad: data.localidad || '',
         dni: data.dni || '',
         telefono: data.telefono || '',
       });
@@ -108,6 +114,7 @@ this.form = new FormGroup({
 
   ngOnInit() {
     this.cargarExpedientes();
+    this.cargarLocalidades();
   }
 
   cargarExpedientes() {
@@ -142,6 +149,19 @@ this.form = new FormGroup({
       );
   }
 
+    cargarLocalidades() {
+    this.localidadService.getLocalidades()
+      .pipe(takeUntil(this.destroy$)) 
+      .subscribe(
+        (l) => {
+          this.localidades = l;
+        },
+        (error) => {
+          console.error('Error al obtener localidades:', error);
+        }
+      );
+  }
+
   closeDialog(): void {
     this.dialogRef.close();
   }
@@ -152,10 +172,10 @@ this.form = new FormGroup({
       nombre: this.form.value.nombre ?? null,
       apellido: this.form.value.apellido ?? null,
       fecha_nacimiento: this.form.value.fechaNacimiento || null,
-      direccion: this.form.value.direccion && this.form.value.direccion.trim() !== '' ? this.form.value.direccion : '1',
       dni: this.form.value.dni && this.form.value.dni.trim() !== '' ? Number(this.form.value.dni) : 1,
       telefono: this.form.value.telefono && this.form.value.telefono.trim() !== '' ? this.form.value.telefono : '1',
       email: this.form.value.nombre,
+      localidad_id: this.form.value.localidad?.id ?? null,
       id: '0',
       fecha_creacion: 'ejemplo',
       expedientes: this.expedientesSeleccionados,

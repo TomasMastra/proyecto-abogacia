@@ -38,7 +38,7 @@
         <div class="form__group field">
           <input type="date" class="form__field" placeholder="Fecha de nacimiento" name="fecha_nacimiento" id='fecha_nacimiento' required formControlName="fechaNacimiento"/>
           <label for="fecha_nacimiento" class="form__label">Fecha de nacimiento</label>
-          <div class="error" *ngIf="form.controls?.['fechaMacimiento']?.invalid && (form.controls?.['fechaNacimiento']?.dirty || form.controls?.['fechaNacimiento']?.touched)">
+          <div class="error" *ngIf="form.controls?.['fechaNacimiento']?.invalid && (form.controls?.['fechaNacimiento']?.dirty || form.controls?.['fechaNacimiento']?.touched)">
             <div *ngIf="form.controls?.['fechaNacimiento']?.errors?.['required']" style="color:red">La fecha es requerida</div>
           </div>
           <div class="error" *ngIf="form.controls?.['fechaNacimiento']?.errors?.['fechaInvalida']">
@@ -49,13 +49,14 @@
       </div>
 
       <div class="form-row">
-        <div class="form__group field">
-          <input type="input" class="form__field" placeholder="Direccion" name="direccion" id='direccion' required formControlName="direccion"/>
-          <label for="direccion" class="form__label">Direccion</label>
-          <div class="error" *ngIf="form.controls?.['direccion']?.invalid && (form.controls?.['dierccion']?.dirty || form.controls?.['direccion']?.touched)">
-            <div *ngIf="form.controls?.['direccion']?.errors?.['required']" style="color:red">La direccion es requerida</div>
-          </div>
-        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label style="color: white">Localidad</mat-label>
+          <mat-select formControlName="localidad" style="color: rgb(255, 255, 255)">
+            <mat-option *ngFor="let localidad of localidades" [value]="localidad.id">
+              {{ localidad.localidad }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
 
         <div class="form__group field">
           <input type="input" class="form__field" placeholder="Telefono" name="telefono" id='telefono' required formControlName="telefono"/>
