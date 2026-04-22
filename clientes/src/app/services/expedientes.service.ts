@@ -684,4 +684,17 @@ getInformeEnre() {
 getControlAnioExpedientes() {
   return this.http.get<any[]>(`${this.apiUrl}/control-anio`);
 }
+
+getFixCapital(desde: string, hasta: string) {
+  const uid = this.usuarioService.usuarioLogeado?.id;
+
+  return this.http.get<any[]>(`${this.apiUrl}/fix-capital`, {
+    params: {
+      desde,
+      hasta,
+      usuario_id: uid != null ? String(uid) : ''
+    }
+  });
+}
+
 }

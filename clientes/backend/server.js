@@ -38,6 +38,7 @@ const pgPool = new Pool({
 
 // Render
 const PORT = process.env.PORT || 3000;
+const ADMIN_ID = 7;
 
 
 // =======================================================
@@ -2399,7 +2400,7 @@ app.get("/demandados/oficiados", async (req, res) => {
       SELECT *
       FROM public.demandados
       WHERE estado <> 'eliminado'
-        AND "esOficio" = 1
+        AND "esOficio" = true
     `);
 
 
@@ -3710,6 +3711,8 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   }
 });*/
 
+
+
 app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const { anio, mes, usuario_id } = req.query;
   if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
@@ -3730,8 +3733,6 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
   const inicioStr = inicio.toISOString().slice(0, 10);
   const finStr = fin.toISOString().slice(0, 10);
 
-  const ADMIN_ID = 7;
-
   try {
     const { rows } = await pgPool.query(
       `
@@ -3742,24 +3743,31 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
           $3::int  AS uid,
           $4::int  AS admin_id
       ),
-      U AS (
-        SELECT DISTINCT ON (id)
-          id,
-          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios
-        FROM public.usuario
-        ORDER BY id
+      pagos_capital AS (
+        SELECT
+          p.expediente_id,
+          COALESCE(SUM(p.monto), 0)::numeric AS total_pagos
+        FROM public.pagos p
+        WHERE p.tipo_pago = 'capital'
+        GROUP BY p.expediente_id
       ),
       movimientos AS (
 
-        /* =========================
-           CAPITAL NO PARCIAL / LEGACY
-           - YA es el monto de tu papá
-           - NO se divide
-           ========================= */
+        /* CAPITAL NO PARCIAL */
         SELECT
+          e.id AS expediente_id,
+          e.numero,
+          e.anio AS anio_expediente,
+          e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'capital'::text AS concepto,
-          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
+          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto_bruto,
+          COALESCE(u1.porcentaje, 0)::numeric AS porc_usuario,
+          COALESCE(u2.porcentaje, 0)::numeric AS porc_procurador
         FROM public.expedientes e
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -3781,16 +3789,22 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         UNION ALL
 
-        /* =========================
-           CAPITAL PARCIAL REAL
-           - YA es el monto de tu papá
-           - NO se divide
-           ========================= */
+        /* CAPITAL PARCIAL */
         SELECT
+          e.id AS expediente_id,
+          e.numero,
+          e.anio AS anio_expediente,
+          e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'capital'::text AS concepto,
-          COALESCE(SUM(pc.monto), 0)::numeric AS monto
+          COALESCE(SUM(pc.monto), 0)::numeric AS monto_bruto,
+          COALESCE(u1.porcentaje, 0)::numeric AS porc_usuario,
+          COALESCE(u2.porcentaje, 0)::numeric AS porc_procurador
         FROM public.expedientes e
         JOIN public.pagos pc ON pc.expediente_id = e.id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -3802,30 +3816,28 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
           AND pc.tipo_pago = 'capital'
           AND pc.fecha::date >= p.inicio
           AND pc.fecha::date < p.fin
+        GROUP BY
+          e.id, e.numero, e.anio, e.caratula,
+          e.usuario_id, e.procurador_id,
+          u1.porcentaje, u2.porcentaje
 
         UNION ALL
 
-        /* =========================
-           HONORARIOS
-           ========================= */
+        /* HONORARIOS */
         SELECT
+          e.id AS expediente_id,
+          e.numero,
+          e.anio AS anio_expediente,
+          e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'honorarios'::text AS concepto,
-          COALESCE(e."montoLiquidacionHonorarios", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."montoLiquidacionHonorarios", 0)::numeric AS monto_bruto,
+          COALESCE(u1."porcentajeHonorarios", 0)::numeric AS porc_usuario,
+          COALESCE(u2."porcentajeHonorarios", 0)::numeric AS porc_procurador
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -3838,27 +3850,21 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         UNION ALL
 
-        /* =========================
-           ALZADA
-           ========================= */
+        /* ALZADA */
         SELECT
+          e.id AS expediente_id,
+          e.numero,
+          e.anio AS anio_expediente,
+          e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'alzada'::text AS concepto,
-          COALESCE(e."montoAcuerdo_alzada", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."montoAcuerdo_alzada", 0)::numeric AS monto_bruto,
+          COALESCE(u1."porcentajeHonorarios", 0)::numeric AS porc_usuario,
+          COALESCE(u2."porcentajeHonorarios", 0)::numeric AS porc_procurador
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -3871,27 +3877,21 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         UNION ALL
 
-        /* =========================
-           EJECUCION
-           ========================= */
+        /* EJECUCION */
         SELECT
+          e.id AS expediente_id,
+          e.numero,
+          e.anio AS anio_expediente,
+          e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'ejecucion'::text AS concepto,
-          COALESCE(e."montoHonorariosEjecucion", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."montoHonorariosEjecucion", 0)::numeric AS monto_bruto,
+          COALESCE(u1."porcentajeHonorarios", 0)::numeric AS porc_usuario,
+          COALESCE(u2."porcentajeHonorarios", 0)::numeric AS porc_procurador
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -3904,27 +3904,21 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
         UNION ALL
 
-        /* =========================
-           DIFERENCIA
-           ========================= */
+        /* DIFERENCIA */
         SELECT
+          e.id AS expediente_id,
+          e.numero,
+          e.anio AS anio_expediente,
+          e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'diferencia'::text AS concepto,
-          COALESCE(e."montoHonorariosDiferencia", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."montoHonorariosDiferencia", 0)::numeric AS monto_bruto,
+          COALESCE(u1."porcentajeHonorarios", 0)::numeric AS porc_usuario,
+          COALESCE(u2."porcentajeHonorarios", 0)::numeric AS porc_procurador
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -3935,268 +3929,67 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
           AND e."fechaCobroDiferencia"::date >= p.inicio
           AND e."fechaCobroDiferencia"::date < p.fin
       )
-      SELECT
-        COALESCE(SUM(CASE WHEN concepto = 'capital' THEN monto ELSE 0 END), 0) AS "totalCapital",
-        COALESCE(SUM(CASE WHEN concepto = 'honorarios' THEN monto ELSE 0 END), 0) AS "totalHonorarios",
-        COALESCE(SUM(CASE WHEN concepto = 'alzada' THEN monto ELSE 0 END), 0) AS "totalAlzada",
-        COALESCE(SUM(CASE WHEN concepto = 'ejecucion' THEN monto ELSE 0 END), 0) AS "totalEjecucion",
-        COALESCE(SUM(CASE WHEN concepto = 'diferencia' THEN monto ELSE 0 END), 0) AS "totalDiferencia",
-        COALESCE(SUM(monto), 0) AS "totalGeneral"
+      SELECT *
       FROM movimientos;
       `,
       [inicioStr, finStr, usuarioId, ADMIN_ID]
     );
 
-    return res.json(
-      rows?.[0] ?? {
-        totalCapital: 0,
-        totalHonorarios: 0,
-        totalAlzada: 0,
-        totalEjecucion: 0,
-        totalDiferencia: 0,
-        totalGeneral: 0
-      }
+    const movimientos = (rows ?? [])
+      .map((row) => enriquecerMovimientoConMonto(row, usuarioId))
+      .filter((row) => row.monto_bruto > 0 && row.monto > 0);
+
+    const totalCapital = round2(
+      movimientos
+        .filter((x) => x.concepto === "capital")
+        .reduce((acc, x) => acc + toNum(x.monto), 0)
     );
+
+    const totalHonorarios = round2(
+      movimientos
+        .filter((x) => x.concepto === "honorarios")
+        .reduce((acc, x) => acc + toNum(x.monto), 0)
+    );
+
+    const totalAlzada = round2(
+      movimientos
+        .filter((x) => x.concepto === "alzada")
+        .reduce((acc, x) => acc + toNum(x.monto), 0)
+    );
+
+    const totalEjecucion = round2(
+      movimientos
+        .filter((x) => x.concepto === "ejecucion")
+        .reduce((acc, x) => acc + toNum(x.monto), 0)
+    );
+
+    const totalDiferencia = round2(
+      movimientos
+        .filter((x) => x.concepto === "diferencia")
+        .reduce((acc, x) => acc + toNum(x.monto), 0)
+    );
+
+    const totalGeneral = round2(
+      totalCapital +
+      totalHonorarios +
+      totalAlzada +
+      totalEjecucion +
+      totalDiferencia
+    );
+
+    return res.json({
+      totalCapital,
+      totalHonorarios,
+      totalAlzada,
+      totalEjecucion,
+      totalDiferencia,
+      totalGeneral
+    });
   } catch (error) {
     console.error("Error al obtener total de cobranzas por mes:", error);
     return res.status(500).send("Error en el servidor");
   }
 });
-
-/*
-app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
-  const { anio, mes, usuario_id } = req.query;
-  if (!anio || !mes) return res.status(400).send("Debe enviar 'anio' y 'mes'");
-
-  const y = parseInt(anio, 10);
-  const m = parseInt(mes, 10);
-  if (isNaN(y) || isNaN(m) || m < 1 || m > 12)
-    return res.status(400).send("Parámetros inválidos.");
-
-  const usuarioId = Number(usuario_id);
-  if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
-    return res.status(400).send("Falta usuario_id válido");
-  }
-
-  const inicio = new Date(Date.UTC(y, m - 1, 1));
-  const fin    = new Date(Date.UTC(y, m, 1));
-  const inicioStr = inicio.toISOString().slice(0, 10);
-  const finStr    = fin.toISOString().slice(0, 10);
-
-  const PAPA_ID = 7;
-
-  try {
-    const { rows } = await pgPool.query(
-      `
-      WITH params AS (
-        SELECT
-          $1::date AS inicio,
-          $2::date AS fin,
-          $3::int  AS uid,
-          $4::int  AS papa
-      ),
-      U AS (
-        SELECT DISTINCT ON (id)
-          id,
-          COALESCE("porcentajeHonorarios", porcentaje, 0)::numeric AS porc
-        FROM public.usuario
-        ORDER BY id
-      ),
-      movimientos AS (
-
-        -- CAPITAL NO PARCIAL / LEGACY (bruto, sin prorrateo)
-        SELECT
-          e.id AS expediente_id,
-          e.numero,
-          e.anio AS anio_expediente,
-          e.caratula,
-          'capital'::text AS concepto,
-          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
-        FROM public.expedientes e
-        JOIN params p ON true
-        WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.papa OR e.usuario_id = p.uid)
-          AND (
-            COALESCE(e."esPagoParcial", false) = false
-            OR NOT EXISTS (
-              SELECT 1
-              FROM public.pagos pc
-              WHERE pc.expediente_id = e.id
-                AND pc.tipo_pago = 'capital'
-            )
-          )
-          AND e."fecha_cobro_capital"::date >= p.inicio
-          AND e."fecha_cobro_capital"::date <  p.fin
-
-        UNION ALL
-
-        -- CAPITAL PARCIAL REAL (bruto, solo pagos capital del mes)
-        SELECT
-          e.id AS expediente_id,
-          e.numero,
-          e.anio AS anio_expediente,
-          e.caratula,
-          'capital'::text AS concepto,
-          COALESCE(SUM(pc.monto), 0)::numeric AS monto
-        FROM public.expedientes e
-        JOIN public.pagos pc ON pc.expediente_id = e.id
-        JOIN params p ON true
-        WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.papa OR e.usuario_id = p.uid)
-          AND COALESCE(e."esPagoParcial", false) = true
-          AND pc.tipo_pago = 'capital'
-          AND pc.fecha::date >= p.inicio
-          AND pc.fecha::date <  p.fin
-        GROUP BY e.id, e.numero, e.anio, e.caratula
-
-        UNION ALL
-
-        -- HONORARIOS (prorrateado)
-        SELECT
-          e.id, e.numero, e.anio, e.caratula,
-          'honorarios'::text AS concepto,
-          COALESCE(e."montoLiquidacionHonorarios", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT papa FROM params) THEN
-              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
-                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS monto
-        FROM public.expedientes e
-        LEFT JOIN U u ON u.id = e.usuario_id
-        JOIN params p ON true
-        WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.papa OR e.usuario_id = p.uid)
-          AND e."fecha_cobro"::date >= p.inicio
-          AND e."fecha_cobro"::date <  p.fin
-
-        UNION ALL
-
-        -- ALZADA
-        SELECT
-          e.id, e.numero, e.anio, e.caratula,
-          'alzada'::text AS concepto,
-          COALESCE(e."montoAcuerdo_alzada", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT papa FROM params) THEN
-              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
-                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS monto
-        FROM public.expedientes e
-        LEFT JOIN U u ON u.id = e.usuario_id
-        JOIN params p ON true
-        WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.papa OR e.usuario_id = p.uid)
-          AND e."fechaCobroAlzada"::date >= p.inicio
-          AND e."fechaCobroAlzada"::date <  p.fin
-
-        UNION ALL
-
-        -- EJECUCION
-        SELECT
-          e.id, e.numero, e.anio, e.caratula,
-          'ejecucion'::text AS concepto,
-          COALESCE(e."montoHonorariosEjecucion", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT papa FROM params) THEN
-              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
-                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS monto
-        FROM public.expedientes e
-        LEFT JOIN U u ON u.id = e.usuario_id
-        JOIN params p ON true
-        WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.papa OR e.usuario_id = p.uid)
-          AND e."fechaCobroEjecucion"::date >= p.inicio
-          AND e."fechaCobroEjecucion"::date <  p.fin
-
-        UNION ALL
-
-        -- DIFERENCIA
-        SELECT
-          e.id, e.numero, e.anio, e.caratula,
-          'diferencia'::text AS concepto,
-          COALESCE(e."montoHonorariosDiferencia", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT papa FROM params) THEN
-              CASE WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN 1.0 ELSE 0.0 END
-            ELSE
-              CASE
-                WHEN (SELECT uid FROM params) = e.usuario_id THEN (COALESCE(u.porc,0) / 100.0)
-                WHEN (SELECT uid FROM params) = (SELECT papa FROM params) THEN ((100 - COALESCE(u.porc,0)) / 100.0)
-                ELSE 0.0
-              END
-          END AS monto
-        FROM public.expedientes e
-        LEFT JOIN U u ON u.id = e.usuario_id
-        JOIN params p ON true
-        WHERE e.estado <> 'eliminado'
-          AND (p.uid = p.papa OR e.usuario_id = p.uid)
-          AND e."fechaCobroDiferencia"::date >= p.inicio
-          AND e."fechaCobroDiferencia"::date <  p.fin
-      ),
-      detalle AS (
-        SELECT
-          m.expediente_id,
-          m.numero,
-          m.anio_expediente,
-          m.caratula,
-          COALESCE(SUM(CASE WHEN m.concepto='capital' THEN m.monto ELSE 0 END), 0)    AS "Capital",
-          COALESCE(SUM(CASE WHEN m.concepto='honorarios' THEN m.monto ELSE 0 END), 0) AS "Honorarios",
-          COALESCE(SUM(CASE WHEN m.concepto='alzada' THEN m.monto ELSE 0 END), 0)     AS "Alzada",
-          COALESCE(SUM(CASE WHEN m.concepto='ejecucion' THEN m.monto ELSE 0 END), 0)  AS "Ejecucion",
-          COALESCE(SUM(CASE WHEN m.concepto='diferencia' THEN m.monto ELSE 0 END), 0) AS "Diferencia",
-          COALESCE(SUM(m.monto), 0) AS "TotalExpediente"
-        FROM movimientos m
-        GROUP BY m.expediente_id, m.numero, m.anio_expediente, m.caratula
-      )
-      SELECT *
-      FROM (
-        SELECT
-          expediente_id,
-          numero::text AS numero,
-          anio_expediente,
-          caratula,
-          "Capital","Honorarios","Alzada","Ejecucion","Diferencia","TotalExpediente",
-          0 AS orden
-        FROM detalle
-
-        UNION ALL
-
-        SELECT
-          NULL::bigint,
-          'TOTAL GENERAL'::text,
-          NULL::int,
-          NULL::text,
-          SUM("Capital"), SUM("Honorarios"), SUM("Alzada"), SUM("Ejecucion"), SUM("Diferencia"), SUM("TotalExpediente"),
-          1 AS orden
-        FROM detalle
-      ) x
-      ORDER BY x.orden, x.numero;
-      `,
-      [inicioStr, finStr, usuarioId, PAPA_ID]
-    );
-
-    return res.json(rows ?? []);
-  } catch (error) {
-    console.error("Error en /expedientes/cobranzas-detalle-por-mes:", error);
-    return res.status(500).send("Error en el servidor");
-  }
-});*/
 
 app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
   const { anio, mes, usuario_id } = req.query;
@@ -4218,8 +4011,6 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
   const inicioStr = inicio.toISOString().slice(0, 10);
   const finStr = fin.toISOString().slice(0, 10);
 
-  const ADMIN_ID = 7;
-
   try {
     const { rows } = await pgPool.query(
       `
@@ -4230,28 +4021,23 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           $3::int  AS uid,
           $4::int  AS admin_id
       ),
-      U AS (
-        SELECT DISTINCT ON (id)
-          id,
-          COALESCE("porcentajeHonorarios", 0)::numeric AS porc_honorarios
-        FROM public.usuario
-        ORDER BY id
-      ),
       movimientos AS (
 
-        /* =========================
-           CAPITAL NO PARCIAL / LEGACY
-           - YA es el monto de tu papá
-           - NO se divide
-           ========================= */
+        /* CAPITAL NO PARCIAL */
         SELECT
           e.id AS expediente_id,
           e.numero,
           e.anio AS anio_expediente,
           e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'capital'::text AS concepto,
-          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto
+          COALESCE(e."capitalPagoParcial", 0)::numeric AS monto_bruto,
+          COALESCE(u1.porcentaje, 0)::numeric AS porc_usuario,
+          COALESCE(u2.porcentaje, 0)::numeric AS porc_procurador
         FROM public.expedientes e
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -4273,20 +4059,22 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         UNION ALL
 
-        /* =========================
-           CAPITAL PARCIAL REAL
-           - YA es el monto de tu papá
-           - NO se divide
-           ========================= */
+        /* CAPITAL PARCIAL */
         SELECT
           e.id AS expediente_id,
           e.numero,
           e.anio AS anio_expediente,
           e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'capital'::text AS concepto,
-          COALESCE(SUM(pc.monto), 0)::numeric AS monto
+          COALESCE(SUM(pc.monto), 0)::numeric AS monto_bruto,
+          COALESCE(u1.porcentaje, 0)::numeric AS porc_usuario,
+          COALESCE(u2.porcentaje, 0)::numeric AS porc_procurador
         FROM public.expedientes e
         JOIN public.pagos pc ON pc.expediente_id = e.id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -4298,35 +4086,28 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           AND pc.tipo_pago = 'capital'
           AND pc.fecha::date >= p.inicio
           AND pc.fecha::date < p.fin
-        GROUP BY e.id, e.numero, e.anio, e.caratula
+        GROUP BY
+          e.id, e.numero, e.anio, e.caratula,
+          e.usuario_id, e.procurador_id,
+          u1.porcentaje, u2.porcentaje
 
         UNION ALL
 
-        /* =========================
-           HONORARIOS
-           ========================= */
+        /* HONORARIOS */
         SELECT
           e.id AS expediente_id,
           e.numero,
           e.anio AS anio_expediente,
           e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'honorarios'::text AS concepto,
-          COALESCE(e."montoLiquidacionHonorarios", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."montoLiquidacionHonorarios", 0)::numeric AS monto_bruto,
+          COALESCE(u1."porcentajeHonorarios", 0)::numeric AS porc_usuario,
+          COALESCE(u2."porcentajeHonorarios", 0)::numeric AS porc_procurador
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -4339,31 +4120,21 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         UNION ALL
 
-        /* =========================
-           ALZADA
-           ========================= */
+        /* ALZADA */
         SELECT
           e.id AS expediente_id,
           e.numero,
           e.anio AS anio_expediente,
           e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'alzada'::text AS concepto,
-          COALESCE(e."montoAcuerdo_alzada", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."montoAcuerdo_alzada", 0)::numeric AS monto_bruto,
+          COALESCE(u1."porcentajeHonorarios", 0)::numeric AS porc_usuario,
+          COALESCE(u2."porcentajeHonorarios", 0)::numeric AS porc_procurador
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -4376,31 +4147,21 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         UNION ALL
 
-        /* =========================
-           EJECUCION
-           ========================= */
+        /* EJECUCION */
         SELECT
           e.id AS expediente_id,
           e.numero,
           e.anio AS anio_expediente,
           e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'ejecucion'::text AS concepto,
-          COALESCE(e."montoHonorariosEjecucion", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."montoHonorariosEjecucion", 0)::numeric AS monto_bruto,
+          COALESCE(u1."porcentajeHonorarios", 0)::numeric AS porc_usuario,
+          COALESCE(u2."porcentajeHonorarios", 0)::numeric AS porc_procurador
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -4413,31 +4174,21 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
         UNION ALL
 
-        /* =========================
-           DIFERENCIA
-           ========================= */
+        /* DIFERENCIA */
         SELECT
           e.id AS expediente_id,
           e.numero,
           e.anio AS anio_expediente,
           e.caratula,
+          e.usuario_id,
+          e.procurador_id,
           'diferencia'::text AS concepto,
-          COALESCE(e."montoHonorariosDiferencia", 0)::numeric *
-          CASE
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-             AND e.procurador_id = (SELECT admin_id FROM params)
-              THEN 1.0
-            WHEN e.usuario_id = e.procurador_id
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            WHEN e.usuario_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_procurador.porc_honorarios, 0)) / 100.0
-            WHEN e.procurador_id = (SELECT admin_id FROM params)
-              THEN (100 - COALESCE(u_usuario.porc_honorarios, 0)) / 100.0
-            ELSE 0.0
-          END AS monto
+          COALESCE(e."montoHonorariosDiferencia", 0)::numeric AS monto_bruto,
+          COALESCE(u1."porcentajeHonorarios", 0)::numeric AS porc_usuario,
+          COALESCE(u2."porcentajeHonorarios", 0)::numeric AS porc_procurador
         FROM public.expedientes e
-        LEFT JOIN U u_usuario ON u_usuario.id = e.usuario_id
-        LEFT JOIN U u_procurador ON u_procurador.id = e.procurador_id
+        LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+        LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
         JOIN params p ON true
         WHERE e.estado <> 'eliminado'
           AND (
@@ -4447,60 +4198,74 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           )
           AND e."fechaCobroDiferencia"::date >= p.inicio
           AND e."fechaCobroDiferencia"::date < p.fin
-      ),
-      detalle AS (
-        SELECT
-          m.expediente_id,
-          m.numero,
-          m.anio_expediente,
-          m.caratula,
-          COALESCE(SUM(CASE WHEN m.concepto = 'capital' THEN m.monto ELSE 0 END), 0) AS "Capital",
-          COALESCE(SUM(CASE WHEN m.concepto = 'honorarios' THEN m.monto ELSE 0 END), 0) AS "Honorarios",
-          COALESCE(SUM(CASE WHEN m.concepto = 'alzada' THEN m.monto ELSE 0 END), 0) AS "Alzada",
-          COALESCE(SUM(CASE WHEN m.concepto = 'ejecucion' THEN m.monto ELSE 0 END), 0) AS "Ejecucion",
-          COALESCE(SUM(CASE WHEN m.concepto = 'diferencia' THEN m.monto ELSE 0 END), 0) AS "Diferencia",
-          COALESCE(SUM(m.monto), 0) AS "TotalExpediente"
-        FROM movimientos m
-        GROUP BY m.expediente_id, m.numero, m.anio_expediente, m.caratula
       )
       SELECT *
-      FROM (
-        SELECT
-          expediente_id,
-          numero::text AS numero,
-          anio_expediente,
-          caratula,
-          "Capital",
-          "Honorarios",
-          "Alzada",
-          "Ejecucion",
-          "Diferencia",
-          "TotalExpediente",
-          0 AS orden
-        FROM detalle
-
-        UNION ALL
-
-        SELECT
-          NULL::bigint,
-          'TOTAL GENERAL'::text,
-          NULL::int,
-          NULL::text,
-          SUM("Capital"),
-          SUM("Honorarios"),
-          SUM("Alzada"),
-          SUM("Ejecucion"),
-          SUM("Diferencia"),
-          SUM("TotalExpediente"),
-          1 AS orden
-        FROM detalle
-      ) x
-      ORDER BY x.orden, x.numero;
+      FROM movimientos;
       `,
       [inicioStr, finStr, usuarioId, ADMIN_ID]
     );
 
-    return res.json(rows ?? []);
+    const movimientos = (rows ?? [])
+      .map((row) => enriquecerMovimientoConMonto(row, usuarioId))
+      .filter((row) => row.monto_bruto > 0 && row.monto > 0);
+
+    const agrupado = new Map();
+
+    for (const mov of movimientos) {
+      const key = String(mov.expediente_id);
+
+      if (!agrupado.has(key)) {
+        agrupado.set(key, {
+          expediente_id: mov.expediente_id,
+          numero: String(mov.numero),
+          anio_expediente: mov.anio_expediente,
+          caratula: mov.caratula,
+          Capital: 0,
+          Honorarios: 0,
+          Alzada: 0,
+          Ejecucion: 0,
+          Diferencia: 0,
+          TotalExpediente: 0
+        });
+      }
+
+      const item = agrupado.get(key);
+
+      if (mov.concepto === "capital") item.Capital += toNum(mov.monto);
+      if (mov.concepto === "honorarios") item.Honorarios += toNum(mov.monto);
+      if (mov.concepto === "alzada") item.Alzada += toNum(mov.monto);
+      if (mov.concepto === "ejecucion") item.Ejecucion += toNum(mov.monto);
+      if (mov.concepto === "diferencia") item.Diferencia += toNum(mov.monto);
+
+      item.TotalExpediente += toNum(mov.monto);
+    }
+
+    const detalle = Array.from(agrupado.values())
+      .map((item) => ({
+        ...item,
+        Capital: round2(item.Capital),
+        Honorarios: round2(item.Honorarios),
+        Alzada: round2(item.Alzada),
+        Ejecucion: round2(item.Ejecucion),
+        Diferencia: round2(item.Diferencia),
+        TotalExpediente: round2(item.TotalExpediente)
+      }))
+      .sort((a, b) => Number(a.numero) - Number(b.numero));
+
+    const totalGeneralRow = {
+      expediente_id: null,
+      numero: "TOTAL GENERAL",
+      anio_expediente: null,
+      caratula: null,
+      Capital: round2(detalle.reduce((acc, x) => acc + toNum(x.Capital), 0)),
+      Honorarios: round2(detalle.reduce((acc, x) => acc + toNum(x.Honorarios), 0)),
+      Alzada: round2(detalle.reduce((acc, x) => acc + toNum(x.Alzada), 0)),
+      Ejecucion: round2(detalle.reduce((acc, x) => acc + toNum(x.Ejecucion), 0)),
+      Diferencia: round2(detalle.reduce((acc, x) => acc + toNum(x.Diferencia), 0)),
+      TotalExpediente: round2(detalle.reduce((acc, x) => acc + toNum(x.TotalExpediente), 0))
+    };
+
+    return res.json([...detalle, totalGeneralRow]);
   } catch (error) {
     console.error("Error en /expedientes/cobranzas-detalle-por-mes:", error);
     return res.status(500).send("Error en el servidor");
@@ -6904,7 +6669,284 @@ app.put("/motivos/:id", async (req, res) => {
     });
   }
 });
+app.get("/expedientes/fix-capital", async (req, res) => {
+  try {
+    const { desde, hasta, usuario_id } = req.query;
 
+    const usuarioId = Number(usuario_id);
+    if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
+      return res.status(400).send("Falta usuario_id válido");
+    }
+
+    const fechaDesde = desde || "2025-12-01";
+    const fechaHasta = hasta || new Date().toISOString().slice(0, 10);
+
+    const { rows } = await pgPool.query(
+      `
+      WITH pagos_capital AS (
+        SELECT
+          p.expediente_id,
+          COALESCE(SUM(p.monto), 0)::numeric AS total_pagos
+        FROM public.pagos p
+        WHERE p.tipo_pago = 'capital'
+        GROUP BY p.expediente_id
+      )
+      SELECT
+        e.id,
+        e.numero,
+        e.anio,
+        e.caratula,
+        e.usuario_id,
+        e.procurador_id,
+        e."fecha_cobro_capital",
+        COALESCE(e."esPagoParcial", false) AS "esPagoParcial",
+        COALESCE(e."capitalPagoParcial", 0)::numeric AS capital_expediente,
+        COALESCE(pc.total_pagos, 0)::numeric AS capital_pagos,
+        COALESCE(u1.porcentaje, 0)::numeric AS porc_usuario,
+        COALESCE(u2.porcentaje, 0)::numeric AS porc_procurador
+      FROM public.expedientes e
+      LEFT JOIN pagos_capital pc ON pc.expediente_id = e.id
+      LEFT JOIN public.usuario u1 ON u1.id = e.usuario_id
+      LEFT JOIN public.usuario u2 ON u2.id = e.procurador_id
+      WHERE e.estado <> 'eliminado'
+        AND e."fecha_cobro_capital" IS NOT NULL
+        AND e."fecha_cobro_capital"::date >= $1::date
+        AND e."fecha_cobro_capital"::date < ($2::date + INTERVAL '1 day')::date
+        AND (
+          $3::int = $4::int
+          OR e.usuario_id = $3::int
+          OR e.procurador_id = $3::int
+        )
+      ORDER BY e."fecha_cobro_capital" DESC, e.numero ASC;
+      `,
+      [fechaDesde, fechaHasta, usuarioId, ADMIN_ID]
+    );
+
+    const data = rows
+      .map((item) => {
+        const monto_fuente_actual = getMontoBrutoCapital(item);
+        const porcentaje_usuario_logueado =
+          calcularPorcentajeUsuarioLogueadoCapital(item, usuarioId);
+        const monto_usuario_logueado =
+          calcularMontoUsuarioLogueadoCapital(item, usuarioId);
+
+        return {
+          ...item,
+          monto_fuente_actual,
+          porcentaje_usuario_logueado,
+          monto_usuario_logueado,
+          tipo_capital: item.esPagoParcial ? "Parcial" : "No parcial"
+        };
+      })
+      .filter((item) => {
+        const participa =
+          usuarioId === ADMIN_ID ||
+          Number(item.usuario_id) === usuarioId ||
+          Number(item.procurador_id) === usuarioId;
+
+        return participa && Number(item.monto_fuente_actual) > 0;
+      });
+
+    return res.status(200).json(data);
+  } catch (err) {
+    console.error("Error en /expedientes/fix-capital:", err);
+    return res.status(500).json({
+      error: "Error al obtener fix de capital",
+      message: err.message
+    });
+  }
+});
+
+
+
+/**/ 
+
+function toNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function round2(v) {
+  return Number(toNum(v).toFixed(2));
+}
+
+function calcularPorcentajeSegunLogica({
+  uid,
+  adminId = ADMIN_ID,
+  usuarioIdExp,
+  procuradorIdExp,
+  porcUsuario,
+  porcProcurador
+}) {
+  const mismoAbogado = usuarioIdExp === procuradorIdExp;
+  const logueadoEsAdmin = uid === adminId;
+  const logueadoEsUsuario = uid === usuarioIdExp;
+  const logueadoEsProcurador = uid === procuradorIdExp;
+
+  // 1) SIEMPRE el admin cobra complemento
+  if (logueadoEsAdmin) {
+    // papá + papá
+    if (usuarioIdExp === adminId && procuradorIdExp === adminId) {
+      return 100;
+    }
+
+    // papá + otro
+    if (usuarioIdExp === adminId) {
+      return 100 - porcProcurador;
+    }
+
+    // otro + papá
+    if (procuradorIdExp === adminId) {
+      return 100 - porcUsuario;
+    }
+
+    // pepe + pepe / jose + jose / pepe + jose
+    return 100 - porcUsuario;
+  }
+
+  // 2) Si no es admin, NUNCA cobra 100 por lógica
+  // mismo abogado en ambos roles (pepe + pepe / jose + jose)
+  if (mismoAbogado) {
+    if (logueadoEsUsuario || logueadoEsProcurador) {
+      return porcUsuario;
+    }
+    return 0;
+  }
+
+  // 3) Usuario principal: cobra SU porcentaje
+  if (logueadoEsUsuario) {
+    return porcUsuario;
+  }
+
+  // 4) Procurador: cobra SU porcentaje
+  if (logueadoEsProcurador) {
+    return porcProcurador;
+  }
+
+  // 5) No participa
+  return 0;
+}
+
+function enriquecerMovimientoConMonto(row, uid) {
+  const usuarioIdExp = toNum(row.usuario_id);
+  const procuradorIdExp = toNum(row.procurador_id);
+  const porcUsuario = toNum(row.porc_usuario);
+  const porcProcurador = toNum(row.porc_procurador);
+  const montoBruto = toNum(row.monto_bruto);
+
+  const porcentajeUsuarioLogueado = calcularPorcentajeSegunLogica({
+    uid,
+    adminId: ADMIN_ID,
+    usuarioIdExp,
+    procuradorIdExp,
+    porcUsuario,
+    porcProcurador
+  });
+
+  const monto = round2((montoBruto * porcentajeUsuarioLogueado) / 100);
+
+  return {
+    ...row,
+    monto_bruto: montoBruto,
+    porcentaje_usuario_logueado: porcentajeUsuarioLogueado,
+    monto
+  };
+}
+
+function toNum(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getMontoBrutoCapital(item) {
+  const esPagoParcial = item.esPagoParcial === true || item.esPagoParcial === "true";
+  return esPagoParcial
+    ? toNum(item.capital_pagos)
+    : toNum(item.capital_expediente);
+}
+
+function calcularPorcentajeUsuarioLogueadoCapital(item, uid) {
+  const usuarioIdExp = toNum(item.usuario_id);
+  const procuradorIdExp = toNum(item.procurador_id);
+  const porcUsuario = toNum(item.porc_usuario);
+  const porcProcurador = toNum(item.porc_procurador);
+
+  const mismoAbogado = usuarioIdExp === procuradorIdExp;
+  const logueadoEsAdmin = uid === ADMIN_ID;
+  const logueadoEsUsuario = uid === usuarioIdExp;
+  const logueadoEsProcurador = uid === procuradorIdExp;
+
+  // Caso 1: entra papá
+  if (logueadoEsAdmin) {
+    // andres + andres
+    if (usuarioIdExp === ADMIN_ID && procuradorIdExp === ADMIN_ID) {
+      return 100;
+    }
+
+    // andres + matias
+    if (usuarioIdExp === ADMIN_ID) {
+      return 100 - porcProcurador;
+    }
+
+    // matias + andres
+    if (procuradorIdExp === ADMIN_ID) {
+      return 100 - porcUsuario;
+    }
+
+    // matias + matias / pepe + pepe
+    if (mismoAbogado) {
+      return 100 - porcUsuario;
+    }
+
+    // pepe + jose
+    return 100 - porcUsuario;
+  }
+
+  // Caso 2: mismo abogado en ambos roles
+  if (mismoAbogado) {
+    // matias + matias / pepe + pepe
+    if (logueadoEsUsuario || logueadoEsProcurador) {
+      return porcUsuario;
+    }
+
+    return 0;
+  }
+
+  // Caso 3: entra usuario principal
+  if (logueadoEsUsuario) {
+    // andres + matias no debería entrar acá porque admin ya salió arriba,
+    // pero igual no molesta dejarlo explícito
+    if (usuarioIdExp === ADMIN_ID) {
+      return 100 - porcProcurador;
+    }
+
+    // matias + andres / matias + jose
+    return porcUsuario;
+  }
+
+  // Caso 4: entra procurador
+  if (logueadoEsProcurador) {
+    // matias + andres
+    if (procuradorIdExp === ADMIN_ID) {
+      return 100 - porcUsuario;
+    }
+
+    // andres + matias / jose + matias
+    return porcProcurador;
+  }
+
+  // Caso 5: no participa
+  return 0;
+}
+
+function calcularMontoUsuarioLogueadoCapital(item, uid) {
+  const montoFuenteActual = getMontoBrutoCapital(item);
+  const porcentajeUsuarioLogueado = calcularPorcentajeUsuarioLogueadoCapital(item, uid);
+
+  return Number(
+    ((montoFuenteActual * porcentajeUsuarioLogueado) / 100).toFixed(2)
+  );
+}
 module.exports = router;
 
 

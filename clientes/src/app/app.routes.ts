@@ -59,13 +59,15 @@ export const routes: Routes = [
         path: 'motivos',
         loadComponent: () => import('./pages/motivos/motivos.page').then( m => m.MotivosPage)
       },
+
+      {
+        path: 'fix-capital',
+        loadComponent: () => import('./pages/fix-capital/fix-capital.page').then( m => m.FixCapitalPage)
+      },
     ],
   },
 
   // ── Wildcard ─────────────────────────────────────────────
   { path: '**', redirectTo: 'login' },
-
-
-
 
 ];

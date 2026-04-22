@@ -79,7 +79,7 @@ export class EstadoPage implements OnInit {
   numero: string = '';
   anio: string = '';
   tipos: any[] = ['CCF', 'COM', 'CIV', 'CC'];
-  tipoSeleccionado: any;
+  tipoSeleccionado: any = 'CCF';
 
   // Menu
   menu: string = '1';

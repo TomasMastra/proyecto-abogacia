@@ -169,6 +169,15 @@
       <span class="nav-label">Correcciones ENRE</span>
     </button>
 
+    <button class="nav-item"
+      [class.active]="isActive('fix-capital')"
+      (click)="goTo('fix-capital')"
+      [matTooltip]="collapsed ? 'fix capital' : ''"
+      matTooltipPosition="right">
+      <mat-icon>money</mat-icon>
+      <span class="nav-label">Cobranza capital</span>
+    </button>
+
 
     <button class="nav-item"
       *ngIf="esAdmin"

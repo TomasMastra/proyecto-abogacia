@@ -1,0 +1,109 @@
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Fix Capital</h1>
+  </div>
+
+  <div class="list-card">
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input class="search-input"
+          placeholder="Buscar por número, año o carátula..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="filtrar()" />
+      </div>
+
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="procuradorSeleccionado" (change)="filtrar()">
+          <option value="">Todos los procuradores</option>
+          <option *ngFor="let u of listaUsuarios" [value]="u.id">{{ u.nombre }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
+          <option value="">Todos los estados</option>
+          <option *ngFor="let e of estadosFix" [value]="e">{{ e }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="date-wrap">
+        <input type="date" [(ngModel)]="desde" class="date-input" />
+        <input type="date" [(ngModel)]="hasta" class="date-input" />
+      </div>
+
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="cargarDatos()">
+          <mat-icon>refresh</mat-icon>
+          <span>Actualizar</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Expediente</th>
+            <th>Carátula</th>
+            <th>Fecha</th>
+            <th>% Usuario logueado</th>
+            <th>Capital total</th>
+            <th>Capital mio</th>
+            <th>Tipo</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando && listaPaginada.length > 0">
+            <tr *ngFor="let item of listaPaginada">
+              <td>{{ item.numero }}/{{ item.anio }}</td>
+              <td class="td-caratula">{{ item.caratula }}</td>
+              <td>{{ mostrarFecha(item.fecha_cobro_capital) || '—' }}</td>
+              <td>{{ item.porcentaje_usuario_logueado }}%</td>
+              <td>{{ formatearMoneda(item.capital_expediente) }}</td>
+              <td>{{ formatearMoneda(item.monto_usuario_logueado) }}</td>              
+              <td>
+                <span class="estado-chip">
+                  {{ item.tipo_capital }}
+                </span>
+              </td>
+            </tr>
+          </ng-container>
+
+          <tr *ngIf="!cargando && listaPaginada.length === 0">
+            <td colspan="8" class="empty-row">
+              <mat-icon>receipt_long</mat-icon>
+              No se encontraron registros
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="registrosFiltrados.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100, 500]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
+</div>
