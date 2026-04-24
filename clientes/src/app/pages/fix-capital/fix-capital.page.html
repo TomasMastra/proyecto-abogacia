@@ -41,6 +41,10 @@
           <mat-icon>refresh</mat-icon>
           <span>Actualizar</span>
         </button>
+
+        <button class="btn btn--primary" (click)="autoFix50Masivo()">
+          Fix 50% no parciales
+        </button>
       </div>
     </div>
 
@@ -55,6 +59,7 @@
             <th>Capital total</th>
             <th>Capital mio</th>
             <th>Tipo</th>
+            <th>FIX</th>
           </tr>
         </thead>
 
@@ -83,6 +88,7 @@
                   {{ item.tipo_capital }}
                 </span>
               </td>
+              <td><button *ngIf="item.capital_test == null && item.porcentaje_usuario_logueado != 100" class="btn btn--primary" (click)="autoFixFila(item)">Fix</button></td>
             </tr>
           </ng-container>
 

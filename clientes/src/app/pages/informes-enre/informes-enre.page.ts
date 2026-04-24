@@ -301,7 +301,7 @@ guardarModal() {
 
   if (this.formModal.fecha_respuesta_informe) {
     if (this.formModal.tiene_cortes === true) {
-      if (!this.formModal.dias_cortes || Number(this.formModal.dias_cortes) <= 0) {
+      if (this.formModal.dias_cortes == null || Number(this.formModal.dias_cortes) <= 0) {
         alert('Debés cargar los días reclamables.');
         return;
       }

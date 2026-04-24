@@ -648,6 +648,7 @@ buscar() {
     this.form.get('estado')?.setValue(null);
     this.numero = '';
     this.anio = '';
+    this.tipoSeleccionado = 'CCF';
     this.menu = menu;
   }
 
@@ -895,6 +896,7 @@ buscar() {
               console.log('Expediente actualizado:', response);
               this.menu = '1';
               this.form.reset();
+              this.tipoSeleccionado = 'CCF';
             },
             error: error => {
               console.error('Error al actualizar expediente:', error);

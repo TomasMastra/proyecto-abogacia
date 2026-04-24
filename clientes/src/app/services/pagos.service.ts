@@ -55,6 +55,12 @@ export class PagosService {
   eliminarPagosPorExpediente(expedienteId: number) {
   return this.http.delete(`${this.apiUrl}/expediente/${expedienteId}`);
 }
+
+getTotalPagosCapital(expedienteId: string) {
+  return this.http.get<{ total: number }>(
+    `${this.apiUrl}/total-capital/${expedienteId}`
+  );
+}
 }
 
 

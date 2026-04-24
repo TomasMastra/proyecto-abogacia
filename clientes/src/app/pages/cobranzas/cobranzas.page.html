@@ -66,7 +66,7 @@
         </thead>
         <tbody>
           <ng-container *ngFor="let mes of mesesDisponibles">
-            <tr *ngIf="cobrosPorMes[mes]?.total! > 0"
+            <tr *ngIf="cobrosPorMes[mes]?.total != null"
               class="clickable-row" (click)="verDetalleMes(mes)">
               <td>
                 <div class="mes-cell">
@@ -217,12 +217,29 @@
         <tbody>
           <tr *ngFor="let r of detalleMesFilas">
             <td class="caratula-cell">{{ r.numero }}/{{ r.anio_expediente || '' }} {{ r.caratula }}</td>
-            <td class="text-right">{{ (r.Capital || 0) | currency:'$':'symbol':'1.2-2' }}</td>
-            <td class="text-right">{{ (r.Honorarios || 0) | currency:'$':'symbol':'1.2-2' }}</td>
-            <td class="text-right">{{ (r.Alzada || 0) | currency:'$':'symbol':'1.2-2' }}</td>
-            <td class="text-right">{{ (r.Ejecucion || 0) | currency:'$':'symbol':'1.2-2' }}</td>
-            <td class="text-right">{{ (r.Diferencia || 0) | currency:'$':'symbol':'1.2-2' }}</td>
-            <td class="text-right monto-cell">{{ (r.TotalExpediente || 0) | currency:'$':'symbol':'1.2-2' }}</td>
+<td class="text-right">
+  {{ r.Capital == null ? '-' : (r.Capital | currency:'$':'symbol':'1.2-2') }}
+</td>
+
+<td class="text-right">
+  {{ r.Honorarios == null ? '-' : (r.Honorarios | currency:'$':'symbol':'1.2-2') }}
+</td>
+
+<td class="text-right">
+  {{ r.Alzada == null ? '-' : (r.Alzada | currency:'$':'symbol':'1.2-2') }}
+</td>
+
+<td class="text-right">
+  {{ r.Ejecucion == null ? '-' : (r.Ejecucion | currency:'$':'symbol':'1.2-2') }}
+</td>
+
+<td class="text-right">
+  {{ r.Diferencia == null ? '-' : (r.Diferencia | currency:'$':'symbol':'1.2-2') }}
+</td>
+
+<td class="text-right monto-cell">
+  {{ r.TotalExpediente == null ? '-' : (r.TotalExpediente | currency:'$':'symbol':'1.2-2') }}
+</td>
           </tr>
           <!-- Total general -->
           <tr *ngIf="detalleMesTotal" class="total-row">

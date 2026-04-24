@@ -697,4 +697,11 @@ getFixCapital(desde: string, hasta: string) {
   });
 }
 
+actualizarCapitalTest(id: number, capitalTest: number) {
+  return this.http.put(
+    `${this.apiUrl}/modificar-capital-test/${id}`,
+    { capital_test: capitalTest }
+  );
+}
+
 }

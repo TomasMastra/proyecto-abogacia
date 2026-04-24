@@ -1533,7 +1533,7 @@ SET
   fecha_pedido_informe = $64::date,
   fecha_respuesta_informe = $65::date,
   tiene_cortes = $66::boolean,
-  dias_cortes = $67::int,
+  dias_cortes = $67::double precision,
   observaciones_reclamo = $68,
   estado_reclamo = $69
   WHERE id = $70::int;`,
@@ -1618,7 +1618,7 @@ SET
   toNullIfEmpty(data.fecha_pedido_informe),
   toNullIfEmpty(data.fecha_respuesta_informe),
   keepBoolIfUndefined(data.tiene_cortes, actual.tiene_cortes),
-  toIntOrNull(data.dias_cortes),
+  toFloatOrNull(data.dias_cortes),
   data.observaciones_reclamo ?? null,
   data.estado_reclamo ?? null,
 
@@ -3937,7 +3937,7 @@ app.get("/expedientes/total-cobranzas-por-mes", async (req, res) => {
 
     const movimientos = (rows ?? [])
       .map((row) => enriquecerMovimientoConMonto(row, usuarioId))
-      .filter((row) => row.monto_bruto > 0 && row.monto > 0);
+      .filter((row) => row.monto_bruto != null && row.monto != null);
 
     const totalCapital = round2(
       movimientos
@@ -4207,7 +4207,7 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
 
     const movimientos = (rows ?? [])
       .map((row) => enriquecerMovimientoConMonto(row, usuarioId))
-      .filter((row) => row.monto_bruto > 0 && row.monto > 0);
+      .filter((row) => row.monto_bruto != null && row.monto != null);
 
     const agrupado = new Map();
 
@@ -4220,35 +4220,49 @@ app.get("/expedientes/cobranzas-detalle-por-mes", async (req, res) => {
           numero: String(mov.numero),
           anio_expediente: mov.anio_expediente,
           caratula: mov.caratula,
-          Capital: 0,
-          Honorarios: 0,
-          Alzada: 0,
-          Ejecucion: 0,
-          Diferencia: 0,
-          TotalExpediente: 0
+          Capital: null,
+          Honorarios: null,
+          Alzada: null,
+          Ejecucion: null,
+          Diferencia: null,
+          TotalExpediente: null
         });
       }
 
       const item = agrupado.get(key);
 
-      if (mov.concepto === "capital") item.Capital += toNum(mov.monto);
-      if (mov.concepto === "honorarios") item.Honorarios += toNum(mov.monto);
-      if (mov.concepto === "alzada") item.Alzada += toNum(mov.monto);
-      if (mov.concepto === "ejecucion") item.Ejecucion += toNum(mov.monto);
-      if (mov.concepto === "diferencia") item.Diferencia += toNum(mov.monto);
+      if (mov.concepto === "capital") {
+        item.Capital = round2(toNum(item.Capital) + toNum(mov.monto));
+      }
 
-      item.TotalExpediente += toNum(mov.monto);
+      if (mov.concepto === "honorarios") {
+        item.Honorarios = round2(toNum(item.Honorarios) + toNum(mov.monto));
+      }
+
+      if (mov.concepto === "alzada") {
+        item.Alzada = round2(toNum(item.Alzada) + toNum(mov.monto));
+      }
+
+      if (mov.concepto === "ejecucion") {
+        item.Ejecucion = round2(toNum(item.Ejecucion) + toNum(mov.monto));
+      }
+
+      if (mov.concepto === "diferencia") {
+        item.Diferencia = round2(toNum(item.Diferencia) + toNum(mov.monto));
+      }
+
+      item.TotalExpediente = round2(toNum(item.TotalExpediente) + toNum(mov.monto));
     }
 
     const detalle = Array.from(agrupado.values())
       .map((item) => ({
         ...item,
-        Capital: round2(item.Capital),
-        Honorarios: round2(item.Honorarios),
-        Alzada: round2(item.Alzada),
-        Ejecucion: round2(item.Ejecucion),
-        Diferencia: round2(item.Diferencia),
-        TotalExpediente: round2(item.TotalExpediente)
+        Capital: item.Capital == null ? null : round2(item.Capital),
+        Honorarios: item.Honorarios == null ? null : round2(item.Honorarios),
+        Alzada: item.Alzada == null ? null : round2(item.Alzada),
+        Ejecucion: item.Ejecucion == null ? null : round2(item.Ejecucion),
+        Diferencia: item.Diferencia == null ? null : round2(item.Diferencia),
+        TotalExpediente: item.TotalExpediente == null ? null : round2(item.TotalExpediente)
       }))
       .sort((a, b) => Number(a.numero) - Number(b.numero));
 
@@ -6698,6 +6712,7 @@ app.get("/expedientes/fix-capital", async (req, res) => {
         e.caratula,
         e.usuario_id,
         e.procurador_id,
+        e.capital_test,
         e."fecha_cobro_capital",
         COALESCE(e."esPagoParcial", false) AS "esPagoParcial",
         COALESCE(e."capitalPagoParcial", 0)::numeric AS capital_expediente,
@@ -6827,6 +6842,7 @@ function calcularPorcentajeSegunLogica({
   return 0;
 }
 
+/*
 function enriquecerMovimientoConMonto(row, uid) {
   const usuarioIdExp = toNum(row.usuario_id);
   const procuradorIdExp = toNum(row.procurador_id);
@@ -6851,6 +6867,33 @@ function enriquecerMovimientoConMonto(row, uid) {
     porcentaje_usuario_logueado: porcentajeUsuarioLogueado,
     monto
   };
+}*/
+
+function enriquecerMovimientoConMonto(row, uid) {
+  if (row.concepto === "capital") {
+    const montoBruto = toNum(row.monto_bruto);
+    const porcentajeUsuarioLogueado =
+      calcularPorcentajeUsuarioLogueadoCapital(row, uid);
+
+    return {
+      ...row,
+      monto_bruto: montoBruto,
+      porcentaje_usuario_logueado: porcentajeUsuarioLogueado,
+      monto: round2((montoBruto * porcentajeUsuarioLogueado) / 100)
+    };
+  }
+
+  // honorarios / alzada / ejecucion / diferencia
+  const montoBruto = toNum(row.monto_bruto);
+  const porcentajeUsuarioLogueado =
+    calcularPorcentajeUsuarioLogueadoHonorarios(row, uid);
+
+  return {
+    ...row,
+    monto_bruto: montoBruto,
+    porcentaje_usuario_logueado: porcentajeUsuarioLogueado,
+    monto: round2((montoBruto * porcentajeUsuarioLogueado) / 100)
+  };
 }
 
 function toNum(v) {
@@ -6865,7 +6908,107 @@ function getMontoBrutoCapital(item) {
     : toNum(item.capital_expediente);
 }
 
+function getMontoBrutoHonorarios(item) {
+  return toNum(item.monto_bruto);
+}
+
+function calcularMontoUsuarioLogueadoHonorarios(item, uid) {
+  const montoBruto = getMontoBrutoHonorarios(item);
+  const porcentaje = calcularPorcentajeUsuarioLogueadoHonorarios(item, uid);
+
+  return round2((montoBruto * porcentaje) / 100);
+}
+
+function enriquecerMovimientoConMontoHonorarios(row, uid) {
+  const montoBruto = getMontoBrutoHonorarios(row);
+  const porcentajeUsuarioLogueado =
+    calcularPorcentajeUsuarioLogueadoHonorarios(row, uid);
+
+  const monto = calcularMontoUsuarioLogueadoHonorarios(row, uid);
+
+  return {
+    ...row,
+    monto_bruto: montoBruto,
+    porcentaje_usuario_logueado: porcentajeUsuarioLogueado,
+    monto
+  };
+}
+
 function calcularPorcentajeUsuarioLogueadoCapital(item, uid) {
+  const usuarioIdExp = toNum(item.usuario_id);
+  const procuradorIdExp = toNum(item.procurador_id);
+  const porcUsuario = toNum(item.porc_usuario);
+  const porcProcurador = toNum(item.porc_procurador);
+
+  const mismoAbogado = usuarioIdExp === procuradorIdExp;
+  const logueadoEsAdmin = uid === ADMIN_ID;
+  const logueadoEsUsuario = uid === usuarioIdExp;
+  const logueadoEsProcurador = uid === procuradorIdExp;
+
+  // Caso 1: entra papá
+  if (logueadoEsAdmin) {
+    // andres + andres
+    if (usuarioIdExp === ADMIN_ID && procuradorIdExp === ADMIN_ID) {
+      return 100;
+    }
+
+    // andres + matias
+    if (usuarioIdExp === ADMIN_ID) {
+      return 100 - porcProcurador;
+    }
+
+    // matias + andres
+    if (procuradorIdExp === ADMIN_ID) {
+      return 100 - porcUsuario;
+    }
+
+    // matias + matias / pepe + pepe
+    if (mismoAbogado) {
+      return 100 - porcUsuario;
+    }
+
+    // pepe + jose
+    return 100 - porcUsuario;
+  }
+
+  // Caso 2: mismo abogado en ambos roles
+  if (mismoAbogado) {
+    // matias + matias / pepe + pepe
+    if (logueadoEsUsuario || logueadoEsProcurador) {
+      return porcUsuario;
+    }
+
+    return 0;
+  }
+
+  // Caso 3: entra usuario principal
+  if (logueadoEsUsuario) {
+    // andres + matias no debería entrar acá porque admin ya salió arriba,
+    // pero igual no molesta dejarlo explícito
+    if (usuarioIdExp === ADMIN_ID) {
+      return 100 - porcProcurador;
+    }
+
+    // matias + andres / matias + jose
+    return porcUsuario;
+  }
+
+  // Caso 4: entra procurador
+  if (logueadoEsProcurador) {
+    // matias + andres
+    if (procuradorIdExp === ADMIN_ID) {
+      return 100 - porcUsuario;
+    }
+
+    // andres + matias / jose + matias
+    return porcProcurador;
+  }
+
+  // Caso 5: no participa
+  return 0;
+}
+
+function calcularPorcentajeUsuarioLogueadoHonorarios(item, uid) {
   const usuarioIdExp = toNum(item.usuario_id);
   const procuradorIdExp = toNum(item.procurador_id);
   const porcUsuario = toNum(item.porc_usuario);
@@ -6947,6 +7090,73 @@ function calcularMontoUsuarioLogueadoCapital(item, uid) {
     ((montoFuenteActual * porcentajeUsuarioLogueado) / 100).toFixed(2)
   );
 }
+
+
+
+
+app.put("/expedientes/modificar-capital-test/:id", async (req, res) => {
+  const expedienteIdNum = Number(req.params.id);
+  const { capital_test } = req.body;
+
+  if (!Number.isInteger(expedienteIdNum) || expedienteIdNum <= 0) {
+    return res.status(400).json({ mensaje: "ID inválido" });
+  }
+
+  const toFloatOrNull = (v) => {
+    if (v === "" || v === null || v === undefined) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  try {
+    const result = await pgPool.query(
+      `
+      UPDATE public.expedientes
+      SET capital_test = $1::double precision
+      WHERE id = $2::int
+      `,
+      [toFloatOrNull(capital_test), expedienteIdNum]
+    );
+
+    if (result.rowCount > 0) {
+      return res.status(200).json({ mensaje: "capital_test actualizado" });
+    }
+
+    return res.status(404).json({ mensaje: "Expediente no encontrado" });
+
+  } catch (error) {
+    console.error("Error al actualizar capital_test:", error);
+    return res.status(500).json({
+      mensaje: "Error al actualizar capital_test",
+      error: error.message
+    });
+  }
+});
+
+app.get("/pagos/total-capital/:expediente_id", async (req, res) => {
+  try {
+    const { expediente_id } = req.params;
+
+    const { rows } = await pgPool.query(
+      `
+      SELECT
+        COALESCE(SUM(monto), 0)::numeric AS total
+      FROM public.pagos
+      WHERE expediente_id = $1
+        AND tipo_pago = 'capital'
+      `,
+      [expediente_id]
+    );
+
+    return res.json({
+      total: Number(rows[0]?.total || 0)
+    });
+
+  } catch (err) {
+    console.error("Error total pagos:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
 
 

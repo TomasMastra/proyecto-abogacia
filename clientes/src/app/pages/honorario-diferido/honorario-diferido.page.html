@@ -145,8 +145,8 @@
                 </td> 
 
                 <td *ngIf="estado === 'cobrado' && (item.capitalCobrado == true || item.esPagoParcial == true)" class="td-cobrado">
-                  <span *ngIf="item.esPagoParcial != 1">{{ item.capitalPagoParcial | currency:'$' }}</span>
-                  <span *ngIf="item.esPagoParcial == 1">{{ item.capitalPagoParcial | currency:'$' }} <small class="tag-parcial">parcial</small></span>
+                  <span *ngIf="item.esPagoParcial != 1">{{ calcularCobroFinal(item.capitalPagoParcial, item.porcentaje, item.usuario_id, item.procurador_id) | currency:'$' }}</span>
+                  <span *ngIf="item.esPagoParcial == 1">{{ calcularCobroFinal(item.capitalPagoParcial, item.porcentaje, item.usuario_id, item.procurador_id) | currency:'$' }} <small class="tag-parcial">parcial</small></span>
                 </td>
 
                 <td *ngIf="item.capitalCobrado && estado == 'sentencia'" [attr.colspan]="5" class="td-cobrado-banner">
