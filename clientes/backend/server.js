@@ -4369,7 +4369,7 @@ app.post("/oficios/agregar", async (req, res) => {
 app.get("/oficios", async (req, res) => {
   try {
     const { rows } = await pgPool.query(
-      "SELECT * FROM public.oficios WHERE estado <> 'eliminado'"
+      "SELECT * FROM public.oficios WHERE estado <> 'eliminado' ORDER BY fecha_diligenciado ASC"
     );
     return res.status(200).json(rows);
   } catch (err) {
