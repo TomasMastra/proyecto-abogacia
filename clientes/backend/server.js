@@ -5741,6 +5741,7 @@ async function generarNuevoId(pgPool, tabla, columna = "id") {
     "mediaciones",
     "clientes_eventos",
     "expedientes_demandados",
+    "informes_enre"
   ];
 
   if (!tablasValidas.includes(tabla)) {
@@ -7155,6 +7156,236 @@ app.get("/pagos/total-capital/:expediente_id", async (req, res) => {
   } catch (err) {
     console.error("Error total pagos:", err);
     return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/expedientes/informes-enre/manual", async (req, res) => {
+  try {
+    const {
+      cliente_id,
+      empresa_id,
+      fecha_inicio,
+      numero_cliente_edesur,
+      fecha_pedido_informe,
+      fecha_respuesta_informe,
+      tiene_cortes,
+      dias_cortes,
+      observaciones_reclamo,
+      estado_reclamo,
+    } = req.body;
+
+    if (!cliente_id || !empresa_id || !fecha_inicio) {
+      return res.status(400).json({
+        error: "Faltan campos obligatorios",
+        camposRequeridos: ["cliente", "empresa", "fecha_inicio"],
+      });
+    }
+
+    const clienteResult = await pgPool.query(
+      `
+      SELECT nombre, apellido
+      FROM public.clientes
+      WHERE id = $1
+      `,
+      [cliente_id]
+    );
+
+    if (clienteResult.rows.length === 0) {
+      return res.status(404).json({
+        error: "Cliente no encontrado",
+      });
+    }
+
+    const cliente = clienteResult.rows[0];
+    const nombre_cliente = `${cliente.nombre ?? ""} ${cliente.apellido ?? ""}`.trim();
+
+    const id = await generarNuevoId(pgPool, "informes_enre", "id");
+
+    const { rows } = await pgPool.query(
+      `
+      INSERT INTO public.informes_enre (
+        id,
+        cliente_id,
+        nombre_cliente,
+        empresa_id,
+        fecha_inicio,
+        numero_cliente_edesur,
+        fecha_pedido_informe,
+        fecha_respuesta_informe,
+        tiene_cortes,
+        dias_cortes,
+        observaciones_reclamo,
+        estado_reclamo
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      RETURNING id
+      `,
+      [
+        id,
+        cliente_id,
+        nombre_cliente,
+        Number(empresa_id),
+        fecha_inicio,
+        numero_cliente_edesur ?? null,
+        fecha_pedido_informe || null,
+        fecha_respuesta_informe || null,
+        tiene_cortes ?? null,
+        dias_cortes ?? null,
+        observaciones_reclamo ?? null,
+        estado_reclamo ?? "pendiente_relevamiento",
+      ]
+    );
+
+    return res.status(201).json({
+      message: "Informe ENRE creado correctamente",
+      id: rows[0].id,
+    });
+
+  } catch (err) {
+    console.error("Error al crear informe ENRE:", err);
+    return res.status(500).json({
+      error: "Error al crear informe ENRE",
+      message: err.message,
+    });
+  }
+});
+
+app.get("/expedientes/informes-enre/manual", async (req, res) => {
+  try {
+
+    const { rows } = await pgPool.query(`
+      SELECT 
+        i.id,
+        i.cliente_id,
+        i.nombre_cliente,
+        i.empresa_id,
+        i.fecha_inicio,
+        i.numero_cliente_edesur,
+        i.fecha_pedido_informe,
+        i.fecha_respuesta_informe,
+        i.tiene_cortes,
+        i.dias_cortes,
+        i.observaciones_reclamo,
+        i.estado_reclamo,
+
+        c.nombre,
+        c.apellido
+
+      FROM public.informes_enre i
+      LEFT JOIN public.clientes c ON c.id = i.cliente_id
+      ORDER BY i.fecha_inicio DESC
+    `);
+
+    return res.json(rows);
+
+  } catch (err) {
+    console.error("Error al obtener informes ENRE manuales:", err);
+    return res.status(500).json({
+      error: "Error al obtener informes ENRE",
+      message: err.message,
+    });
+  }
+});
+
+app.put("/expedientes/informes-enre/manual/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      cliente_id,
+      empresa_id,
+      fecha_inicio,
+      numero_cliente_edesur,
+      fecha_pedido_informe,
+      fecha_respuesta_informe,
+      tiene_cortes,
+      dias_cortes,
+      observaciones_reclamo,
+      estado_reclamo,
+    } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        error: "Falta el id del informe",
+      });
+    }
+
+    if (!cliente_id || !empresa_id || !fecha_inicio) {
+      return res.status(400).json({
+        error: "Faltan campos obligatorios",
+        camposRequeridos: ["cliente", "empresa", "fecha_inicio"],
+      });
+    }
+
+    const clienteResult = await pgPool.query(
+      `
+      SELECT nombre, apellido
+      FROM public.clientes
+      WHERE id = $1
+      `,
+      [cliente_id]
+    );
+
+    if (clienteResult.rows.length === 0) {
+      return res.status(404).json({
+        error: "Cliente no encontrado",
+      });
+    }
+
+    const cliente = clienteResult.rows[0];
+    const nombre_cliente = `${cliente.nombre ?? ""} ${cliente.apellido ?? ""}`.trim();
+
+    const { rows } = await pgPool.query(
+      `
+      UPDATE public.informes_enre
+      SET
+        cliente_id = $1,
+        nombre_cliente = $2,
+        empresa_id = $3,
+        fecha_inicio = $4,
+        numero_cliente_edesur = $5,
+        fecha_pedido_informe = $6,
+        fecha_respuesta_informe = $7,
+        tiene_cortes = $8,
+        dias_cortes = $9,
+        observaciones_reclamo = $10,
+        estado_reclamo = $11
+      WHERE id = $12
+      RETURNING id
+      `,
+      [
+        cliente_id,
+        nombre_cliente,
+        Number(empresa_id),
+        fecha_inicio,
+        numero_cliente_edesur ?? null,
+        fecha_pedido_informe || null,
+        fecha_respuesta_informe || null,
+        tiene_cortes ?? null,
+        dias_cortes ?? null,
+        observaciones_reclamo ?? null,
+        estado_reclamo ?? "pendiente_relevamiento",
+        Number(id),
+      ]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        error: "Informe ENRE no encontrado",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Informe ENRE actualizado correctamente",
+      id: rows[0].id,
+    });
+
+  } catch (err) {
+    console.error("Error al actualizar informe ENRE:", err);
+    return res.status(500).json({
+      error: "Error al actualizar informe ENRE",
+      message: err.message,
+    });
   }
 });
 module.exports = router;

@@ -434,3 +434,16 @@ thead tr th { font-size: 0.6875rem; }
 .empty-row { font-size: 0.875rem; }
 
 ::ng-deep .mat-mdc-paginator { font-size: 0.875rem; }
+
+.btn {
+  display: flex; align-items: center; gap: 7px;
+  border: none; border-radius: 9px; cursor: pointer;
+  font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 500;
+  transition: all 0.18s $ease; white-space: nowrap;
+
+  &--primary {
+    background: $c-blue; color: $c-white; padding: 9px 16px; height: 40px;
+    mat-icon { font-size: 17px; width: 17px; height: 17px; }
+    &:hover { background: darken($c-blue, 6%); box-shadow: 0 3px 10px rgba(30,64,175,0.3); }
+  }
+}

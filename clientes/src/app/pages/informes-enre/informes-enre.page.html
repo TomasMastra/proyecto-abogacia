@@ -26,6 +26,11 @@
         </select>
         <mat-icon class="select-arrow">expand_more</mat-icon>
       </div>
+
+      <button class="btn btn--primary" (click)="abrirModalManual()">
+          <mat-icon>add</mat-icon>
+          <span>Nuevo informe</span>
+      </button>
     </div>
 
     <!-- Tabs SIEMPRE visibles -->
@@ -351,114 +356,171 @@
     </div>
   </div>
 
-  <!-- MODAL -->
-  <div class="modal-backdrop" *ngIf="modalAbierto" (click)="cerrarModal()">
-    <div class="modal-card" (click)="$event.stopPropagation()">
+<!-- MODAL -->
+<div class="modal-backdrop" *ngIf="modalAbierto" (click)="cerrarModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
 
-      <div class="modal-header">
-        <h2>{{ modoEdicion ? 'Editar relevamiento' : 'Nuevo relevamiento' }}</h2>
-        <button class="btn-cerrar" (click)="cerrarModal()">
-          <mat-icon>close</mat-icon>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="info-block">
-          <div class="info-row">
-            <span class="info-label">Carátula</span>
-            <span class="info-value">{{ expedienteSeleccionado?.caratula || '—' }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Expediente</span>
-            <span class="info-value">{{ expedienteSeleccionado?.numero }}/{{ expedienteSeleccionado?.anio }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Cliente</span>
-            <span class="info-value">{{ getTituloClientes(expedienteSeleccionado) }}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Fecha inicio</span>
-            <span class="info-value">{{ mostrarFecha(expedienteSeleccionado?.fecha_inicio) }}</span>
-          </div>
-        </div>
-
-        <div class="modal-form">
-          <div class="modal-field">
-            <label class="modal-label">Nro. de Cliente EDESUR</label>
-            <input
-              class="modal-input"
-              type="text"
-              [(ngModel)]="formModal.numero_cliente_edesur"
-              placeholder="Ingrese número de cliente">
-          </div>
-
-          <div class="modal-field">
-            <label class="modal-label">Fecha de pedido de informe</label>
-            <input class="modal-input" type="date" [(ngModel)]="formModal.fecha_pedido_informe">
-          </div>
-
-          <div class="modal-field">
-            <label class="modal-label">Fecha de respuesta de informe</label>
-            <input class="modal-input" type="date" [(ngModel)]="formModal.fecha_respuesta_informe">
-          </div>
-
-          <div class="modal-field">
-            <label class="modal-label">¿Tiene cortes?</label>
-            <div class="radio-group">
-              <label class="radio-label">
-                <input
-                  type="radio"
-                  name="tieneCortes"
-                  [value]="true"
-                  [(ngModel)]="formModal.tiene_cortes"
-                  [disabled]="!formModal.fecha_respuesta_informe">
-                Sí
-              </label>
-              <label class="radio-label">
-                <input
-                  type="radio"
-                  name="tieneCortes"
-                  [value]="false"
-                  [(ngModel)]="formModal.tiene_cortes"
-                  [disabled]="!formModal.fecha_respuesta_informe">
-                No
-              </label>
-            </div>
-            <small class="helper-text" *ngIf="!formModal.fecha_respuesta_informe">
-              Primero cargá la fecha de respuesta del informe.
-            </small>
-          </div>
-
-          <div class="modal-field" *ngIf="formModal.tiene_cortes === true">
-            <label class="modal-label">Días reclamables</label>
-            <input
-              class="modal-input"
-              type="number"
-              step="0.001"
-              [(ngModel)]="formModal.dias_cortes"
-              placeholder="Cantidad de días">
-          </div>
-
-          <div class="modal-field modal-field--full">
-            <label class="modal-label">Observaciones</label>
-            <textarea
-              class="modal-textarea"
-              rows="3"
-              [(ngModel)]="formModal.observaciones"
-              placeholder="Observaciones internas..."></textarea>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-cancel" (click)="cerrarModal()">Cancelar</button>
-        <button class="btn-save" (click)="guardarModal()">
-          <mat-icon>save</mat-icon>
-          Guardar
-        </button>
-      </div>
-
+    <!-- HEADER -->
+    <div class="modal-header">
+      <h2>
+        {{ modoEdicion 
+            ? 'Editar relevamiento' 
+            : (modoCarga === 'manual' ? 'Nuevo informe manual' : 'Nuevo relevamiento') 
+        }}
+      </h2>
+      <button class="btn-cerrar" (click)="cerrarModal()">
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
+
+    <!-- BODY -->
+    <div class="modal-body">
+
+      <!-- 🔹 INFO SOLO SI VIENE DE EXPEDIENTE -->
+      <div class="info-block" *ngIf="modoCarga === 'expediente'">
+        <div class="info-row">
+          <span class="info-label">Carátula</span>
+          <span class="info-value">{{ expedienteSeleccionado?.caratula || '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Expediente</span>
+          <span class="info-value">
+            {{ expedienteSeleccionado?.numero }}/{{ expedienteSeleccionado?.anio }}
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Cliente</span>
+          <span class="info-value">
+            {{ getTituloClientes(expedienteSeleccionado) }}
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Fecha inicio</span>
+          <span class="info-value">
+            {{ mostrarFecha(expedienteSeleccionado?.fecha_inicio) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 🔹 CAMPOS EXTRA SOLO PARA MANUAL -->
+      <div *ngIf="modoCarga === 'manual'" class="modal-form">
+
+        <div class="modal-field">
+          <label class="modal-label">Cliente</label>
+          <select class="modal-input" [(ngModel)]="formModal.cliente_id">
+            <option [ngValue]="null">Seleccionar cliente</option>
+            <option *ngFor="let c of clientes" [ngValue]="c.id">
+              {{ c.nombre }} {{ c.apellido }}
+            </option>
+          </select>
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label">Fecha inicio</label>
+          <input class="modal-input" type="date" [(ngModel)]="formModal.fecha_inicio">
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label">Empresa</label>
+          <select class="modal-input" [(ngModel)]="formModal.empresa_id">
+            <option [ngValue]="1">EDESUR</option>
+            <option [ngValue]="7">EDENOR</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- 🔹 CAMPOS GENERALES (AMBOS MODOS) -->
+      <div class="modal-form">
+
+        <div class="modal-field">
+          <label class="modal-label">Nro. de Cliente</label>
+          <input
+            class="modal-input"
+            type="text"
+            [(ngModel)]="formModal.numero_cliente_edesur"
+            placeholder="Ingrese número de cliente">
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label">Fecha pedido informe</label>
+          <input
+            class="modal-input"
+            type="date"
+            [(ngModel)]="formModal.fecha_pedido_informe">
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label">Fecha respuesta</label>
+          <input
+            class="modal-input"
+            type="date"
+            [(ngModel)]="formModal.fecha_respuesta_informe">
+        </div>
+
+        <div class="modal-field">
+          <label class="modal-label">¿Tiene cortes?</label>
+
+          <div class="radio-group">
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="tieneCortes"
+                [value]="true"
+                [(ngModel)]="formModal.tiene_cortes"
+                [disabled]="!formModal.fecha_respuesta_informe">
+              Sí
+            </label>
+
+            <label class="radio-label">
+              <input
+                type="radio"
+                name="tieneCortes"
+                [value]="false"
+                [(ngModel)]="formModal.tiene_cortes"
+                [disabled]="!formModal.fecha_respuesta_informe">
+              No
+            </label>
+          </div>
+
+          <small class="helper-text" *ngIf="!formModal.fecha_respuesta_informe">
+            Primero cargá la fecha de respuesta.
+          </small>
+        </div>
+
+        <div class="modal-field" *ngIf="formModal.tiene_cortes === true">
+          <label class="modal-label">Días reclamables</label>
+          <input
+            class="modal-input"
+            type="number"
+            step="0.001"
+            [(ngModel)]="formModal.dias_cortes"
+            placeholder="Cantidad de días">
+        </div>
+
+        <div class="modal-field modal-field--full">
+          <label class="modal-label">Observaciones</label>
+          <textarea
+            class="modal-textarea"
+            rows="3"
+            [(ngModel)]="formModal.observaciones"
+            placeholder="Observaciones internas...">
+          </textarea>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="cerrarModal()">Cancelar</button>
+      <button class="btn-save" (click)="guardarModal()">
+        <mat-icon>save</mat-icon>
+        Guardar
+      </button>
+    </div>
+
   </div>
+</div>
 
 </div>

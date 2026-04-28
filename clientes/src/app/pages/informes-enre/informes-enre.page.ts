@@ -2,6 +2,11 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ExpedientesService } from 'src/app/services/expedientes.service';
+import { ClientesService } from 'src/app/services/clientes.service';
+import { ClienteModel } from 'src/app/models/cliente/cliente.component';
+import { InformesEnreService } from 'src/app/services/informes-enre.service';
+import { InformeEnreModel } from 'src/app/models/informe-enre/informe-enre.component';
+
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -23,11 +28,15 @@ export class InformesEnrePage {
 
   cargando = false;
 
+  modoCarga: 'expediente' | 'manual' = 'expediente';
+
   informes: any[] = [];
   informesOriginales: any[] = [];
 
   informesAgrupados: any[] = [];
   informesAgrupadosOriginales: any[] = [];
+
+  clientes: ClienteModel[] = [];
 
   busqueda = '';
   empresaSeleccionada = '';
@@ -48,6 +57,7 @@ export class InformesEnrePage {
   modoEdicion = false;
 
   expedienteSeleccionado: any = null;
+  clienteSeleccionado: ClienteModel | null = null;
 
   formModal: any = this.getFormVacio();
 
@@ -69,10 +79,13 @@ export class InformesEnrePage {
   onPageConCortes(e: any)  { this.pageSize = e.pageSize; this.pageIndexConCortes = e.pageIndex; }
   onPageSinCortes(e: any)  { this.pageSize = e.pageSize; this.pageIndexSinCortes = e.pageIndex; }
 
-  constructor(private expedientesService: ExpedientesService) {}
+  constructor(private expedientesService: ExpedientesService, private clientesService: ClientesService, 
+    private informesEnreService: InformesEnreService
+) {}
 
   ngOnInit() {
     this.cargar();
+    this.cargarClientes();
   }
 
   getFormVacio() {
@@ -93,18 +106,60 @@ export class InformesEnrePage {
     this.cargando = true;
 
     this.expedientesService.getInformeEnre().subscribe({
-      next: (data: any[]) => {
-        this.informesOriginales = data || [];
-        this.informes = data || [];
+      next: (dataExpedientes: any[]) => {
 
-        const agrupados = this.agruparPorExpediente(this.informesOriginales);
+        this.informesEnreService.getInformesManuales().subscribe({
+          next: (dataManuales: any[]) => {
 
-        this.informesAgrupadosOriginales = [...agrupados];
-        this.informesAgrupados = [...agrupados];
+            const agrupadosExpedientes = this.agruparPorExpediente(dataExpedientes || []);
 
-        this.recalcularListas();
+            const manualesNormalizados = (dataManuales || []).map(item => ({
+              ...item,
 
-        this.cargando = false;
+              es_manual: true,
+              id: item.id,
+              informe_enre_id: item.id,
+              expediente_id: null,
+              cliente_id: Number(item.cliente_id),
+
+
+              numero: null,
+              anio: null,
+              caratula: item.nombre_cliente || `${item.nombre || ''} ${item.apellido || ''}`.trim(),
+
+              clientes: [{
+                cliente_id: item.cliente_id,
+                nombre: item.nombre || item.nombre_cliente || '',
+                apellido: item.apellido || ''
+              }],
+
+              empresa_id: item.empresa_id,
+              fecha_inicio: item.fecha_inicio,
+
+              numero_cliente_edesur: item.numero_cliente_edesur ?? '',
+              fecha_pedido_informe: item.fecha_pedido_informe ?? '',
+              fecha_respuesta_informe: item.fecha_respuesta_informe ?? '',
+              tiene_cortes: this.normalizarBoolean(item.tiene_cortes),
+              dias_cortes: item.dias_cortes ?? null,
+              observaciones_reclamo: item.observaciones_reclamo ?? '',
+              estado_reclamo: item.estado_reclamo ?? 'pendiente_relevamiento'
+            }));
+
+            this.informesAgrupadosOriginales = [
+              ...agrupadosExpedientes,
+              ...manualesNormalizados
+            ];
+
+            this.informesAgrupados = [...this.informesAgrupadosOriginales];
+
+            this.recalcularListas();
+            this.cargando = false;
+          },
+          error: (err) => {
+            console.error('ERROR INFORMES MANUALES:', err);
+            this.cargando = false;
+          }
+        });
       },
       error: (err) => {
         console.error('ERROR INFORME ENRE:', err);
@@ -112,6 +167,18 @@ export class InformesEnrePage {
       }
     });
   }
+
+  cargarClientes() {
+  this.clientesService.getClientes().subscribe({
+    next: (data: any[]) => {
+      this.clientes = data || [];
+    },
+    error: (err) => {
+      console.error('Error al cargar clientes:', err);
+      this.clientes = [];
+    }
+  });
+}
 
   recalcularListas() {
     const baseFiltrada = this.aplicarFiltroBase(this.informesAgrupadosOriginales);
@@ -235,40 +302,49 @@ obtenerEstado(item: any): { estado: string; descripcion: string } {
   };
 }
 
-  abrirModalNuevo(item: any) {
-    this.modoEdicion = false;
-    this.modalAbierto = true;
-    this.expedienteSeleccionado = { ...item };
-    this.formModal = {
-      ...this.getFormVacio(),
-      numero_cliente_edesur: item.numero_cliente_edesur || '',
-      fecha_pedido_informe: this.formatearFechaInput(item.fecha_pedido_informe),
-      fecha_respuesta_informe: this.formatearFechaInput(item.fecha_respuesta_informe),
-      tiene_cortes: item.tiene_cortes ?? null,
-      dias_cortes: item.dias_cortes ?? null,
-      observaciones: item.observaciones || ''
-    };
-  }
-
-abrirModalEditar(item: any) {
-  this.modoEdicion = true;
+abrirModalNuevo(item: any) {
+  this.modoCarga = 'expediente';
+  this.modoEdicion = false;
   this.modalAbierto = true;
   this.expedienteSeleccionado = { ...item };
 
   this.formModal = {
-    id_relevamiento: item.id_relevamiento ?? null,
+    ...this.getFormVacio(),
     numero_cliente_edesur: item.numero_cliente_edesur || '',
     fecha_pedido_informe: this.formatearFechaInput(item.fecha_pedido_informe),
     fecha_respuesta_informe: this.formatearFechaInput(item.fecha_respuesta_informe),
     tiene_cortes: item.tiene_cortes ?? null,
     dias_cortes: item.dias_cortes ?? null,
-    observaciones_reclamo: item.observaciones_reclamo || '',
+    observaciones: item.observaciones || ''
+  };
+}
+
+abrirModalEditar(item: any) {
+  this.modoCarga = item.es_manual ? 'manual' : 'expediente';
+  this.modoEdicion = true;
+  this.modalAbierto = true;
+  this.expedienteSeleccionado = item.es_manual ? null : { ...item };
+
+  this.formModal = {
+    ...this.getFormVacio(),
+
+    id: item.id ?? item.informe_enre_id ?? null,
+    id_relevamiento: item.id_relevamiento ?? null,
+
+    cliente_id: Number(item.cliente_id ?? item.clientes?.[0]?.cliente_id ?? null),
+    empresa_id: Number(item.empresa_id ?? 1),
+    fecha_inicio: this.formatearFechaInput(item.fecha_inicio),
+
+    numero_cliente_edesur: item.numero_cliente_edesur || '',
+    fecha_pedido_informe: this.formatearFechaInput(item.fecha_pedido_informe),
+    fecha_respuesta_informe: this.formatearFechaInput(item.fecha_respuesta_informe),
+    tiene_cortes: item.tiene_cortes ?? null,
+    dias_cortes: item.dias_cortes ?? null,
+    observaciones: item.observaciones_reclamo || item.observaciones || '',
     estado_reclamo: item.estado_reclamo || 'pendiente_relevamiento'
   };
-
-  console.log('EDITAR item:', item);
-  console.log('EDITAR formModal:', this.formModal);
 }
+
   cerrarModal() {
     this.modalAbierto = false;
     this.modoEdicion = false;
@@ -276,7 +352,81 @@ abrirModalEditar(item: any) {
     this.formModal = this.getFormVacio();
   }
 
+  calcularEstadoReclamo(): string {
+  if (!this.formModal.fecha_pedido_informe) {
+    return 'pendiente_relevamiento';
+  }
+
+  if (!this.formModal.fecha_respuesta_informe) {
+    return 'informe_pedido';
+  }
+
+  if (this.formModal.tiene_cortes === true) {
+    return 'con_cortes';
+  }
+
+  if (this.formModal.tiene_cortes === false) {
+    return 'sin_cortes';
+  }
+
+  return 'informe_respondido_pendiente_cortes';
+}
+
 guardarModal() {
+
+
+  if (this.modoCarga === 'manual') {
+
+    if (!this.formModal.cliente_id) {
+      alert('Seleccioná un cliente.');
+      return;
+    }
+
+    if (!this.formModal.fecha_inicio) {
+      alert('Cargá la fecha de inicio.');
+      return;
+    }
+
+    if (!this.formModal.empresa_id) {
+      alert('Seleccioná la empresa.');
+      return;
+    }
+
+    const payload: InformeEnreModel = {
+      cliente_id: this.formModal.cliente_id,
+      empresa_id: Number(this.formModal.empresa_id),
+      fecha_inicio: this.formModal.fecha_inicio,
+
+      numero_cliente_edesur: this.formModal.numero_cliente_edesur || null,
+      fecha_pedido_informe: this.formModal.fecha_pedido_informe || null,
+      fecha_respuesta_informe: this.formModal.fecha_respuesta_informe || null,
+      tiene_cortes: this.formModal.fecha_respuesta_informe ? this.formModal.tiene_cortes : null,
+      dias_cortes: this.formModal.tiene_cortes === true ? Number(this.formModal.dias_cortes) : null,
+      observaciones_reclamo: this.formModal.observaciones || null,
+      estado_reclamo: this.calcularEstadoReclamo()
+    };
+
+    this.cargando = true;
+
+    const request$ = this.modoEdicion && this.formModal.id
+  ? this.informesEnreService.actualizarInformeManual(this.formModal.id, payload)
+  : this.informesEnreService.crearInformeManual(payload);
+
+request$.subscribe({
+      next: () => {
+        this.cerrarModal();
+        this.cargar();
+      },
+      error: (err) => {
+        console.error('Error al guardar informe manual:', err);
+        this.cargando = false;
+        alert('No se pudo guardar el informe manual.');
+      }
+    });
+
+    return;
+  }
+
   if (!this.expedienteSeleccionado) return;
 
   const idExpediente =
@@ -347,6 +497,7 @@ guardarModal() {
   });
 }
 
+
 resetCortes() {
   this.formModal.fecha_respuesta_informe = null;
   this.formModal.tiene_cortes = null;
@@ -377,6 +528,32 @@ resetCortes() {
   }
 
 deshacerCambios(item: any) {
+  if (item.es_manual) {
+    const payload = {
+      cliente_id: item.cliente_id ?? item.clientes?.[0]?.cliente_id,
+      empresa_id: Number(item.empresa_id ?? 1),
+      fecha_inicio: this.formatearFechaInput(item.fecha_inicio),
+
+      numero_cliente_edesur: item.numero_cliente_edesur ?? null,
+      fecha_pedido_informe: item.fecha_pedido_informe ?? null,
+      fecha_respuesta_informe: null,
+      tiene_cortes: null,
+      dias_cortes: null,
+      observaciones_reclamo: item.observaciones_reclamo ?? null,
+      estado_reclamo: 'informe_pedido'
+    };
+
+    this.informesEnreService.actualizarInformeManual(item.id, payload as any).subscribe({
+      next: () => this.cargar(),
+      error: (error) => {
+        console.error('Error al deshacer informe manual:', error);
+        alert('No se pudo deshacer.');
+      }
+    });
+
+    return;
+  }
+
   const idExpediente = item.id ?? item.expediente_id;
 
   if (!idExpediente) {
@@ -386,12 +563,10 @@ deshacerCambios(item: any) {
 
   const expedienteActualizado = {
     ...item,
-    numero_cliente_edesur: null,
     fecha_respuesta_informe: null,
-    fecha_pedido_informe: null,
     tiene_cortes: null,
     dias_cortes: null,
-    estado_reclamo: 'pendiente_relevamiento'
+    estado_reclamo: 'informe_pedido'
   };
 
   this.expedientesService.actualizarExpediente(idExpediente, expedienteActualizado).subscribe({
@@ -479,4 +654,20 @@ iniciar(item: any) {
     const [anio, mes, dia] = partes;
     return `${dia}/${mes}/${anio}`;
   }
+
+  abrirModalManual() {
+  this.modoCarga = 'manual';
+  this.modoEdicion = false;
+  this.modalAbierto = true;
+
+  this.expedienteSeleccionado = null;
+
+  this.formModal = {
+    ...this.getFormVacio(),
+    nombre_cliente: '',
+    cliente_id: null,
+    empresa_id: 1,
+    fecha_inicio: ''
+  };
+}
 }
