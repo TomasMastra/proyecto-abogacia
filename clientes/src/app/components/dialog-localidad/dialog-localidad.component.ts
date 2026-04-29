@@ -53,7 +53,6 @@ export class DialogLocalidadComponent {
     'Mendoza', 'Misiones', 'Neuquén', 'Río Negro', 'Salta', 'San Juan', 'San Luis',
     'Santa Cruz', 'Santa Fe', 'Santiago del Estero', 'Tierra del Fuego', 'Tucumán'*/
   ];
-  partidos: any[] = [];
   
 
   constructor(
@@ -64,7 +63,6 @@ export class DialogLocalidadComponent {
 
     this.form = new FormGroup({
       localidad: new FormControl('', [Validators.required]),  
-      partido: new FormControl('', [Validators.required]),
       //provincia: new FormControl('', [Validators.required]),
     });
     
@@ -72,7 +70,6 @@ export class DialogLocalidadComponent {
     if (data) {
       this.form.setValue({
         localidad: data.localidad || '',
-        partido: data.partido || '',
         //provincia: data.provincia || '',
 
       });
@@ -82,22 +79,6 @@ export class DialogLocalidadComponent {
     }
   }
 
-  ngOnInit() {
-    this.cargarPartidos();
-  }
-
-  cargarPartidos() {
-    this.localidadService.getPartidos()
-      .pipe(takeUntil(this.destroy$)) 
-      .subscribe(
-        (partidos) => {
-          this.partidos = partidos;
-        },
-        (error) => {
-          console.error('Error al obtener partidos:', error);
-        }
-      );
-  }
 
 
   closeDialog(): void {
@@ -109,8 +90,8 @@ export class DialogLocalidadComponent {
  
     const cliente: LocalidadModel = {
       localidad: this.form.value.localidad ?? null,
-      partido: this.form.value.partido.nombre ?? null,
-      provincia: this.form.value.partido.provincia,
+      partido: null,
+      provincia: null,
       id: '0',
       estado: 'activo'
     };
@@ -133,7 +114,6 @@ export class DialogLocalidadComponent {
         public obtenerCamposFaltantes(): string[] {
       const camposObligatorios = [
         { nombre: 'localidad', control: 'localidad' },
-        { nombre: 'partido', control: 'partido' },
 
       ];
     

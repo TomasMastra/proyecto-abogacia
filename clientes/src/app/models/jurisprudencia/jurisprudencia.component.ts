@@ -3,6 +3,7 @@ import { JuzgadoModel } from '../juzgado/juzgado.component';
 import { JuezModel } from '../juez/juez.component';
 import { CodigoModel } from '../codigo/codigo.component';
 import { DemandadoModel } from '../demandado/demandado.component';
+import { MotivoModel } from '../motivo/motivo.component';
 
 export interface JurisprudenciaDemandadoModel {
   id: number;
@@ -37,6 +38,7 @@ export interface JurisprudenciaModel {
   resultado?: 'favorable' | 'desfavorable' | null;
   motivo_id?: number | null;
   motivo_nombre?: string | null;
+  motivos: MotivoModel[];
   
   estado?: string;
   caratula?: string;

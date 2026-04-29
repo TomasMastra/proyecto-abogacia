@@ -47,7 +47,6 @@ export class DialogLocalidadModificarComponent {
 
   protected form: FormGroup;
   menu: number = 1;
-  partidos: any[] = [];
   private destroy$ = new Subject<void>(); 
 
 
@@ -58,26 +57,10 @@ export class DialogLocalidadModificarComponent {
   ) {
     this.form = new FormGroup({
       localidad: new FormControl(data?.localidad ?? '', [Validators.required]),
-      partido: new FormControl(data?.partido ?? '', [Validators.required]),
     });
   }
 
-  ngOnInit() {
-    this.cargarPartidos();
-  }
 
-  cargarPartidos() {
-    this.localidadService.getPartidos()
-      .pipe(takeUntil(this.destroy$)) 
-      .subscribe(
-        (partidos) => {
-          this.partidos = partidos;
-        },
-        (error) => {
-          console.error('Error al obtener partidos:', error);
-        }
-      );
-  }
 
 
   closeDialog(): void {
@@ -89,8 +72,8 @@ export class DialogLocalidadModificarComponent {
       const localidad: LocalidadModel = {
         id: this.data?.id ?? '0',  // Si tiene un ID, lo conserva; si no, asignamos "0"
         localidad: this.form.value.localidad ?? null,
-        partido: this.form.value.partido.nombre ?? null,
-        provincia: this.form.value.partido.provincia,
+        partido: null,
+        provincia: null,
         estado: this.data.estado ?? '',
 
       };
@@ -114,7 +97,6 @@ export class DialogLocalidadModificarComponent {
     public obtenerCamposFaltantes(): string[] {
       const camposObligatorios = [
         { nombre: 'localidad', control: 'localidad' },
-        { nombre: 'partido', control: 'partido' },
 
       ];
     

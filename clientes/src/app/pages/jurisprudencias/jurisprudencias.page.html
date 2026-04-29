@@ -10,7 +10,7 @@
       <div class="search-wrap">
         <mat-icon class="search-icon">search</mat-icon>
         <input class="search-input" placeholder="Buscar por número, año o demandado..."
-          [(ngModel)]="busqueda" (ngModelChange)="buscar()" />
+          [(ngModel)]="busqueda" (ngModelChange)="filtrar()" />
       </div>
       <div class="toolbar-actions">
         <button class="btn btn--primary" (click)="agregarJurisprudencias()">
@@ -18,6 +18,49 @@
           <span>Agregar jurisprudencia</span>
         </button>
       </div>
+    <!-- juzgado -->
+    <div class="filter-select-wrap">
+      <select class="filter-select" [(ngModel)]="juzgadoSeleccionado" (change)="filtrar()">
+        <option value="">Todos los juzgados</option>
+        <option *ngFor="let j of listaJuzgadosFiltro" [value]="j.id">
+          {{ j.nombre }}
+        </option>
+      </select>
+      <mat-icon class="select-chevron">expand_more</mat-icon>
+    </div>
+
+    <!-- motivo -->
+    <div class="filter-select-wrap">
+      <select class="filter-select" [(ngModel)]="motivoSeleccionado" (change)="filtrar()">
+        <option value="">Todos los motivos</option>
+        <option *ngFor="let m of listaMotivosFiltro" [value]="m.id">
+          {{ m.nombre }}
+        </option>
+      </select>
+      <mat-icon class="select-chevron">expand_more</mat-icon>
+    </div>
+
+    <!-- juez -->
+    <div class="filter-select-wrap">
+      <select class="filter-select" [(ngModel)]="juezSeleccionado" (change)="filtrar()">
+        <option value="">Todos los jueces</option>
+        <option *ngFor="let j of listaJuecesFiltro" [value]="j.id">
+          {{ j.nombre }}
+        </option>
+      </select>
+      <mat-icon class="select-chevron">expand_more</mat-icon>
+    </div>
+
+    <!-- cámara / sala -->
+    <div class="filter-select-wrap">
+      <select class="filter-select" [(ngModel)]="camaraSeleccionada" (change)="filtrar()">
+        <option value="">Todas las cámaras</option>
+        <option *ngFor="let c of listaCamarasFiltro" [value]="c">
+          {{ c }}
+        </option>
+      </select>
+      <mat-icon class="select-chevron">expand_more</mat-icon>
+    </div>
     </div>
 
     <div class="table-wrap">

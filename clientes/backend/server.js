@@ -2235,25 +2235,40 @@ app.post("/clientes-expedientes/agregar", async (req, res) => {
 /* agregar loclaidades postgres*/
 app.post("/localidades/agregar", async (req, res) => {
   try {
-    const { localidad, partido, provincia } = req.body;
+    const { localidad, provincia, partido } = req.body;
 
-    if (!localidad || !partido || !provincia) {
+    if (!localidad || !String(localidad).trim()) {
       return res.status(400).json({
-        error: "Faltan campos obligatorios",
-        camposRequeridos: ["localidad", "partido", "provincia"],
+        error: "Falta localidad",
+        camposRequeridos: ["localidad"],
       });
     }
 
-    // mantenemos TU mecanismo de ID
+    const localidadFinal = String(localidad).trim();
+    const provinciaFinal = provincia ? String(provincia).trim() : null;
+    const partidoFinal = partido ? String(partido).trim() : null;
+
     const id = await generarNuevoId(pgPool, "localidades", "id");
 
     const { rows } = await pgPool.query(
       `
-      INSERT INTO public.localidades (id, localidad, partido, provincia, estado)
+      INSERT INTO public.localidades (
+        id,
+        localidad,
+        provincia,
+        partido,
+        estado
+      )
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id
       `,
-      [id, localidad, partido, provincia, "activo"]
+      [
+        id,
+        localidadFinal,
+        provinciaFinal,
+        partidoFinal,
+        "activo"
+      ]
     );
 
     return res.status(201).json({
@@ -2269,8 +2284,6 @@ app.post("/localidades/agregar", async (req, res) => {
   }
 });
 
-
-/* postgres */
 /* postgres */
 app.get("/localidades", async (req, res) => {
   try {
@@ -2521,15 +2534,13 @@ app.put("/localidades/modificar/:id", async (req, res) => {
       `
       UPDATE public.localidades
       SET localidad = $1,
-          partido   = $2,
-          provincia = $3,
-          estado    = $4
-      WHERE id = $5
+          provincia = $2,
+          estado    = $3
+      WHERE id = $4
       RETURNING id
       `,
       [
         nuevosDatos.localidad ?? null,
-        nuevosDatos.partido ?? null,
         nuevosDatos.provincia ?? null,
         nuevosDatos.estado ?? null,
         id,
@@ -5383,11 +5394,25 @@ app.get("/jurisprudencias", async (req, res) => {
 
         j.objeto,
         j.fuero,
-        j.juzgado_id,
+
+        CASE
+          WHEN j.tipo_expediente = 'propio' THEN e.juzgado_id
+          ELSE j.juzgado_id
+        END AS juzgado_id,
+
         juz.nombre AS juzgado_nombre,
+
         j.sentencia,
-        j.juez_id,
-        jue.nombre AS juez_nombre,
+
+        CASE
+          WHEN j.tipo_expediente = 'propio' THEN e.juez_id
+          ELSE j.juez_id
+        END AS juez_id,
+
+        TRIM(
+          COALESCE(jue.nombre, '') || ' ' || COALESCE(jue.apellido, '')
+        ) AS juez_nombre,
+
         j.camara,
         j.codigo_id,
         c.codigo,
@@ -5396,8 +5421,23 @@ app.get("/jurisprudencias", async (req, res) => {
         e.caratula,
         j.fecha_alzada,
         j.resultado,
-        j.motivo_id,
-        m.nombre AS motivo_nombre,
+
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', m.id,
+                'nombre', m.nombre,
+                'tipo', m.tipo
+              )
+              ORDER BY m.tipo, m.nombre
+            )
+            FROM public.jurisprudencias_motivos jm
+            JOIN public.motivos m ON m.id = jm.id_motivo
+            WHERE jm.id_jurisprudencia = j.id
+          ),
+          '[]'::json
+        ) AS motivos,
 
         COALESCE(
           (
@@ -5427,10 +5467,34 @@ app.get("/jurisprudencias", async (req, res) => {
         ) AS demandados
 
       FROM public.jurisprudencias j
-      LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
-      LEFT JOIN public.juez jue ON jue.id = j.juez_id
-      LEFT JOIN public.motivos m ON m.id = j.motivo_id
-      
+
+      LEFT JOIN LATERAL (
+        SELECT
+          e.caratula,
+          e.numero,
+          e.anio,
+          e.juzgado_id,
+          e.juez_id
+        FROM public.expedientes e
+        WHERE e.id = j.expediente_id
+        LIMIT 1
+      ) e ON true
+
+      LEFT JOIN public.juzgados juz
+        ON juz.id = (
+          CASE
+            WHEN j.tipo_expediente = 'propio' THEN e.juzgado_id
+            ELSE j.juzgado_id
+          END
+        )
+
+      LEFT JOIN public.juez jue
+        ON jue.id = (
+          CASE
+            WHEN j.tipo_expediente = 'propio' THEN e.juez_id
+            ELSE j.juez_id
+          END
+        )
 
       LEFT JOIN LATERAL (
         SELECT c.id, c.codigo, c.descripcion
@@ -5438,13 +5502,6 @@ app.get("/jurisprudencias", async (req, res) => {
         WHERE c.id = j.codigo_id
         LIMIT 1
       ) c ON true
-
-      LEFT JOIN LATERAL (
-        SELECT e.caratula, e.numero, e.anio
-        FROM public.expedientes e
-        WHERE e.id = j.expediente_id
-        LIMIT 1
-      ) e ON true
 
       WHERE COALESCE(j.estado, '') <> 'eliminado'
       ORDER BY j.id DESC
@@ -5486,7 +5543,7 @@ app.post("/jurisprudencias", async (req, res) => {
       codigo_id,
       resultado,
       sentencia,
-      motivo_id
+      motivos
     } = req.body || {};
 
     const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
@@ -5552,11 +5609,7 @@ app.post("/jurisprudencias", async (req, res) => {
         });
       }
 
-      if (!motivo_id) {
-        return res.status(400).json({
-          error: "motivo es obligatorio"
-        });
-      }
+
     }
 
     if (tipoExp === "propio") {
@@ -5566,11 +5619,7 @@ app.post("/jurisprudencias", async (req, res) => {
         });
       }
 
-    if (!motivo_id) {
-      return res.status(400).json({
-        error: "motivo es obligatorio"
-      });
-    }
+
     }
 
     const demandadosArray = Array.isArray(demandados) ? demandados : [];
@@ -5600,6 +5649,23 @@ app.post("/jurisprudencias", async (req, res) => {
       });
     }
 
+
+    const motivosArray = Array.isArray(motivos) ? motivos : [];
+
+    let motivosFinal = motivosArray
+      .map((m) => Number(m?.id))
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+
+
+    motivosFinal = [...new Set(motivosFinal)];
+
+    if (motivosFinal.length === 0){ 
+      return res.status(400).json({
+        error: "Debe enviar al menos un motivo"
+      });
+    }
+
     await client.query("BEGIN");
 
     const jurisprudenciaId = await nextId("public.seq_jurisprudencias");
@@ -5618,12 +5684,11 @@ app.post("/jurisprudencias", async (req, res) => {
         camara,
         codigo_id,
         resultado,
-        motivo_id,
         juez_id,
         sentencia,
         fecha_alzada
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       `,
       [
         jurisprudenciaId,
@@ -5641,7 +5706,6 @@ app.post("/jurisprudencias", async (req, res) => {
           ? (codigo_id !== undefined && codigo_id !== null && codigo_id !== "" ? Number(codigo_id) : null)
           : null,
         resultadoNorm,
-        Number(motivo_id),
         null,
         null,
         null
@@ -5670,6 +5734,18 @@ app.post("/jurisprudencias", async (req, res) => {
       }
     }
 
+    for (const motivoId of motivosFinal) {
+    await client.query(
+      `
+      INSERT INTO public.jurisprudencias_motivos
+        (id_jurisprudencia, id_motivo)
+      VALUES ($1, $2)
+      ON CONFLICT (id_jurisprudencia, id_motivo) DO NOTHING
+      `,
+      [jurisprudenciaId, motivoId]
+    );
+  }
+
     await client.query("COMMIT");
 
     const { rows } = await client.query(
@@ -5686,14 +5762,15 @@ app.post("/jurisprudencias", async (req, res) => {
         juz.nombre AS juzgado_nombre,
         j.sentencia,
         j.juez_id,
-        jue.nombre AS juez_nombre,
+        TRIM(
+          COALESCE(jue.nombre, '') || ' ' || COALESCE(jue.apellido, '')
+        ) AS juez_nombre,
         j.camara,
         j.codigo_id,
         c.codigo,
         c.descripcion,
         j.fecha_alzada,
-        j.resultado,
-        j.motivo_id
+        j.resultado
       FROM public.jurisprudencias j
       LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
       LEFT JOIN public.juez jue ON jue.id = j.juez_id
@@ -6123,9 +6200,9 @@ app.put("/jurisprudencias/:id", async (req, res) => {
       codigo_id,
       estado,
       resultado,
-      motivo_id,
       sentencia,
-      juez_id
+      juez_id,
+      motivos
     } = req.body || {};
 
     const existe = await client.query(
@@ -6205,23 +6282,13 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         });
       }
 
-      if (!motivo_id) {
-        return res.status(400).json({
-          error: "motivo es obligatorio para expediente ajeno"
-        });
-      }
+
     }
 
     if (tipoExp === "propio") {
       if (!resultadoNorm) {
         return res.status(400).json({
           error: "resultado es obligatorio para expediente propio"
-        });
-      }
-
-      if (!motivo_id) {
-        return res.status(400).json({
-          error: "motivo es obligatorio para expediente propio"
         });
       }
     }
@@ -6253,6 +6320,22 @@ app.put("/jurisprudencias/:id", async (req, res) => {
       });
     }
 
+    const motivosArray = Array.isArray(motivos) ? motivos : [];
+
+    let motivosFinal = motivosArray
+      .map((m) => Number(m?.id))
+      .filter((id) => Number.isInteger(id) && id > 0);
+
+    
+
+    motivosFinal = [...new Set(motivosFinal)];
+
+    if (motivosFinal.length === 0) {
+      return res.status(400).json({
+        error: "Debe enviar al menos un motivo"
+      });
+    }
+
     await client.query("BEGIN");
 
     await client.query(
@@ -6272,8 +6355,7 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         codigo_id = $12,
         estado = $13,
         fecha_alzada = $14,
-        resultado = $15,
-        motivo_id = $16
+        resultado = $15
       WHERE id = $1
       `,
       [
@@ -6298,7 +6380,6 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         estadoFinal,
         null, // fecha_alzada
         resultadoNorm,
-        Number(motivo_id),
 
       ]
     );
@@ -6307,6 +6388,25 @@ app.put("/jurisprudencias/:id", async (req, res) => {
       `DELETE FROM public.jurisprudencias_demandados WHERE id_jurisprudencia = $1`,
       [id]
     );
+
+    // 🔥 BORRAR MOTIVOS VIEJOS
+    await client.query(
+      `DELETE FROM public.jurisprudencias_motivos WHERE id_jurisprudencia = $1`,
+      [id]
+    );
+
+    // 🔥 INSERTAR MOTIVOS NUEVOS
+    for (const motivoId of motivosFinal) {
+      await client.query(
+        `
+        INSERT INTO public.jurisprudencias_motivos
+          (id_jurisprudencia, id_motivo)
+        VALUES ($1, $2)
+        ON CONFLICT (id_jurisprudencia, id_motivo) DO NOTHING
+        `,
+        [id, motivoId]
+      );
+    }
 
     if (tipoExp === "ajeno" && demandadosFinal.length > 0) {
       for (const d of demandadosFinal) {
@@ -6353,8 +6453,7 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         c.codigo,
         c.descripcion,
         j.fecha_alzada,
-        j.resultado,
-        j.motivo_id
+        j.resultado
       FROM public.jurisprudencias j
       LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
       LEFT JOIN public.juez jue ON jue.id = j.juez_id
