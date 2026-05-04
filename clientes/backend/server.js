@@ -1039,7 +1039,13 @@ app.post("/expedientes/agregar", async (req, res) => {
     );
 
     // ACTORAS
-    for (const a of actoras) {
+
+    const actorasUnicas = actoras.filter(
+    (a, i, arr) =>
+      i === arr.findIndex(x => x.id === a.id && x.tipo === a.tipo)
+    );
+
+    for (const a of actorasUnicas) {
       const tipoA = String(a?.tipo || "").toLowerCase().trim();
       const idA = a?.id !== undefined && a?.id !== null && a?.id !== "" ? Number(a.id) : null;
 
@@ -1064,7 +1070,12 @@ app.post("/expedientes/agregar", async (req, res) => {
     }
 
     // DEMANDADOS
-    for (const d of demandados) {
+    const demandadosUnicos = demandados.filter(
+      (d, i, arr) =>
+        i === arr.findIndex(x => x.id === d.id && x.tipo === d.tipo)
+    );
+
+    for (const d of demandadosUnicos) {
       const tipoD = String(d?.tipo || "").toLowerCase().trim();
       const idD = d?.id !== undefined && d?.id !== null && d?.id !== "" ? Number(d.id) : null;
 
@@ -1636,8 +1647,15 @@ SET
           `DELETE FROM public.expedientes_demandados WHERE id_expediente = $1::int`,
           [expedienteIdNum]
         );
+          const demandadosUnicos = data.demandados.filter(
+            (d, i, arr) =>
+              i === arr.findIndex(x =>
+                Number(x.id) === Number(d.id) &&
+                String(x.tipo).toLowerCase().trim() === String(d.tipo).toLowerCase().trim()
+              )
+          );        
 
-        for (const d of data.demandados) {
+          for (const d of demandadosUnicos) {
           const tipoD = String(d?.tipo || "").toLowerCase();
           const entidadId = d?.id != null && d?.id !== "" ? Number(d.id) : null;
 
@@ -1668,8 +1686,15 @@ SET
           `DELETE FROM public.clientes_expedientes WHERE id_expediente = $1::int`,
           [expedienteIdNum]
         );
+          const actorasUnicas = data.actoras.filter(
+            (a, i, arr) =>
+              i === arr.findIndex(x =>
+                Number(x.id) === Number(a.id) &&
+                String(x.tipo).toLowerCase().trim() === String(a.tipo).toLowerCase().trim()
+              )
+          );
 
-        for (const a of data.actoras) {
+          for (const a of actorasUnicas) {
           const tipoA = String(a?.tipo || "").toLowerCase();
           const entidadId = a?.id != null && a?.id !== "" ? Number(a.id) : null;
 
