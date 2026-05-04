@@ -4434,6 +4434,8 @@ app.put("/oficios/modificar/:id", async (req, res) => {
       return res.status(400).json({ mensaje: "ID inválido" });
     }
 
+    console.log("BODY OFICIO =>", req.body);
+console.log("fecha_diligenciado =>", fecha_diligenciado);
     const { rowCount } = await pgPool.query(
       `
       UPDATE public.oficios

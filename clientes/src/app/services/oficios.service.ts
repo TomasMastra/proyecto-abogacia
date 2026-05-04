@@ -57,6 +57,8 @@ getOficios(): Observable<OficioModel[]> {
       estado: data.estado,
       fecha_diligenciado: data.fecha_diligenciado || null,
     };
+    console.log("payload enviado =>", data.fecha_diligenciado);
+
     return this.http.put(`${this.apiUrl}/modificar/${id}`, body);
   }
 }

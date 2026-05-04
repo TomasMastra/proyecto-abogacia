@@ -204,8 +204,16 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
         if (!parteSel || !estadoSel) return Swal.showValidationMessage('Completá parte y estado.');
         if (!demandaId) return Swal.showValidationMessage('Seleccioná la oficiada / demandado.');
         if (estadosQueRequierenFecha.has(estadoSel.toLowerCase()) && !fechaInp) return Swal.showValidationMessage('Este estado requiere fecha.');
-        return { ...oficio, tipo: 'oficio', demandado_id: demandaId, nombre_oficiada: null, parte: parteSel, estado: estadoSel, fecha_diligenciado: estadosQueRequierenFecha.has(estadoSel.toLowerCase()) ? fechaInp : null };
-      }
+          return {
+            ...oficio,
+            tipo: 'oficio',
+            demandado_id: demandaId,
+            nombre_oficiada: null,
+            parte: parteSel,
+            estado: estadoSel,
+            fecha_diligenciado: fechaInp || null
+          };      
+        }
     }).then(res => {
       if (!res.isConfirmed || !res.value) return;
       this.oficiosService.actualizarOficio(oficio.id!, res.value).subscribe({
@@ -243,6 +251,7 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
         const fechaInp = (document.getElementById('sw-fecha') as HTMLInputElement)?.value || '';
         if (!nombre || !parteSel || !estadoSel || !tipoPeri) return Swal.showValidationMessage('Completá todos los campos.');
         if (estadosQueRequierenFecha.has(estadoSel.toLowerCase()) && !fechaInp) return Swal.showValidationMessage('Este estado requiere fecha.');
+        
         return { ...item, tipo: 'pericia', demandado_id: null, nombre_oficiada: nombre, tipo_pericia: tipoPeri, parte: parteSel, estado: estadoSel, fecha_diligenciado: estadosQueRequierenFecha.has(estadoSel.toLowerCase()) ? fechaInp : null };
       }
     }).then(res => {
