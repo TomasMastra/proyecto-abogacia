@@ -1662,7 +1662,12 @@ SET
           if (!entidadId || Number.isNaN(entidadId)) continue;
           if (tipoD !== "cliente" && tipoD !== "empresa") continue;
 
-          const relacionId = await generarNuevoId(client, "expedientes_demandados", "id");
+          //const relacionId = await generarNuevoId(client, "expedientes_demandados", "id");
+
+          const { rows } = await client.query(
+            `SELECT nextval('public.seq_expedientes_demandados') AS id`
+          );
+          const relacionId = Number(rows[0].id);
 
           await client.query(
             `
@@ -1701,7 +1706,12 @@ SET
           if (!entidadId || Number.isNaN(entidadId)) continue;
           if (tipoA !== "cliente" && tipoA !== "empresa") continue;
 
-          const relacionId = await generarNuevoId(client, "clientes_expedientes", "id");
+          ///const relacionId = await generarNuevoId(client, "clientes_expedientes", "id");
+
+          const { rows } = await client.query(
+  `SELECT nextval('public.seq_clientes_expedientes') AS id`
+);
+const relacionId = Number(rows[0].id);
 
           await client.query(
             `
