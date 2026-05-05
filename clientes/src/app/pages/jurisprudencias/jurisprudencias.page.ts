@@ -57,11 +57,13 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
   expedientes: ExpedienteModel[] = [];
   motivos: MotivoModel[] = [];
   motivosOriginales: MotivoModel[] = [];
+  tipos: string[] = [];
 
   juzgadoSeleccionado = '';
   motivoSeleccionado = '';
   juezSeleccionado = '';
   camaraSeleccionada = '';
+  tipoSeleccionado = '';
 
   listaJuzgadosFiltro: any[] = [];
   listaMotivosFiltro: any[] = [];
@@ -70,6 +72,8 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
 
   cargando = true;
   busqueda = '';
+  mostrarFiltros = false;
+
 
   pageSize = 20;
   pageIndex = 0;
@@ -95,7 +99,16 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
     this.cargarJurisprudencias();
     this.clientesService.getClientes().subscribe(c => this.clientes = c || []);
     this.demandadosService.getDemandados().subscribe(d => this.demandados = d || []);
-    this.juzgadosService.getJuzgados().subscribe(j => { this.juzgadosOriginales = j || []; this.juzgados = [...this.juzgadosOriginales]; });
+    this.juzgadosService.getJuzgados().subscribe(j => {
+      this.juzgadosOriginales = j || [];
+      this.juzgados = [...this.juzgadosOriginales];
+
+      this.tipos = [...new Set(
+        this.juzgadosOriginales
+          .map(x => x.tipo)
+          .filter(t => !!t)
+      )].sort();
+    });    
     this.juezService.getJuez().subscribe(j => this.jueces = j || []);
     this.codigosService.getCodigos().subscribe(c => this.codigos = c || []);
     this.cargarMotivos();
@@ -210,6 +223,7 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
     });
   }
 
+
   actualizarPagina(): void {
     const start = this.pageIndex * this.pageSize;
     this.listaPaginada = this.jurisprudencias.slice(start, start + this.pageSize);
@@ -223,6 +237,10 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
 
   buscar(): void {
     this.filtrar();
+  }
+
+  toggleFiltros() {
+    this.mostrarFiltros = !this.mostrarFiltros;
   }
 
   goTo(path: string): void { this.router.navigate([path]); }
@@ -1557,5 +1575,25 @@ async modificarJurisprudencia(j: any): Promise<void> {
 
   this.pageIndex = 0;
   this.actualizarPagina();
+}
+
+cambiarTipoJuzgado() {
+  console.log(this.tipoSeleccionado);
+
+  if (!this.tipoSeleccionado || this.tipoSeleccionado === 'todos') {
+    this.listaJuzgadosFiltro = [...this.juzgadosOriginales];
+    this.juzgadoSeleccionado = '';
+    this.filtrar();
+    return;
+  }
+
+  const tipo = this.tipoSeleccionado.toLowerCase();
+
+  this.listaJuzgadosFiltro = this.juzgadosOriginales.filter(j =>
+    j.tipo?.toLowerCase() === tipo
+  );
+
+  this.juzgadoSeleccionado = '';
+  this.filtrar();
 }
 }

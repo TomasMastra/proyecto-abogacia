@@ -12,13 +12,35 @@
         <input class="search-input" placeholder="Buscar por número, año o demandado..."
           [(ngModel)]="busqueda" (ngModelChange)="filtrar()" />
       </div>
+
       <div class="toolbar-actions">
         <button class="btn btn--primary" (click)="agregarJurisprudencias()">
           <mat-icon>add</mat-icon>
           <span>Agregar jurisprudencia</span>
         </button>
       </div>
-    <!-- juzgado -->
+<!-- 
+    <button 
+      class="btn btn--icon" 
+      matTooltip="Filtros"
+      [class.active]="mostrarFiltros"
+      (click)="toggleFiltros()"
+    >
+      <mat-icon>filter_alt</mat-icon>
+    </button> -->
+
+      <!-- filtro por tipo-->
+ 
+      <div class="filter-select-wrap">
+      <select class="filter-select"ion [(ngModel)]="tipoSeleccionado" (change)="cambiarTipoJuzgado()">
+        <option value="todos">Todos los tipos</option>
+        <option *ngFor="let j of tipos">
+          {{ j }}
+        </option>
+      </select>
+      <mat-icon class="select-chevron">expand_more</mat-icon>
+    </div>
+
     <div class="filter-select-wrap">
       <select class="filter-select" [(ngModel)]="juzgadoSeleccionado" (change)="filtrar()">
         <option value="">Todos los juzgados</option>
@@ -29,7 +51,6 @@
       <mat-icon class="select-chevron">expand_more</mat-icon>
     </div>
 
-    <!-- motivo -->
     <div class="filter-select-wrap">
       <select class="filter-select" [(ngModel)]="motivoSeleccionado" (change)="filtrar()">
         <option value="">Todos los motivos</option>
@@ -40,7 +61,6 @@
       <mat-icon class="select-chevron">expand_more</mat-icon>
     </div>
 
-    <!-- juez -->
     <div class="filter-select-wrap">
       <select class="filter-select" [(ngModel)]="juezSeleccionado" (change)="filtrar()">
         <option value="">Todos los jueces</option>
@@ -51,7 +71,6 @@
       <mat-icon class="select-chevron">expand_more</mat-icon>
     </div>
 
-    <!-- cámara / sala -->
     <div class="filter-select-wrap">
       <select class="filter-select" [(ngModel)]="camaraSeleccionada" (change)="filtrar()">
         <option value="">Todas las cámaras</option>
@@ -60,8 +79,10 @@
         </option>
       </select>
       <mat-icon class="select-chevron">expand_more</mat-icon>
+    </div> 
     </div>
-    </div>
+
+
 
     <div class="table-wrap">
       <table>

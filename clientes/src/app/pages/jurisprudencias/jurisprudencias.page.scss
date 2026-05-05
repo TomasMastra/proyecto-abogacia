@@ -72,6 +72,25 @@ $ease:       cubic-bezier(0.4, 0, 0.2, 1);
     mat-icon { font-size: 17px; width: 17px; height: 17px; }
     &:hover { background: darken($c-blue, 6%); box-shadow: 0 3px 10px rgba(30,64,175,0.3); }
   }
+
+  &--icon {
+    background: $c-bg; color: $c-muted; border: 1px solid $c-border;
+    width: 40px; height: 40px; justify-content: center; padding: 0;
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    &:hover { background: $c-border; color: $c-text; }
+  }
+}
+
+.filters-panel {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8f9fb;
+  border: 1px solid #e0e3ea;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 // ── Tabla ─────────────────────────────────────────────────────
@@ -329,4 +348,57 @@ tbody tr td {
   margin: 0 0 6px 0;
   color: #4b3b2c;
 }
+
+
+/* filtros */
+
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) auto repeat(2, minmax(190px, 230px));
+  gap: 14px;
+  align-items: center;
+}
+
+.filter-select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.filter-select {
+  width: 100%;
+  height: 52px;
+  padding: 0 42px 0 16px;
+  border: 1px solid #dde3ee;
+  border-radius: 12px;
+  background: #fff;
+  color: #071936;
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.select-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 22px;
+  color: #061a35;
+}
+
+.search-wrap {
+  min-width: 0;
+}
+
+.toolbar-actions {
+  white-space: nowrap;
+}
+
 

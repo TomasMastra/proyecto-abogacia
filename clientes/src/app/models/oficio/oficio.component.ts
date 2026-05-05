@@ -17,7 +17,9 @@ export interface OficioModel {
 
   tipo?: 'oficio' | 'testimonial' | 'pericia';
 
-  tipo_pericia?: string;
+  nombre_oficiada: string;
+
+  tipo_pericia: string;
 
   supletoria?: string | null;
 

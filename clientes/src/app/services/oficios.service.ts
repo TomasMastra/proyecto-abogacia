@@ -48,17 +48,25 @@ getOficios(): Observable<OficioModel[]> {
 
 
 
-  actualizarOficio(id: number, data: Partial<OficioModel>): Observable<any> {
-    const body = {
-      // Si en tu caso no querés cambiar el expediente, podés omitirlo
-      expediente_id: data.expediente_id,
-      demandado_id: data.demandado_id,
-      parte: data.parte,
-      estado: data.estado,
-      fecha_diligenciado: data.fecha_diligenciado || null,
-    };
-    console.log("payload enviado =>", data.fecha_diligenciado);
+actualizarOficio(id: number, data: Partial<OficioModel>): Observable<any> {
+  const body = {
+    expediente_id: data.expediente_id,
+    demandado_id: data.demandado_id,
+    parte: data.parte,
+    estado: data.estado,
+    fecha_diligenciado: data.fecha_diligenciado || null,
 
-    return this.http.put(`${this.apiUrl}/modificar/${id}`, body);
-  }
+    // 🔥 FALTABAN ESTOS
+    nombre_oficiada: data.nombre_oficiada,
+    tipo_pericia: data.tipo_pericia,
+    supletoria: data.supletoria,
+
+    // opcional pero recomendable
+    tipo: data.tipo
+  };
+
+  console.log("PAYLOAD REAL =>", body);
+
+  return this.http.put(`${this.apiUrl}/modificar/${id}`, body);
+}
 }

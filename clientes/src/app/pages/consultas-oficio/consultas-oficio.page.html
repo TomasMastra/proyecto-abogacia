@@ -6,15 +6,12 @@
 
   <div class="list-card">
 
+    <!-- Toolbar -->
     <div class="toolbar">
       <div class="search-wrap">
         <mat-icon class="search-icon">search</mat-icon>
-        <input
-          class="search-input"
-          placeholder="Buscar por expediente..."
-          [(ngModel)]="busqueda"
-          (ngModelChange)="filtrar()"
-        />
+        <input class="search-input" placeholder="Buscar por expediente o demandado..."
+          [(ngModel)]="busqueda" (ngModelChange)="filtrar()" />
       </div>
 
       <div class="filter-select-wrap">
@@ -22,6 +19,7 @@
           <option value="todos">Todos los estados</option>
           <option *ngFor="let est of estados" [value]="est">{{ est }}</option>
         </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
 
       <div class="filter-select-wrap">
@@ -29,6 +27,7 @@
           <option value="">Todas las partes</option>
           <option *ngFor="let p of partes" [value]="p">{{ p }}</option>
         </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
 
       <div class="filter-select-wrap">
@@ -36,10 +35,39 @@
           <option value="">Todos los demandados</option>
           <option *ngFor="let d of demandados" [value]="d.id">{{ d.nombre }}</option>
         </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
     </div>
 
-    <div class="table-wrap">
+    <!-- Tabs -->
+    <div class="tabs-row">
+      <button class="tab-btn tab-btn--oficios"
+        [class.active]="tabActiva === 'oficios'"
+        (click)="tabActiva = 'oficios'">
+        <mat-icon>mail</mat-icon>
+        Oficios
+        <span class="tab-count">{{ listaOficios.length }}</span>
+      </button>
+
+      <button class="tab-btn tab-btn--testimoniales"
+        [class.active]="tabActiva === 'testimoniales'"
+        (click)="tabActiva = 'testimoniales'">
+        <mat-icon>record_voice_over</mat-icon>
+        Testimoniales
+        <span class="tab-count">{{ listaTestimoniales.length }}</span>
+      </button>
+
+      <button class="tab-btn tab-btn--pericias"
+        [class.active]="tabActiva === 'pericias'"
+        (click)="tabActiva = 'pericias'">
+        <mat-icon>manage_search</mat-icon>
+        Pericias
+        <span class="tab-count">{{ listaPericias.length }}</span>
+      </button>
+    </div>
+
+    <!-- ── TAB OFICIOS ── -->
+    <div class="table-wrap" *ngIf="tabActiva === 'oficios'">
       <table>
         <thead>
           <tr>
@@ -56,79 +84,182 @@
           <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
             <td><div class="skeleton-cell sk-lg"></div></td>
             <td><div class="skeleton-cell sk-md"></div></td>
-            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
             <td><div class="skeleton-cell sk-xs"></div></td>
           </tr>
 
           <ng-container *ngIf="!cargando">
-            <tr *ngFor="let oficio of listaPaginada">
-              <td class="td-caratula">
-                {{ oficio.expedienteModel?.caratula || 'Sin carátula' }}
-              </td>
+            <tr *ngFor="let oficio of listaOficiosPaginada">
+              <td class="td-caratula">{{ oficio.expedienteModel?.caratula || 'Sin carátula' }}</td>
               <td>{{ oficio.demandadoModel?.nombre || '—' }}</td>
               <td>{{ oficio.parte || '—' }}</td>
-              <td>
-                <span class="estado-chip">{{ oficio.estado || '—' }}</span>
-              </td>
+              <td><span class="estado-chip estado-chip--oficio">{{ oficio.estado || '—' }}</span></td>
               <td>{{ mostrarFecha(oficio.fecha_diligenciado) || '—' }}</td>
               <td>
                 <div class="row-actions">
-                  <button
-                    class="action-icon-btn"
-                    matTooltip="Editar"
-                    *ngIf="oficio.tipo === 'oficio'"
+                  <button class="action-icon-btn" matTooltip="Editar"
                     (click)="modificarOficio(oficio); $event.stopPropagation()">
                     <mat-icon>edit</mat-icon>
                   </button>
-
-                  <button
-                    class="action-icon-btn"
-                    matTooltip="Editar"
-                    *ngIf="oficio.tipo === 'testimonial'"
-                    (click)="modificarTestimonial(oficio); $event.stopPropagation()">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-
-                  <button
-                    class="action-icon-btn"
-                    matTooltip="Editar"
-                    *ngIf="oficio.tipo === 'pericia'"
-                    (click)="modificarPericia(oficio); $event.stopPropagation()">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-
-                  <button
-                    class="action-icon-btn action-icon-btn--danger"
-                    matTooltip="Eliminar"
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar"
                     (click)="eliminarOficio(oficio); $event.stopPropagation()">
                     <mat-icon>delete_outline</mat-icon>
                   </button>
                 </div>
               </td>
             </tr>
-
-            <tr *ngIf="listaPaginada.length === 0">
+            <tr *ngIf="listaOficios.length === 0">
               <td colspan="6" class="empty-row">
-                <mat-icon>description</mat-icon>
-                No se encontraron registros
+                <mat-icon>mail_outline</mat-icon>
+                No hay oficios registrados
               </td>
             </tr>
           </ng-container>
 
         </tbody>
       </table>
+
+      <mat-paginator
+        [length]="listaOficios.length"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [pageIndex]="pageIndexOficios"
+        (page)="onPageOficios($event)"
+        showFirstLastButtons>
+      </mat-paginator>
     </div>
 
-    <mat-paginator
-      [length]="oficios.length"
-      [pageSize]="pageSize"
-      [pageSizeOptions]="[10, 20, 50, 100]"
-      [pageIndex]="pageIndex"
-      (page)="onPageChange($event)"
-      showFirstLastButtons>
-    </mat-paginator>
+    <!-- ── TAB TESTIMONIALES ── -->
+    <div class="table-wrap" *ngIf="tabActiva === 'testimoniales'">
+      <table>
+        <thead>
+          <tr>
+            <th>Expediente</th>
+            <th>Testigo</th>
+            <th>Parte</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-md"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let item of listaTestimonalesPaginada">
+              <td class="td-caratula">{{ item.expedienteModel?.caratula || 'Sin carátula' }}</td>
+              <td>{{ item.nombre_oficiada || '—' }}</td>
+              <td>{{ item.parte || '—' }}</td>
+              <td><span class="estado-chip estado-chip--testimonial">{{ item.estado || '—' }}</span></td>
+              <td>{{ mostrarFecha(item.fecha_diligenciado) || '—' }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar"
+                    (click)="modificarTestimonial(item); $event.stopPropagation()">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar"
+                    (click)="eliminarOficio(item); $event.stopPropagation()">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="listaTestimoniales.length === 0">
+              <td colspan="6" class="empty-row">
+                <mat-icon>record_voice_over</mat-icon>
+                No hay testimoniales registrados
+              </td>
+            </tr>
+          </ng-container>
+
+        </tbody>
+      </table>
+
+      <mat-paginator
+        [length]="listaTestimoniales.length"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [pageIndex]="pageIndexTestimoniales"
+        (page)="onPageTestimoniales($event)"
+        showFirstLastButtons>
+      </mat-paginator>
+    </div>
+
+    <!-- ── TAB PERICIAS ── -->
+    <div class="table-wrap" *ngIf="tabActiva === 'pericias'">
+      <table>
+        <thead>
+          <tr>
+            <th>Expediente</th>
+            <th>Perito</th>
+            <th>Parte</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-md"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let item of listaPericiasPaginada">
+              <td class="td-caratula">{{ item.expedienteModel?.caratula || 'Sin carátula' }}</td>
+              <td>{{ item.parte || '—' }}</td>
+              <td>{{ item.parte || '—' }}</td>
+              <td><span class="estado-chip estado-chip--pericia">{{ item.estado || '—' }}</span></td>
+              <td>{{ mostrarFecha(item.fecha_diligenciado) || '—' }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar"
+                    (click)="modificarPericia(item); $event.stopPropagation()">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar"
+                    (click)="eliminarOficio(item); $event.stopPropagation()">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="listaPericias.length === 0">
+              <td colspan="6" class="empty-row">
+                <mat-icon>manage_search</mat-icon>
+                No hay pericias registradas
+              </td>
+            </tr>
+          </ng-container>
+
+        </tbody>
+      </table>
+
+      <mat-paginator
+        [length]="listaPericias.length"
+        [pageSize]="pageSize"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        [pageIndex]="pageIndexPericias"
+        (page)="onPagePericias($event)"
+        showFirstLastButtons>
+      </mat-paginator>
+    </div>
 
   </div>
 </div>

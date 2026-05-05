@@ -25,8 +25,14 @@ import Swal from 'sweetalert2';
 export class ConsultasOficioPage implements OnInit, OnDestroy {
 
   oficios: OficioModel[] = [];
-  oficiosOriginales: OficioModel[] = [];
   listaPaginada: OficioModel[] = [];
+
+  oficiosOriginales: OficioModel[] = [];
+ 
+  // Listas filtradas por tipo
+  listaOficios:       OficioModel[] = [];
+  listaTestimoniales: OficioModel[] = [];
+  listaPericias:      OficioModel[] = [];
 
   cargando = true;
   hayOficios = true;
@@ -41,15 +47,23 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
   estados = ['diligenciado', 'pendiente', 'pedir reiteratoria', 'diligenciar', 'reiteratorio solicitado'];
   estadosTestimonial = ['Pendiente'];
   estadosPericia = ['Pendiente'];
-  tiposPericia = ['Pericial informática'];
+  tiposPericia = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones'];
 
   ordenCampo = '';
   ordenAscendente = true;
 
   // Paginador
   pageSize = 20;
-  pageIndex = 0;
+  pageIndexOficios       = 0;
+  pageIndexTestimoniales = 0;
+  pageIndexPericias      = 0;
   skeletonRows = Array(this.pageSize).fill(0);
+
+  tabActiva: 'oficios' | 'testimoniales' | 'pericias' = 'oficios';
+
+  listaOficiosPaginada:      OficioModel[] = [];
+  listaTestimonalesPaginada: OficioModel[] = [];
+  listaPericiasPaginada:     OficioModel[] = [];
 
   private destroy$ = new Subject<void>();
 
@@ -82,8 +96,11 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
           this.oficios = oficios?.filter(o => o.estado !== 'eliminado') ?? [];
           this.oficiosOriginales = [...this.oficios];
           this.hayOficios = this.oficios.length > 0;
-          this.pageIndex = 0;
-          this.actualizarPagina();
+          this.pageIndexOficios = 0;
+          this.pageIndexTestimoniales = 0;
+          this.pageIndexPericias = 0;
+
+          this.filtrar();
           this.cargando = false;
           this.cdr.detectChanges();
         },
@@ -104,32 +121,63 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
       });
   }
 
-  // ── Paginador ──────────────────────────────────────────────
-  actualizarPagina(): void {
-    const ordenados = this.oficiosOrdenados;
-    const start = this.pageIndex * this.pageSize;
-    this.listaPaginada = ordenados.slice(start, start + this.pageSize);
+  // ── Paginadores ────────────────────────────────────────────
+  actualizarPaginaOficios(): void {
+    const s = this.pageIndexOficios * this.pageSize;
+    this.listaOficiosPaginada = this.listaOficios.slice(s, s + this.pageSize);
   }
-
-  onPageChange(event: PageEvent): void {
-    this.pageSize = event.pageSize;
-    this.pageIndex = event.pageIndex;
-    this.actualizarPagina();
+ 
+  actualizarPaginaTestimoniales(): void {
+    const s = this.pageIndexTestimoniales * this.pageSize;
+    this.listaTestimonalesPaginada = this.listaTestimoniales.slice(s, s + this.pageSize);
+  }
+ 
+  actualizarPaginaPericias(): void {
+    const s = this.pageIndexPericias * this.pageSize;
+    this.listaPericiasPaginada = this.listaPericias.slice(s, s + this.pageSize);
+  }
+ 
+  onPageOficios(e: PageEvent): void {
+    this.pageSize = e.pageSize;
+    this.pageIndexOficios = e.pageIndex;
+    this.actualizarPaginaOficios();
+  }
+ 
+  onPageTestimoniales(e: PageEvent): void {
+    this.pageSize = e.pageSize;
+    this.pageIndexTestimoniales = e.pageIndex;
+    this.actualizarPaginaTestimoniales();
+  }
+ 
+  onPagePericias(e: PageEvent): void {
+    this.pageSize = e.pageSize;
+    this.pageIndexPericias = e.pageIndex;
+    this.actualizarPaginaPericias();
   }
 
   // ── Filtro ─────────────────────────────────────────────────
   filtrar(): void {
-    const texto = this.busqueda.toLowerCase();
-    this.oficios = this.oficiosOriginales.filter(o => {
+    const texto = this.busqueda.toLowerCase().trim();
+ 
+    const base = this.oficiosOriginales.filter(o => {
       const estadoOk    = this.estadoSeleccionado === 'todos' || o.estado === this.estadoSeleccionado;
-      const parteOk     = this.parteSeleccionada ? o.parte === this.parteSeleccionada : true;
-      const demandadoOk = this.demandadoSeleccionado ? o.demandado_id === +this.demandadoSeleccionado : true;
-      const expOk       = o.expedienteModel
-        ? `${o.expedienteModel.numero}/${o.expedienteModel.anio}`.includes(texto) : false;
-      return estadoOk && parteOk && demandadoOk && (texto === '' || expOk);
+      const parteOk     = !this.parteSeleccionada || o.parte === this.parteSeleccionada;
+      const demandadoOk = !this.demandadoSeleccionado || String(o.demandado_id) === this.demandadoSeleccionado;
+      const textoOk     = !texto ||
+        (o.expedienteModel ? `${o.expedienteModel.numero}/${o.expedienteModel.anio}`.includes(texto) : false) ||
+        (o.expedienteModel?.caratula || '').toLowerCase().includes(texto) ||
+        (o.demandadoModel?.nombre || '').toLowerCase().includes(texto) ||
+        (o.parte || '').toLowerCase().includes(texto);
+      return estadoOk && parteOk && demandadoOk && textoOk;
     });
-    this.pageIndex = 0;
-    this.actualizarPagina();
+ 
+    this.listaOficios       = base.filter(o => o.tipo === 'oficio');
+    this.listaTestimoniales = base.filter(o => o.tipo === 'testimonial');
+    this.listaPericias      = base.filter(o => o.tipo === 'pericia');
+ 
+    this.actualizarPaginaOficios();
+    this.actualizarPaginaTestimoniales();
+    this.actualizarPaginaPericias();
   }
 
   // ── Ordenamiento ───────────────────────────────────────────
@@ -146,7 +194,11 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
   ordenarPor(campo: string): void {
     if (this.ordenCampo === campo) this.ordenAscendente = !this.ordenAscendente;
     else { this.ordenCampo = campo; this.ordenAscendente = true; }
-    this.actualizarPagina();
+    this.pageIndexOficios = 0;
+    this.pageIndexTestimoniales = 0;
+    this.pageIndexPericias = 0;
+
+    this.filtrar();
   }
 
   obtenerValorOrden(item: OficioModel, campo: string): any {
@@ -170,7 +222,9 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
       this.oficiosService.actualizarOficio(oficio.id!, actualizado).subscribe(() => {
         this.oficios = this.oficios.filter(o => o.id !== oficio.id);
         this.oficiosOriginales = this.oficiosOriginales.filter(o => o.id !== oficio.id);
-        this.actualizarPagina();
+            this.pageIndexOficios = 0;
+    this.pageIndexTestimoniales = 0;
+    this.pageIndexPericias = 0;
         Swal.fire('Eliminado', 'El oficio fue marcado como eliminado.', 'success');
       });
     });
@@ -227,11 +281,24 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
     const estadosQueRequierenFecha = new Set(['pendiente']);
     const parteOptions      = this.partes.map(p => `<option value="${p}" ${String(item.parte).toLowerCase() === p.toLowerCase() ? 'selected' : ''}>${p}</option>`).join('');
     const estadoOptions     = this.estadosPericia.map(e => `<option value="${e}" ${String(item.estado).toLowerCase() === e.toLowerCase() ? 'selected' : ''}>${e}</option>`).join('');
-    const tipoPericiaOptions= this.tiposPericia.map(t => `<option value="${t}" ${String(item.tipo_pericia || '') === t ? 'selected' : ''}>${t}</option>`).join('');
+    //const tipoPericiaOptions= this.tiposPericia.map(t => `<option value="${t}" ${String(item.tipo_pericia || '') === t ? 'selected' : ''}>${t}</option>`).join('');
     const expedienteTexto   = item?.expedienteModel ? `${item.expedienteModel.numero}/${item.expedienteModel.anio}` : '(sin expediente)';
     const estadoActual      = String(item?.estado || '').trim().toLowerCase();
     const fechaISO          = (estadosQueRequierenFecha.has(estadoActual) && item?.fecha_diligenciado) ? new Date(item.fecha_diligenciado).toISOString().split('T')[0] : '';
 
+    const tipoPericiaActual = String(item?.tipo_pericia || '').trim();
+
+    const tipoPericiaOptions =
+      `<option value="">Seleccionar tipo de pericia</option>` +
+      this.tiposPericia
+        .map(t => {
+          const selected = String(t).trim() === tipoPericiaActual ? 'selected' : '';
+          return `<option value="${t}" ${selected}>${t}</option>`;
+        })
+        .join('');
+
+        
+    
     Swal.fire({
       title: 'Modificar pericia',
       html: `<div style="text-align:left">
@@ -251,11 +318,12 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
         const fechaInp = (document.getElementById('sw-fecha') as HTMLInputElement)?.value || '';
         if (!nombre || !parteSel || !estadoSel || !tipoPeri) return Swal.showValidationMessage('Completá todos los campos.');
         if (estadosQueRequierenFecha.has(estadoSel.toLowerCase()) && !fechaInp) return Swal.showValidationMessage('Este estado requiere fecha.');
-        
+
         return { ...item, tipo: 'pericia', demandado_id: null, nombre_oficiada: nombre, tipo_pericia: tipoPeri, parte: parteSel, estado: estadoSel, fecha_diligenciado: estadosQueRequierenFecha.has(estadoSel.toLowerCase()) ? fechaInp : null };
       }
     }).then(res => {
       if (!res.isConfirmed || !res.value) return;
+      
       this.oficiosService.actualizarOficio(item.id!, res.value).subscribe({
         next: () => { Object.assign(item, res.value); Swal.fire({ icon: 'success', title: 'Pericia actualizada', timer: 1500, showConfirmButton: false }); },
         error: err => Swal.fire({ icon: 'error', title: 'No se pudo actualizar', text: err?.message })
@@ -302,12 +370,31 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
     });
   }
 
-  mostrarFecha(fecha: string | null | undefined): string {
-    if (!fecha) return '';
-    const partes = fecha.split(' ')[0].split('T')[0].split('-');
-    if (partes.length !== 3) return '';
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+mostrarFecha(fecha: any): string {
+  if (!fecha) return '—';
+
+  // Si viene YYYY-MM-DD o YYYY-MM-DDTHH...
+  if (typeof fecha === 'string') {
+    const soloFecha = fecha.split('T')[0].split(' ')[0];
+    const partes = soloFecha.split('-');
+
+    if (partes.length === 3) {
+      return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+
+    return soloFecha;
   }
+
+  // Si viene Date
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return '—';
+
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const anio = d.getFullYear();
+
+  return `${dia}/${mes}/${anio}`;
+}
 
   goTo(ruta: string): void { this.router.navigate([ruta]); }
 }

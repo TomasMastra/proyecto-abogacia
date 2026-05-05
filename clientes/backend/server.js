@@ -4425,48 +4425,125 @@ app.get("/oficios", async (req, res) => {
 });
 
 // postgres
-app.put("/oficios/modificar/:id", async (req, res) => {
-  const id = Number(req.params.id);
-  const { expediente_id, demandado_id, parte, estado, fecha_diligenciado } = req.body;
 
+app.put("/oficios/modificar/:id", async (req, res) => {
   try {
+    const id = Number(req.params.id);
+
+
+
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ mensaje: "ID inválido" });
     }
 
-    console.log("BODY OFICIO =>", req.body);
-console.log("fecha_diligenciado =>", fecha_diligenciado);
-    const { rowCount } = await pgPool.query(
-      `
-      UPDATE public.oficios
-      SET expediente_id = $1,
-          demandado_id = $2,
-          parte = $3,
-          estado = $4,
-          fecha_diligenciado = $5
-      WHERE id = $6
-      `,
-      [
-        expediente_id != null ? Number(expediente_id) : null,
-        demandado_id != null ? Number(demandado_id) : null,
-        parte ?? null,
-        estado ?? null,
-        fecha_diligenciado ? new Date(fecha_diligenciado) : null,
-        id,
-      ]
+    const prevR = await pgPool.query(
+      `SELECT * FROM public.oficios WHERE id = $1 LIMIT 1`,
+      [id]
     );
 
-    if (rowCount > 0) {
-      return res.status(200).json({ mensaje: "Oficio actualizado correctamente" });
-    } else {
-      return res.status(404).json({ mensaje: "Oficio no encontrado" });
+    if (!prevR.rows.length) {
+      return res.status(404).json({ mensaje: "Prueba no encontrada" });
     }
+
+    const prev = prevR.rows[0];
+    const tipo = String(prev.tipo || "").toLowerCase();
+
+    const {
+      demandado_id,
+      parte,
+      estado,
+      fecha_diligenciado,
+      nombre_oficiada,
+      tipo_pericia,
+      supletoria
+    } = req.body;
+
+    let query = "";
+    let params = [];
+
+    if (tipo === "oficio") {
+      query = `
+        UPDATE public.oficios
+        SET
+          demandado_id = $1,
+          parte = $2,
+          estado = $3,
+          fecha_diligenciado = $4
+        WHERE id = $5
+        RETURNING *
+      `;
+
+      params = [
+        demandado_id != null ? Number(demandado_id) : prev.demandado_id,
+        parte ?? prev.parte,
+        estado ?? prev.estado,
+        fecha_diligenciado ?? prev.fecha_diligenciado,
+        id
+      ];
+    }
+
+    else if (tipo === "testimonial") {
+      query = `
+        UPDATE public.oficios
+        SET
+          nombre_oficiada = $1,
+          parte = $2,
+          estado = $3,
+          fecha_diligenciado = $4,
+          supletoria = $5
+        WHERE id = $6
+        RETURNING *
+      `;
+
+      params = [
+        nombre_oficiada ?? prev.nombre_oficiada,
+        parte ?? prev.parte,
+        estado ?? prev.estado,
+        fecha_diligenciado ?? prev.fecha_diligenciado,
+        supletoria ?? prev.supletoria,
+        id
+      ];
+    }
+
+    else if (tipo === "pericia") {
+      query = `
+        UPDATE public.oficios
+        SET
+          nombre_oficiada = $1,
+          parte = $2,
+          estado = $3,
+          fecha_diligenciado = $4,
+          tipo_pericia = $5
+        WHERE id = $6
+        RETURNING *
+      `;
+
+      params = [
+        nombre_oficiada ?? prev.nombre_oficiada,
+        parte ?? prev.parte,
+        estado ?? prev.estado,
+        fecha_diligenciado ?? prev.fecha_diligenciado,
+        tipo_pericia ?? prev.tipo_pericia,
+        id
+      ];
+    }
+
+    else {
+      return res.status(400).json({ mensaje: "Tipo de prueba inválido" });
+    }
+
+    const { rows } = await pgPool.query(query, params);
+
+    return res.status(200).json(rows[0]);
+
   } catch (error) {
-    console.error("Error al actualizar oficio:", error);
-    return res.status(500).json({ mensaje: "Error al actualizar oficio", message: error.message });
+    console.error("Error al actualizar prueba:", error);
+    return res.status(500).json({
+      mensaje: "Error al actualizar prueba",
+      message: error.message
+    });
   }
 });
-
 // postgres
 
 
@@ -4954,6 +5031,7 @@ app.put("/oficios/modificar/:id", async (req, res) => {
     }
 
     if (tipoNorm === "pericia") {
+      console.log
       if (!final.nombre_oficiada) {
         return res.status(400).json({ error: 'Para tipo "pericia", nombre_oficiada (perito) es obligatorio' });
       }
