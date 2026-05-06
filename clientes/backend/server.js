@@ -5537,6 +5537,7 @@ app.get("/jurisprudencias", async (req, res) => {
         e.caratula,
         j.fecha_alzada,
         j.resultado,
+        j.resultado_alzada,
 
         COALESCE(
           (
@@ -5661,12 +5662,18 @@ app.post("/jurisprudencias", async (req, res) => {
       resultado,
       sentencia,
       motivos,
-      sala
+      sala,
+      resultado_alzada,
+      fecha_alzada,
     } = req.body || {};
 
     const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
     const fueroNorm = fuero ? String(fuero).toUpperCase().trim() : null;
     const resultadoNorm = resultado ? String(resultado).trim().toLowerCase() : null;
+    const resultadoAlzadaNorm =
+      resultado_alzada
+        ? String(resultado_alzada).trim().toLowerCase()
+        : null;
 
     if (!["propio", "ajeno"].includes(tipoExp)) {
       return res.status(400).json({
@@ -5805,9 +5812,10 @@ app.post("/jurisprudencias", async (req, res) => {
         juez_id,
         sentencia,
         fecha_alzada,
-        sala
+        sala,
+        resultado_alzada
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       `,
       [
         jurisprudenciaId,
@@ -5827,8 +5835,10 @@ app.post("/jurisprudencias", async (req, res) => {
         resultadoNorm,
         juez_id ? Number(juez_id) : null,
         tipoExp === "ajeno" && sentencia ? sentencia : null,
-        null,
-        tipoExp === "ajeno" ? String(sala || "").trim() : null
+        tipoExp === "ajeno" && fecha_alzada ? fecha_alzada : null,
+        tipoExp === "ajeno" ? String(sala || "").trim() : null,
+        resultadoAlzadaNorm,
+
       ]
     );
 
@@ -6093,7 +6103,9 @@ app.put("/jurisprudencias/:id", async (req, res) => {
       sentencia,
       juez_id,
       motivos,
-      sala
+      sala,
+      fecha_alzada,
+      resultado_alzada
     } = req.body || {};
 
     const existe = await client.query(
@@ -6110,6 +6122,10 @@ app.put("/jurisprudencias/:id", async (req, res) => {
     const estadoFinal = estado ?? null;
     const resultadoNorm = resultado ? String(resultado).trim().toLowerCase() : null;
     //const motivoNorm = motivo ? String(motivo).trim() : null;
+    const resultadoAlzadaNorm =
+      resultado_alzada
+        ? String(resultado_alzada).trim().toLowerCase()
+        : null;
 
     if (!["propio", "ajeno"].includes(tipoExp)) {
       return res.status(400).json({
@@ -6247,7 +6263,8 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         estado = $13,
         fecha_alzada = $14,
         resultado = $15,
-        sala = $16
+        sala = $16,
+        resultado_alzada = $17
       WHERE id = $1
       `,
       [
@@ -6273,9 +6290,10 @@ app.put("/jurisprudencias/:id", async (req, res) => {
           ? (codigo_id !== undefined && codigo_id !== null && codigo_id !== "" ? Number(codigo_id) : null)
           : null,
         estadoFinal,
-        null,
+        tipoExp === "ajeno" && fecha_alzada ? fecha_alzada : null,
         resultadoNorm,
-        tipoExp === "ajeno" ? String(sala || '').trim() : null
+        tipoExp === "ajeno" ? String(sala || '').trim() : null,
+        resultadoAlzadaNorm
       ]
     );
 
@@ -6349,7 +6367,8 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         c.codigo,
         c.descripcion,
         j.fecha_alzada,
-        j.resultado
+        j.resultado,
+        j.resultado_alzada
       FROM public.jurisprudencias j
       LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
       LEFT JOIN public.juez jue ON jue.id = j.juez_id
