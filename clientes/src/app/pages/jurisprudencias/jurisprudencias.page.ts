@@ -615,7 +615,27 @@ async agregarJurisprudencias(): Promise<void> {
           <option value="">Seleccionar juzgado</option>
         </select>
 
-        <input id="camaraAjeno" class="swal2-input campo-unificado" placeholder="Cámara">
+        <div class="grupo-campo-modal">
+
+        <label class="label-modal">Juez</label>
+
+        <select id="juezIdAjeno" class="swal2-select campo-unificado">
+          <option value="">Seleccionar juez</option>
+          ${(this.jueces || []).map(juez => `
+            <option value="${juez.id}">
+              ${[juez.apellido, juez.nombre].filter(Boolean).join(', ')}
+            </option>
+          `).join('')}
+        </select>
+      </div>
+
+        <div class="grupo-campo-modal">
+          <label class="label-modal">Sala</label>
+
+          <select id="salaAjeno" class="swal2-select campo-unificado">
+            <option value="">Sin asignar</option>
+          </select>
+        </div>
 
         <select id="codigoIdAjeno" class="swal2-select campo-unificado">
           <option value="">Seleccionar código</option>
@@ -691,6 +711,8 @@ async agregarJurisprudencias(): Promise<void> {
       const btnMotivoPropio = document.getElementById('btnAgregarMotivoPropio') as HTMLButtonElement;
       const btnMotivoAjeno = document.getElementById('btnAgregarMotivoAjeno') as HTMLButtonElement;
 
+      const salaAjeno = document.getElementById('salaAjeno') as HTMLSelectElement;
+
       const agregarMotivo = (select: HTMLSelectElement | null) => {
         const id = Number(select?.value);
         if (!id) return;
@@ -704,6 +726,34 @@ async agregarJurisprudencias(): Promise<void> {
         motivosAgregados.push({ id, nombre: motivo.nombre || '' });
         if (select) select.value = '';
         renderMotivosAgregados();
+      };
+
+      const renderSalasAjeno = (fuero: string, selected?: string) => {
+        const selectedNorm = String(selected || '').trim();
+
+        let salas: string[] = [''];
+
+        if (String(fuero).toUpperCase() === 'CCF') {
+          salas = ['', 'I', 'II', 'III'];
+        }
+
+        if (String(fuero).toUpperCase() === 'COM') {
+          salas = ['', 'A', 'B', 'C', 'D', 'E', 'F'];
+        }
+
+        salaAjeno.innerHTML = salas.map(s => {
+          const label = s === '' ? 'Sin asignar' : s;
+
+          const isSelected =
+            selectedNorm === s ||
+            (selectedNorm.toLowerCase() === 'sin asignar' && s === '');
+
+          return `
+            <option value="${s}" ${isSelected ? 'selected' : ''}>
+              ${label}
+            </option>
+          `;
+        }).join('');
       };
 
       const exps = this.expedientes || [];
@@ -744,6 +794,8 @@ async agregarJurisprudencias(): Promise<void> {
         );
       });
 
+
+
       selectExp.addEventListener('change', () => {
         const expId = Number(selectExp.value);
         if (!expId) {
@@ -759,6 +811,7 @@ async agregarJurisprudencias(): Promise<void> {
 
       fueroAjeno?.addEventListener('change', () => {
         renderJuzgadosFiltrados(juzgadoAjeno, fueroAjeno.value);
+        renderSalasAjeno(fueroAjeno.value);
       });
 
       btnAgregarDemandadoAjeno?.addEventListener('click', () => {
@@ -795,6 +848,8 @@ async agregarJurisprudencias(): Promise<void> {
       const codigoIdAj = (document.getElementById('codigoIdAjeno') as HTMLSelectElement)?.value ?? '';
       const sentenciaAj = (document.getElementById('sentenciaAjeno') as HTMLInputElement)?.value ?? '';
       const resultadoAj = (document.querySelector('#bloqueExpedienteAjeno input[name="resultado"]:checked') as HTMLInputElement)?.value ?? '';
+      const juezIdAj = (document.getElementById('juezIdAjeno') as HTMLSelectElement)?.value ?? '';
+      const salaAj = (document.getElementById('salaAjeno') as HTMLSelectElement)?.value ?? '';
 
       if (!tipo) {
         Swal.showValidationMessage('Seleccioná el tipo de expediente');
@@ -867,10 +922,16 @@ async agregarJurisprudencias(): Promise<void> {
         return null;
       }
 
-      if (!camaraAj) {
-        Swal.showValidationMessage('Completá la cámara');
+
+      if (!juezIdAj) {
+        Swal.showValidationMessage('Seleccioná el juez');
         return null;
       }
+
+      /*if (!camaraAj) {
+        Swal.showValidationMessage('Completá la cámara');
+        return null;
+      }*/
 
       if (!codigoIdAj) {
         Swal.showValidationMessage('Seleccioná el código');
@@ -896,7 +957,7 @@ async agregarJurisprudencias(): Promise<void> {
         fuero: fueroAj,
         demandados: demandadosAjeno.map(d => ({ id: d.id, tipo: d.tipo })),
         juzgado_id: Number(juzgadoIdAj),
-        juez_id: null,
+        juez_id: Number(juezIdAj),
         sentencia: sentenciaAj ? new Date(sentenciaAj) : null,
         camara: camaraAj,
         codigo_id: Number(codigoIdAj),
@@ -904,6 +965,8 @@ async agregarJurisprudencias(): Promise<void> {
         resultado: resultadoAj || null,
         motivo_id: primerMotivoId,
         motivos: motivosPayload,
+        sala: salaAj || null,
+
       };
     }
   });
@@ -1131,7 +1194,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
         <div id="bloqueJuezPropio" style="display:none;">
           <select id="juezIdPropio" class="swal2-select campo-unificado">
             <option value="">Seleccionar juez</option>
-            ${(this.jueces || []).map(x => `<option value="${x.id}" ${String(x.id) === String(j.juez_id) ? 'selected' : ''}>${x.nombre}</option>`).join('')}
+            ${(this.jueces || []).map(j => `<option value="${j.id}">${j.nombre}</option>`).join('')}
           </select>
         </div>
 
@@ -1176,7 +1239,25 @@ async modificarJurisprudencia(j: any): Promise<void> {
           <option value="">Seleccionar juzgado</option>
         </select>
 
-        <input id="camaraAjeno" class="swal2-input campo-unificado" placeholder="Cámara" value="${(j.camara || '').toString().replace(/"/g, '&quot;')}">
+
+
+        <select id="juezIdAjeno" class="swal2-select campo-unificado">
+          <option value="">Seleccionar juez</option>
+          ${(this.jueces || []).map(juez => `
+            <option value="${juez.id}"
+              ${String(juez.id) === String(j.juez_id) ? 'selected' : ''}>
+              ${[juez.apellido, juez.nombre].filter(Boolean).join(', ')}
+            </option>
+          `).join('')}
+        </select>
+
+        <div class="grupo-campo-modal">
+          <label class="label-modal">Sala</label>
+
+          <select id="salaAjeno" class="swal2-select campo-unificado">
+            <option value="">Sin asignar</option>
+          </select>
+        </div>
 
         <select id="codigoIdAjeno" class="swal2-select campo-unificado">
           <option value="">Seleccionar código</option>
@@ -1243,7 +1324,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
       const input = document.getElementById('expSearch') as HTMLInputElement;
       const selectExp = document.getElementById('expedienteId') as HTMLSelectElement;
 
-      const fueroAjeno = document.getElementById('fueroAjeno') as HTMLSelectElement;
+      //const fueroAjeno = document.getElementById('fueroAjeno') as HTMLSelectElement;
       const juzgadoAjeno = document.getElementById('juzgadoIdAjeno') as HTMLSelectElement;
       const demandadoAjeno = document.getElementById('demandadoIdAjeno') as HTMLSelectElement;
       const btnAgregarDemandadoAjeno = document.getElementById('btnAgregarDemandadoAjeno') as HTMLButtonElement;
@@ -1252,6 +1333,37 @@ async modificarJurisprudencia(j: any): Promise<void> {
       const motivoAjeno = document.getElementById('motivoIdAjeno') as HTMLSelectElement;
       const btnMotivoPropio = document.getElementById('btnAgregarMotivoPropio') as HTMLButtonElement;
       const btnMotivoAjeno = document.getElementById('btnAgregarMotivoAjeno') as HTMLButtonElement;
+
+      const fueroAjeno = document.getElementById('fueroAjeno') as HTMLSelectElement;
+      const salaAjeno = document.getElementById('salaAjeno') as HTMLSelectElement;
+
+      const renderSalasAjeno = (fuero: string, selected?: string) => {
+        const selectedNorm = String(selected || '').trim();
+
+        let salas: string[] = [''];
+
+        if (String(fuero).toUpperCase() === 'CCF') {
+          salas = ['', 'I', 'II', 'III'];
+        }
+
+        if (String(fuero).toUpperCase() === 'COM') {
+          salas = ['', 'A', 'B', 'C', 'D', 'E', 'F'];
+        }
+
+        salaAjeno.innerHTML = salas.map(s => {
+          const label = s === '' ? 'Sin asignar' : s;
+
+          const isSelected =
+            selectedNorm === s ||
+            (selectedNorm.toLowerCase() === 'sin asignar' && s === '');
+
+          return `
+            <option value="${s}" ${isSelected ? 'selected' : ''}>
+              ${label}
+            </option>
+          `;
+        }).join('');
+      };
 
       const agregarMotivo = (select: HTMLSelectElement | null) => {
         const id = Number(select?.value);
@@ -1279,6 +1391,10 @@ async modificarJurisprudencia(j: any): Promise<void> {
 
       if (tipoActual === 'ajeno' && j.fuero) {
         renderJuzgadosFiltrados(juzgadoAjeno, j.fuero, j.juzgado_id);
+      }
+
+      if (tipoActual === 'ajeno') {
+        renderSalasAjeno(j.fuero, j.sala);
       }
 
       if (tipoActual === 'propio' && j.expediente_id) {
@@ -1333,6 +1449,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
 
       fueroAjeno?.addEventListener('change', () => {
         renderJuzgadosFiltrados(juzgadoAjeno, fueroAjeno.value);
+        renderSalasAjeno(fueroAjeno.value);
       });
 
       btnAgregarDemandadoAjeno?.addEventListener('click', () => {
@@ -1370,6 +1487,8 @@ async modificarJurisprudencia(j: any): Promise<void> {
       const camaraAj = (document.getElementById('camaraAjeno') as HTMLInputElement)?.value.trim() ?? '';
       const codigoIdAj = (document.getElementById('codigoIdAjeno') as HTMLSelectElement)?.value ?? '';
       const sentenciaAj = (document.getElementById('sentenciaAjeno') as HTMLInputElement)?.value ?? '';
+      const salaAj = (document.getElementById('salaAjeno') as HTMLSelectElement)?.value ?? '';
+      const juezIdAj = (document.getElementById('juezIdAjeno') as HTMLSelectElement)?.value ?? '';
       const resultadoAj = tipo === 'ajeno'
         ? ((document.querySelector('#bloqueExpedienteAjeno input[name="resultado"]:checked') as HTMLInputElement)?.value ?? '')
         : '';
@@ -1399,6 +1518,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
           Swal.showValidationMessage('Seleccioná el juez');
           return null;
         }
+
 
         if (!resultadoPropio) {
           Swal.showValidationMessage('Seleccioná el resultado');
@@ -1445,10 +1565,15 @@ async modificarJurisprudencia(j: any): Promise<void> {
         return null;
       }
 
-      if (!camaraAj) {
-        Swal.showValidationMessage('Completá la cámara');
+      if (!juezIdAj) {
+        Swal.showValidationMessage('Seleccioná el juez');
         return null;
       }
+
+      /*if (!camaraAj) {
+        Swal.showValidationMessage('Completá la cámara');
+        return null;
+      }*/
 
       if (!codigoIdAj) {
         Swal.showValidationMessage('Seleccioná el código');
@@ -1474,7 +1599,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
         fuero: fueroAj,
         demandados: demandadosAjeno.map(d => ({ id: d.id, tipo: d.tipo })),
         juzgado_id: Number(juzgadoIdAj),
-        juez_id: null,
+        juez_id: Number(juezIdAj),
         sentencia: sentenciaAj ? new Date(sentenciaAj) : null,
         camara: camaraAj,
         codigo_id: Number(codigoIdAj),
@@ -1482,6 +1607,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
         resultado: resultadoAj || null,
         motivo_id: primerMotivoId,
         motivos: motivosPayload,
+        sala: salaAj || null,
       };
     }
   });
@@ -1563,6 +1689,22 @@ async modificarJurisprudencia(j: any): Promise<void> {
       !this.camaraSeleccionada ||
       String(j.camara || '') === String(this.camaraSeleccionada);
 
+          // 🔥 filtro por tipo de juzgado
+      const juzgadoDeLaJuris = this.juzgadosOriginales.find(juz =>
+        String(juz.id) === String(j.juzgado_id)
+      );
+
+      const tipoOk =
+        !this.tipoSeleccionado ||
+        this.tipoSeleccionado === 'todos' ||
+        String(juzgadoDeLaJuris?.tipo || '').toUpperCase() === String(this.tipoSeleccionado).toUpperCase();
+
+    // 🔥 filtro por juzgado puntual
+    const juzgadoOk =
+      !this.juzgadoSeleccionado ||
+      this.juzgadoSeleccionado === 'todos' ||
+      Number(j.juzgado_id) === Number(this.juzgadoSeleccionado);
+
     const cumpleMotivo =
       !this.motivoSeleccionado ||
       (
@@ -1570,7 +1712,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
         j.motivos.some((m: any) => String(m.id) === String(this.motivoSeleccionado))
       );
 
-    return cumpleBusqueda && cumpleJuzgado && cumpleJuez && cumpleCamara && cumpleMotivo;
+    return cumpleBusqueda && cumpleJuzgado && cumpleJuez && cumpleCamara && cumpleMotivo && tipoOk && juzgadoOk;
   });
 
   this.pageIndex = 0;
@@ -1578,22 +1720,19 @@ async modificarJurisprudencia(j: any): Promise<void> {
 }
 
 cambiarTipoJuzgado() {
-  console.log(this.tipoSeleccionado);
 
   if (!this.tipoSeleccionado || this.tipoSeleccionado === 'todos') {
     this.listaJuzgadosFiltro = [...this.juzgadosOriginales];
-    this.juzgadoSeleccionado = '';
-    this.filtrar();
-    return;
+  } else {
+
+    this.listaJuzgadosFiltro = this.juzgadosOriginales.filter(j =>
+      String(j.tipo).toUpperCase() === String(this.tipoSeleccionado).toUpperCase()
+    );
   }
 
-  const tipo = this.tipoSeleccionado.toLowerCase();
-
-  this.listaJuzgadosFiltro = this.juzgadosOriginales.filter(j =>
-    j.tipo?.toLowerCase() === tipo
-  );
-
+  // 🔥 importante
   this.juzgadoSeleccionado = '';
+
   this.filtrar();
 }
 }

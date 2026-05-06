@@ -5509,6 +5509,7 @@ app.get("/jurisprudencias", async (req, res) => {
 
         j.objeto,
         j.fuero,
+        j.sala,
 
         CASE
           WHEN j.tipo_expediente = 'propio' THEN e.juzgado_id
@@ -5654,11 +5655,13 @@ app.post("/jurisprudencias", async (req, res) => {
       fuero,
       demandados,
       juzgado_id,
+      juez_id,
       camara,
       codigo_id,
       resultado,
       sentencia,
-      motivos
+      motivos,
+      sala
     } = req.body || {};
 
     const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
@@ -5704,9 +5707,9 @@ app.post("/jurisprudencias", async (req, res) => {
         });
       }
 
-      if (!camara || !String(camara).trim()) {
+      if (!sala || !String(sala).trim()) {
         return res.status(400).json({
-          error: "camara es obligatoria para expediente ajeno"
+          error: "sala es obligatoria para expediente ajeno"
         });
       }
 
@@ -5801,9 +5804,10 @@ app.post("/jurisprudencias", async (req, res) => {
         resultado,
         juez_id,
         sentencia,
-        fecha_alzada
+        fecha_alzada,
+        sala
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
       `,
       [
         jurisprudenciaId,
@@ -5816,14 +5820,15 @@ app.post("/jurisprudencias", async (req, res) => {
         tipoExp === "ajeno"
           ? (juzgado_id !== undefined && juzgado_id !== null && juzgado_id !== "" ? Number(juzgado_id) : null)
           : null,
-        tipoExp === "ajeno" ? String(camara).trim() : null,
+        tipoExp === "ajeno" ? String(camara || "").trim() : null,
         tipoExp === "ajeno"
           ? (codigo_id !== undefined && codigo_id !== null && codigo_id !== "" ? Number(codigo_id) : null)
           : null,
         resultadoNorm,
+        juez_id ? Number(juez_id) : null,
+        tipoExp === "ajeno" && sentencia ? sentencia : null,
         null,
-        null,
-        null
+        tipoExp === "ajeno" ? String(sala || "").trim() : null
       ]
     );
 
@@ -5881,6 +5886,7 @@ app.post("/jurisprudencias", async (req, res) => {
           COALESCE(jue.nombre, '') || ' ' || COALESCE(jue.apellido, '')
         ) AS juez_nombre,
         j.camara,
+        j.sala,
         j.codigo_id,
         c.codigo,
         c.descripcion,
@@ -6052,237 +6058,6 @@ app.post("/pagos-capital/agregar", async (req, res) => {
   }
 });
 
-// postgres
-/*app.put("/jurisprudencias/:id", async (req, res) => {
-  const client = await pgPool.connect();
-
-  const nextId = async (seq) => {
-    const { rows } = await client.query(
-      `SELECT nextval($1::regclass) AS id`,
-      [seq]
-    );
-    return Number(rows[0].id);
-  };
-
-  try {
-    const id = Number(req.params.id);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ error: "ID inválido" });
-    }
-
-    const {
-      expediente_id,
-      tipo_expediente,
-      numero,
-      anio,
-      objeto,
-      demandados,
-      juzgado_id,
-      sentencia,
-      juez_id,
-      camara,
-      codigo_id,
-      estado
-    } = req.body || {};
-
-    const existe = await client.query(
-      `SELECT id FROM public.jurisprudencias WHERE id = $1`,
-      [id]
-    );
-
-    if (!existe.rowCount) {
-      return res.status(404).json({ error: "Jurisprudencia no encontrada" });
-    }
-
-    const tipoExp = String(tipo_expediente || "propio").trim().toLowerCase();
-    const fueroNorm = String(fuero || "").toUpperCase().trim();
-    const estadoFinal = estado ?? null;
-
-    if (!["propio", "ajeno"].includes(tipoExp)) {
-      return res.status(400).json({
-        error: "tipo_expediente inválido (propio | ajeno)"
-      });
-    }
-
-    if (fueroNorm && !FUEROS.includes(fueroNorm)) {
-      return res.status(400).json({
-        error: "Fuero inválido"
-      });
-    }
-
-    if (
-      juzgado_id === undefined || juzgado_id === null || juzgado_id === "" ||
-      juez_id === undefined || juez_id === null || juez_id === "" ||
-      !camara ||
-      codigo_id === undefined || codigo_id === null || codigo_id === ""
-    ) {
-      return res.status(400).json({
-        error: "Faltan datos obligatorios"
-      });
-    }
-
-    if (
-      tipoExp === "propio" &&
-      (expediente_id === undefined || expediente_id === null || expediente_id === "")
-    ) {
-      return res.status(400).json({
-        error: "expediente_id es obligatorio para expediente propio"
-      });
-    }
-
-    if (
-      tipoExp === "ajeno" &&
-      (
-        numero === undefined || numero === null || numero === "" ||
-        anio === undefined || anio === null || anio === ""
-      )
-    ) {
-      return res.status(400).json({
-        error: "numero y anio son obligatorios"
-      });
-    }
-
-    if (!Array.isArray(demandados) || demandados.length === 0) {
-      return res.status(400).json({
-        error: "Debe enviar al menos un demandado"
-      });
-    }
-
-    let demandadosFinal = demandados
-      .map((d) => ({
-        id: d?.id !== undefined && d?.id !== null && d?.id !== "" ? Number(d.id) : null,
-        tipo: String(d?.tipo || "").toLowerCase().trim()
-      }))
-      .filter((d) => d.id && !Number.isNaN(d.id));
-
-    if (demandadosFinal.length === 0) {
-      return res.status(400).json({
-        error: "Los demandados enviados no son válidos"
-      });
-    }
-
-    for (const d of demandadosFinal) {
-      if (d.tipo !== "empresa" && d.tipo !== "cliente") {
-        return res.status(400).json({
-          error: `Tipo de demandado inválido: ${d.tipo}`
-        });
-      }
-    }
-
-    const usados = new Set();
-    demandadosFinal = demandadosFinal.filter((d) => {
-      const key = `${d.tipo}-${d.id}`;
-      if (usados.has(key)) return false;
-      usados.add(key);
-      return true;
-    });
-
-    await client.query("BEGIN");
-
-    await client.query(
-      `
-      UPDATE public.jurisprudencias
-      SET
-        expediente_id = $2,
-        tipo_expediente = $3,
-        numero = $4,
-        anio = $5,
-        objeto = $6,
-        juzgado_id = $7,
-        sentencia = $8,
-        juez_id = $9,
-        camara = $10,
-        codigo_id = $11,
-        estado = $12
-      WHERE id = $1
-      `,
-      [
-        id,
-        tipoExp === "propio" ? Number(expediente_id) : null,
-        tipoExp,
-        tipoExp === "ajeno" ? Number(numero) : null,
-        tipoExp === "ajeno" ? Number(anio) : null,
-        objeto ?? null,
-        fueroNorm,
-        Number(juzgado_id),
-        sentencia ? new Date(sentencia) : null,
-        Number(juez_id),
-        String(camara).trim(),
-        Number(codigo_id),
-        estadoFinal
-      ]
-    );
-
-    await client.query(
-      `DELETE FROM public.jurisprudencias_demandados WHERE id_jurisprudencia = $1`,
-      [id]
-    );
-
-    for (const d of demandadosFinal) {
-      const idRel = await nextId("public.seq_jurisprudencias_demandados");
-
-      await client.query(
-        `
-        INSERT INTO public.jurisprudencias_demandados
-          (id, id_jurisprudencia, id_demandado, id_cliente, tipo)
-        VALUES
-          (
-            $1,
-            $2,
-            CASE WHEN $3 = 'empresa' THEN $4::int ELSE NULL END,
-            CASE WHEN $3 = 'cliente' THEN $4::int ELSE NULL END,
-            $3
-          )
-        `,
-        [idRel, id, d.tipo, d.id]
-      );
-    }
-
-    await client.query("COMMIT");
-
-    const { rows } = await client.query(
-      `
-      SELECT
-        j.id,
-        j.expediente_id,
-        j.tipo_expediente,
-        j.numero,
-        j.anio,
-        j.objeto,
-        j.juzgado_id,
-        juz.nombre AS juzgado_nombre,
-        j.sentencia,
-        j.juez_id,
-        jue.nombre AS juez_nombre,
-        j.camara,
-        j.codigo_id,
-        j.estado,
-        c.codigo,
-        c.descripcion
-      FROM public.jurisprudencias j
-      LEFT JOIN public.juzgados juz ON juz.id = j.juzgado_id
-      LEFT JOIN public.juez jue ON jue.id = j.juez_id
-      LEFT JOIN public.codigos c ON c.id = j.codigo_id
-      WHERE j.id = $1
-      `,
-      [id]
-    );
-
-    return res.json(rows[0]);
-
-  } catch (err) {
-    try { await client.query("ROLLBACK"); } catch {}
-    console.error("PUT /jurisprudencias/:id error:", err);
-    return res.status(500).json({
-      error: "Error al modificar jurisprudencia",
-      message: err.message
-    });
-  } finally {
-    client.release();
-  }
-});*/
-
 
 app.put("/jurisprudencias/:id", async (req, res) => {
   const client = await pgPool.connect();
@@ -6317,7 +6092,8 @@ app.put("/jurisprudencias/:id", async (req, res) => {
       resultado,
       sentencia,
       juez_id,
-      motivos
+      motivos,
+      sala
     } = req.body || {};
 
     const existe = await client.query(
@@ -6377,9 +6153,9 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         });
       }
 
-      if (!camara || !String(camara).trim()) {
+      if (!sala || !String(sala).trim()) {
         return res.status(400).json({
-          error: "camara es obligatoria para expediente ajeno"
+          error: "sala es obligatoria para expediente ajeno"
         });
       }
 
@@ -6470,7 +6246,8 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         codigo_id = $12,
         estado = $13,
         fecha_alzada = $14,
-        resultado = $15
+        resultado = $15,
+        sala = $16
       WHERE id = $1
       `,
       [
@@ -6484,18 +6261,21 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         tipoExp === "ajeno"
           ? (juzgado_id !== undefined && juzgado_id !== null && juzgado_id !== "" ? Number(juzgado_id) : null)
           : null,
-        sentencia, // sentencia
-        tipoExp === "propio"
-          ? (juez_id !== undefined && juez_id !== null && juez_id !== "" ? Number(juez_id) : null)
+        sentencia || null,
+
+        // juez_id $10
+        juez_id !== undefined && juez_id !== null && juez_id !== ""
+          ? Number(juez_id)
           : null,
-        tipoExp === "ajeno" ? String(camara).trim() : null,
+
+        tipoExp === "ajeno" ? String(camara || '').trim() : null,
         tipoExp === "ajeno"
           ? (codigo_id !== undefined && codigo_id !== null && codigo_id !== "" ? Number(codigo_id) : null)
           : null,
         estadoFinal,
-        null, // fecha_alzada
+        null,
         resultadoNorm,
-
+        tipoExp === "ajeno" ? String(sala || '').trim() : null
       ]
     );
 
@@ -6563,6 +6343,7 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         j.juez_id,
         jue.nombre AS juez_nombre,
         j.camara,
+        j.sala,
         j.codigo_id,
         j.estado,
         c.codigo,
