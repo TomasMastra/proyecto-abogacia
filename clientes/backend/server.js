@@ -5535,6 +5535,7 @@ app.get("/jurisprudencias", async (req, res) => {
         c.descripcion,
         j.estado,
         e.caratula,
+        e.busqueda,
         j.fecha_alzada,
         j.resultado,
         j.resultado_alzada,
@@ -5585,17 +5586,40 @@ app.get("/jurisprudencias", async (req, res) => {
 
       FROM public.jurisprudencias j
 
-      LEFT JOIN LATERAL (
-        SELECT
-          e.caratula,
-          e.numero,
-          e.anio,
-          e.juzgado_id,
-          e.juez_id
-        FROM public.expedientes e
-        WHERE e.id = j.expediente_id
-        LIMIT 1
-      ) e ON true
+     LEFT JOIN LATERAL (
+      SELECT
+        e.caratula,
+        e.numero,
+        e.anio,
+        e.juzgado_id,
+        e.juez_id,
+        COALESCE((
+          SELECT string_agg(btrim(p.nombre_completo::text), ' | ')
+          FROM (
+            SELECT btrim(c.nombre || ' ' || c.apellido) AS nombre_completo
+            FROM public.clientes_expedientes ce
+            JOIN public.clientes c ON c.id = ce.id_cliente
+            WHERE ce.id_expediente = e.id
+
+            UNION ALL
+
+            SELECT btrim(d.nombre) AS nombre_completo
+            FROM public.expedientes_demandados ed
+            JOIN public.demandados d ON d.id = ed.id_demandado
+            WHERE ed.id_expediente = e.id
+
+            UNION ALL
+
+            SELECT btrim(c2.nombre || ' ' || c2.apellido) AS nombre_completo
+            FROM public.expedientes_demandados ed2
+            JOIN public.clientes c2 ON c2.id = ed2.id_cliente
+            WHERE ed2.id_expediente = e.id
+          ) p
+        ), '') AS busqueda
+      FROM public.expedientes e
+      WHERE e.id = j.expediente_id
+      LIMIT 1
+    ) e ON true
 
       LEFT JOIN public.juzgados juz
         ON juz.id = (

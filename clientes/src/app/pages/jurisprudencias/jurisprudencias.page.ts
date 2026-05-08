@@ -128,62 +128,101 @@ export class JurisprudenciasPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
+armarFiltrosDesdeJurisprudencias(): void {
+  const mapJuzgados = new Map<string, any>();
+  const mapMotivos = new Map<string, any>();
+  const mapJueces = new Map<string, any>();
+  const setSalas = new Set<string>();
 
-  armarFiltrosDesdeJurisprudencias(): void {
-    const mapJuzgados = new Map<string, any>();
-    const mapMotivos = new Map<string, any>();
-    const mapJueces = new Map<string, any>();
-    const setCamaras = new Set<string>();
+  for (const j of this.jurisprudenciasOriginales || []) {
+    if ((j as any).juzgado_id && (j as any).juzgado_nombre) {
+      mapJuzgados.set(String((j as any).juzgado_id), {
+        id: (j as any).juzgado_id,
+        nombre: (j as any).juzgado_nombre
+      });
+    }
 
-    for (const j of this.jurisprudenciasOriginales || []) {
-      if ((j as any).juzgado_id && (j as any).juzgado_nombre) {
-        mapJuzgados.set(String((j as any).juzgado_id), {
-          id: (j as any).juzgado_id,
-          nombre: (j as any).juzgado_nombre
-        });
-      }
+    if ((j as any).juez_id && (j as any).juez_nombre) {
+      mapJueces.set(String((j as any).juez_id), {
+        id: (j as any).juez_id,
+        nombre: (j as any).juez_nombre
+      });
+    }
 
-      if ((j as any).juez_id && (j as any).juez_nombre) {
-        mapJueces.set(String((j as any).juez_id), {
-          id: (j as any).juez_id,
-          nombre: (j as any).juez_nombre
-        });
-      }
-
-      if (Array.isArray((j as any).motivos)) {
-        for (const m of (j as any).motivos) {
-          if (m?.id && m?.nombre) {
-            mapMotivos.set(String(m.id), {
-              id: m.id,
-              nombre: m.nombre
-            });
-          }
+    if (Array.isArray((j as any).motivos)) {
+      for (const m of (j as any).motivos) {
+        if (m?.id && m?.nombre) {
+          mapMotivos.set(String(m.id), {
+            id: m.id,
+            nombre: m.nombre
+          });
         }
-      }
-
-      if ((j as any).camara) {
-        setCamaras.add(String((j as any).camara).trim());
       }
     }
 
-    this.listaJuzgadosFiltro = Array.from(mapJuzgados.values())
-      .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+    const tipo = String((j as any).tipo_expediente || '').toLowerCase();
 
-    this.listaJuecesFiltro = Array.from(mapJueces.values())
-      .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+    const salaReal =
+      (j as any).sala ||
+      (j as any).expedienteModel?.sala ||
+      (j as any).expedienteModel?.juzgadoModel?.sala ||
+      null;
 
-    this.listaMotivosFiltro = (this.motivos || [])
-      .filter(m => m.estado !== 'eliminado')
-      .map(m => ({
-        id: m.id,
-        nombre: m.nombre
-      }))
-      .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
-
-    this.listaCamarasFiltro = Array.from(setCamaras)
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
+    if (salaReal) {
+      setSalas.add(String(salaReal).trim());
+    }
   }
+
+  this.listaJuzgadosFiltro = Array.from(mapJuzgados.values())
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+
+  this.listaJuecesFiltro = Array.from(mapJueces.values())
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+
+  this.listaMotivosFiltro = (this.motivos || [])
+    .filter(m => m.estado !== 'eliminado')
+    .map(m => ({
+      id: m.id,
+      nombre: m.nombre
+    }))
+    .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+
+  this.listaCamarasFiltro = Array.from(setSalas)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+actualizarSalasFiltro(): void {
+  const setSalas = new Set<string>();
+
+  for (const j of this.jurisprudenciasOriginales || []) {
+    const tipoJuzgado =
+      (j as any).juzgado_tipo ||
+      (j as any).juzgadoModel?.tipo ||
+      this.juzgadosOriginales.find(x => Number(x.id) === Number((j as any).juzgado_id))?.tipo ||
+      '';
+
+    const cumpleTipo =
+      !this.tipoSeleccionado ||
+      this.tipoSeleccionado === 'todos' ||
+      String(tipoJuzgado).toUpperCase() === String(this.tipoSeleccionado).toUpperCase();
+
+    if (!cumpleTipo) continue;
+
+    const sala =
+      (j as any).sala ||
+      (j as any).expedienteModel?.sala ||
+      '';
+
+    if (sala) {
+      setSalas.add(String(sala).trim().toUpperCase());
+    }
+  }
+
+  this.listaCamarasFiltro = Array.from(setSalas)
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}
 
   cargarJurisprudencias(): void {
     this.cargando = true;
@@ -1584,84 +1623,91 @@ async modificarJurisprudencia(j: any): Promise<void> {
   const q = this.normalizar(this.busqueda);
 
   this.jurisprudencias = this.jurisprudenciasOriginales.filter((j: any) => {
-    const textoDemandados = Array.isArray(j.demandados)
-      ? j.demandados.map((d: any) => d.nombre || '').join(' ')
-      : '';
+
+    const demandadosArray = Array.isArray(j.demandados) ? j.demandados : [];
+
+    const textoDemandados = demandadosArray
+      .map((d: any) => String(d?.nombre || ''))
+      .join(' ');
 
     const textoMotivos = Array.isArray(j.motivos)
-      ? j.motivos.map((m: any) => m.nombre || '').join(' ')
+      ? j.motivos.map((m: any) => String(m?.nombre || '')).join(' ')
       : '';
 
     const textoCompleto = this.normalizar([
       j.numero,
       j.anio,
       j.caratula,
-      j.fuero,
-      j.juzgado_nombre,
-      j.juez_nombre,
-      j.camara,
+      j.busqueda,
       textoDemandados,
       textoMotivos
     ].join(' '));
 
     const cumpleBusqueda = !q || textoCompleto.includes(q);
 
+    const juzgadoDeLaJuris = this.juzgadosOriginales.find(juz =>
+      String(juz.id) === String(j.juzgado_id)
+    );
+
+    const tipoJuzgado =
+      j.juzgadoModel?.tipo ||
+      juzgadoDeLaJuris?.tipo ||
+      '';
+
+    const salaReal =
+      j.sala ||
+      j.expedienteModel?.sala ||
+      j.expedienteModel?.juzgadoModel?.sala ||
+      '';
+
+    const cumpleTipo =
+      !this.tipoSeleccionado ||
+      this.tipoSeleccionado === 'todos' ||
+      String(tipoJuzgado).toUpperCase() === String(this.tipoSeleccionado).toUpperCase();
+
     const cumpleJuzgado =
       !this.juzgadoSeleccionado ||
+      this.juzgadoSeleccionado === 'todos' ||
       String(j.juzgado_id) === String(this.juzgadoSeleccionado);
 
     const cumpleJuez =
       !this.juezSeleccionado ||
+      this.juezSeleccionado === 'todos' ||
       String(j.juez_id) === String(this.juezSeleccionado);
 
-    const cumpleCamara =
+    const cumpleSala =
       !this.camaraSeleccionada ||
-      String(j.camara || '') === String(this.camaraSeleccionada);
-
-          // 🔥 filtro por tipo de juzgado
-      const juzgadoDeLaJuris = this.juzgadosOriginales.find(juz =>
-        String(juz.id) === String(j.juzgado_id)
-      );
-
-      const tipoOk =
-        !this.tipoSeleccionado ||
-        this.tipoSeleccionado === 'todos' ||
-        String(juzgadoDeLaJuris?.tipo || '').toUpperCase() === String(this.tipoSeleccionado).toUpperCase();
-
-    // 🔥 filtro por juzgado puntual
-    const juzgadoOk =
-      !this.juzgadoSeleccionado ||
-      this.juzgadoSeleccionado === 'todos' ||
-      Number(j.juzgado_id) === Number(this.juzgadoSeleccionado);
+      this.camaraSeleccionada === 'todos' ||
+      String(salaReal).trim().toUpperCase() === String(this.camaraSeleccionada).trim().toUpperCase();
 
     const cumpleMotivo =
       !this.motivoSeleccionado ||
+      this.motivoSeleccionado === 'todos' ||
       (
         Array.isArray(j.motivos) &&
         j.motivos.some((m: any) => String(m.id) === String(this.motivoSeleccionado))
       );
 
-    return cumpleBusqueda && cumpleJuzgado && cumpleJuez && cumpleCamara && cumpleMotivo && tipoOk && juzgadoOk;
+    return cumpleBusqueda && cumpleTipo && cumpleJuzgado && cumpleJuez && cumpleSala && cumpleMotivo;
   });
 
   this.pageIndex = 0;
   this.actualizarPagina();
 }
 
-cambiarTipoJuzgado() {
-
+cambiarTipoJuzgado(): void {
   if (!this.tipoSeleccionado || this.tipoSeleccionado === 'todos') {
     this.listaJuzgadosFiltro = [...this.juzgadosOriginales];
   } else {
-
     this.listaJuzgadosFiltro = this.juzgadosOriginales.filter(j =>
       String(j.tipo).toUpperCase() === String(this.tipoSeleccionado).toUpperCase()
     );
   }
 
-  // 🔥 importante
   this.juzgadoSeleccionado = '';
+  this.camaraSeleccionada = '';
 
+  this.actualizarSalasFiltro();
   this.filtrar();
 }
 }

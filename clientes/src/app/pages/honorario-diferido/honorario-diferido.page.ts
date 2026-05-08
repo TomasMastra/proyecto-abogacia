@@ -1058,6 +1058,31 @@ calcularCobroFinal(
   return (montoConPorcentajeGeneral * (100 - porcentajeOtro)) / 100;
 }
 
+calcularParteAbogado(
+  montoYaDelEstudio: number | null,
+  usuario_id: number | null,
+  procurador_id: number | null
+): number {
+  if (montoYaDelEstudio == null || usuario_id == null || procurador_id == null) return 0;
+
+  const ADMIN_ID = 7;
+
+  if (usuario_id === ADMIN_ID && procurador_id === ADMIN_ID) {
+    return montoYaDelEstudio;
+  }
+
+  if (usuario_id === procurador_id) {
+    const usuario = this.listaUsuarios.find(u => u.id === usuario_id);
+    const porcentajeOtro = Number(usuario?.porcentaje ?? 0);
+    return (montoYaDelEstudio * (100 - porcentajeOtro)) / 100;
+  }
+
+  const otroId = usuario_id === ADMIN_ID ? procurador_id : usuario_id;
+  const otroUsuario = this.listaUsuarios.find(u => u.id === otroId);
+  const porcentajeOtro = Number(otroUsuario?.porcentaje ?? 0);
+
+  return (montoYaDelEstudio * (100 - porcentajeOtro)) / 100;
+}
 
 calcularCobroFinalHonorario(
   monto: number | null,

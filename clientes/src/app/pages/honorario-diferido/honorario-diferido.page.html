@@ -74,7 +74,7 @@
             <th *ngIf="estado == 'sentencia'">Importe total</th>
             <th *ngIf="estado == 'cobrado'">Fecha de cobro</th>
             <th *ngIf="estado == 'sentencia'">% a cobrar</th>
-            <th>Pendiente / Final</th>
+            <th>Final</th>
             <th *ngIf="estado == 'cobrado'">Cobrado</th>
           </tr>
         </thead>
@@ -144,10 +144,11 @@
                   <ng-template #sinMonto>—</ng-template>
                 </td> 
 
-                <td *ngIf="estado === 'cobrado' && (item.capitalCobrado == true || item.esPagoParcial == true)" class="td-cobrado">
-                  <span *ngIf="item.esPagoParcial != 1">{{ calcularCobroFinal(item.capitalPagoParcial, item.porcentaje, item.usuario_id, item.procurador_id) | currency:'$' }}</span>
-                  <span *ngIf="item.esPagoParcial == 1">{{ calcularCobroFinal(item.capitalPagoParcial, item.porcentaje, item.usuario_id, item.procurador_id) | currency:'$' }} <small class="tag-parcial">parcial</small></span>
-                </td>
+                 <td *ngIf="estado === 'cobrado' && (item.capitalCobrado == true || item.esPagoParcial == true)" class="td-cobrado">
+                  <span *ngIf="item.esPagoParcial != 1">{{ calcularParteAbogado(item.capitalPagoParcial, item.usuario_id, item.procurador_id) | currency:'$' }}</span>
+                  <span *ngIf="item.esPagoParcial == 1">{{ calcularParteAbogado(item.capitalPagoParcial, item.usuario_id, item.procurador_id) | currency:'$' }} <small class="tag-parcial">parcial</small></span>
+                </td> 
+
 
                 <td *ngIf="item.capitalCobrado && estado == 'sentencia'" [attr.colspan]="5" class="td-cobrado-banner">
                   <span class="cobrado-label">✓ Ya está todo cobrado</span>

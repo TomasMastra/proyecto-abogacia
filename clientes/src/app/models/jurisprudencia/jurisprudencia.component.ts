@@ -46,6 +46,8 @@ export interface JurisprudenciaModel {
   // compatibilidad vieja
   demandado_id?: number | null;
 
+  busqueda: string | null,
+
   // nuevo esquema
   demandados?: JurisprudenciaDemandadoModel[];
 
