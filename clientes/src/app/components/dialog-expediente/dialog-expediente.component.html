@@ -92,7 +92,7 @@
       <mat-form-field appearance="outline" class="full-width">
         <mat-label style="color:black">Abogado</mat-label>
         <mat-select style="color:black" formControlName="abogado" [(ngModel)]="abogadoSeleccionado">
-          <mat-option style="color:black" *ngFor="let usuario of listaUsuarios" [value]="usuario">
+          <mat-option style="color:black" *ngFor="let usuario of listaUsuarios" [value]="usuario.id">
             {{ usuario.nombre }}
           </mat-option>
         </mat-select>

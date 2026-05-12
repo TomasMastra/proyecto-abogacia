@@ -132,6 +132,11 @@ estadosHonorarios: string[] = [
   'solicita se regulan'
 ];*/
 
+tabRegistro: 'expedientes' | 'mediaciones' = 'expedientes';
+
+cantidadExpedientes = 0;
+cantidadMediaciones = 0;
+
   subEstadosCapitalApelado = ESTADOS_CAPITAL_APELADO;
   subEstadosCapitalPendiente = ESTADOS_CAPITAL_PENDIENTE;
   subEstadosCapitalFirme = ESTADOS_CAPITAL_FIRME;
@@ -221,6 +226,16 @@ ngOnInit() {
         this.hayHonorarios = this.honorariosOriginales.length > 0;
         this.aplicarFiltros();
         this.cargando = false;
+
+                  this.cantidadMediaciones = this.honorariosOriginales.filter(
+          x => String(x.tipo_registro || '').toLowerCase() === 'mediacion'
+        ).length;
+
+        this.cantidadExpedientes = this.honorariosOriginales.filter(
+          x => String(x.tipo_registro || '').toLowerCase() !== 'mediacion'
+        ).length;
+
+
       },
       error: (err) => {
         console.error('Error al obtener honorarios:', err);
@@ -286,6 +301,10 @@ cambiarEstado(selectedValue: 'sentencia' | 'cobrado') {
           this.setLoading();
 
           this.filtrar();
+
+          
+
+
         },
         error: (error) => {
           console.error('Error al obtener cobrados:', error);
@@ -1147,6 +1166,9 @@ filtrar() {
 }
 
 aplicarFiltros() {
+
+
+
   const texto = (this.busqueda || '').toLowerCase().trim();
 
   this.honorariosDiferidos = this.honorariosOriginales.filter((expediente: any) => {
@@ -1172,6 +1194,13 @@ aplicarFiltros() {
 
     const numeroOk = expediente.numero?.toString().includes(texto);
     const anioOk = expediente.anio?.toString().includes(texto);
+
+    const esMediacion = String(expediente.tipo_registro || '').toLowerCase() === 'mediacion';
+
+    const cumpleRegistro =
+      this.tabRegistro === 'mediaciones'
+        ? esMediacion
+        : !esMediacion;
 
     const matchParte = (p: any) => {
       if (!p) return false;
@@ -1211,7 +1240,7 @@ aplicarFiltros() {
 
     const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
 
-    return estadoCoincide && busquedaOk && procuradorOk && this.esVisible(expediente);
+    return estadoCoincide && busquedaOk && cumpleRegistro && procuradorOk && this.esVisible(expediente);
   });
   this.pageIndex = 0;
   this.actualizarPagina();
@@ -1489,5 +1518,6 @@ getRowspan(item: any): number {
 
   return total || 1;
 }
+
 
 }

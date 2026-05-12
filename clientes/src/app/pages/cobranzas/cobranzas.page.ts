@@ -61,6 +61,8 @@ export class CobranzasPage implements OnInit {
   hayExpedientes: boolean = true;
   private destroy$ = new Subject<void>();
   busqueda: string = '';
+  esAdmin: boolean = false;
+
 
   ordenCampo: string = '';
   ordenAscendente: boolean = true;
@@ -89,9 +91,23 @@ export class CobranzasPage implements OnInit {
   detalleMesTotal: any | null = null;
   detalleMesTitulo = '';
 
+  private routerSub!: Subscription;
+  private loginSub!: Subscription;
+
 ngOnInit() {
   this.cargarPagos();
   this.cargarCobrosPorMes();
+
+      this.loginSub = this.usuarioService.logeado$.subscribe(logeado => {
+      if (logeado) {
+        const u = this.usuarioService.usuarioLogeado;
+        //this.nombreUsuario = u?.nombre ?? 'Usuario';
+        this.esAdmin = u?.rol === 'admin';
+      } else {
+        //this.nombreUsuario = '';
+        this.esAdmin = false;
+      }
+    });
 }
 
 cargarCobrosPorMes(): void {

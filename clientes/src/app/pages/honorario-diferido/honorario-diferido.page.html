@@ -47,6 +47,24 @@
 
     </div>
 
+    <div class="tabs-row">
+  <button
+    class="tab-btn"
+    [class.active]="tabRegistro === 'expedientes'"
+    (click)="tabRegistro = 'expedientes'; filtrar()">
+    Expedientes
+    <span class="tab-count">{{ cantidadExpedientes }}</span>
+  </button>
+
+  <button
+    class="tab-btn"
+    [class.active]="tabRegistro === 'mediaciones'"
+    (click)="tabRegistro = 'mediaciones'; filtrar()">
+    Mediaciones
+    <span class="tab-count">{{ cantidadMediaciones }}</span>
+  </button>
+</div>
+
     <!-- Loader -->
     <div class="loader-wrap" *ngIf="cargando">
       <mat-progress-spinner mode="indeterminate" diameter="40" color="primary"></mat-progress-spinner>

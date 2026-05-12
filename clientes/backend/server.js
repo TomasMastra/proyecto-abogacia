@@ -2871,7 +2871,7 @@ app.get("/expedientes/jueces", async (req, res) => {
 app.get("/juez", async (req, res) => {
   try {
     const { rows } = await pgPool.query(
-      "SELECT * FROM public.juez WHERE estado <> 'eliminado'"
+      "SELECT * FROM public.juez WHERE estado <> 'eliminado' ORDER by apellido ASC"
     );
     return res.json(rows);
   } catch (err) {
@@ -4370,7 +4370,8 @@ app.post("/oficios/agregar", async (req, res) => {
         return res.status(400).json({ error: 'Para tipo "pericia", nombre_oficiada (perito) es obligatorio' });
       }
       const tp = String(tipo_pericia || "").toLowerCase().trim();
-      if (!["pericial informática", "pericial informatica","pericial contable", "pericial caligrafica", "pericial telecomunicaciones"].includes(tp)) {
+      if (!["pericial informática", "pericial informatica","pericial contable", "pericial caligrafica", "pericial telecomunicaciones",
+            "pericial psicologica", "pericial medico"].includes(tp)) {
         return res.status(400).json({ error: 'tipo_pericia inválido. Solo "Pericial informática".' });
       }
     }
@@ -5031,12 +5032,13 @@ app.put("/oficios/modificar/:id", async (req, res) => {
     }
 
     if (tipoNorm === "pericia") {
-      console.log
+      //console.log
       if (!final.nombre_oficiada) {
         return res.status(400).json({ error: 'Para tipo "pericia", nombre_oficiada (perito) es obligatorio' });
       }
       const tp = (final.tipo_pericia || "").toLowerCase();
-      if (!["pericial informática", "pericial informatica", "pericial contable", "pericial caligrafica", "pericial telecomunicaciones"].includes(tp)) {
+      if (!["pericial informática", "pericial informatica", "pericial contable", "pericial caligrafica", "pericial telecomunicaciones",
+        "pericial psicologica", "pericial medico"].includes(tp)) {
         return res.status(400).json({ error: 'tipo_pericia inválido. Solo "Pericial informática".' });
       }
       final.demandado_id = null;
@@ -5658,8 +5660,81 @@ app.get("/jurisprudencias", async (req, res) => {
   }
 });
 
+async function validarJurisprudenciaDuplicada(client, {
+  expediente_id,
+  numero,
+  anio,
+  fuero,
+  tipo_expediente,
+  excluirId = null
+}) {
+
+  console.log({
+  numero,
+  anio,
+  fuero,
+  tipo_expediente
+});
+
+  // PROPIO
+  if (String(tipo_expediente).toLowerCase() === 'propio') {
+
+    const params = [Number(expediente_id)];
+    let sql = `
+      SELECT id
+      FROM public.jurisprudencias
+      WHERE tipo_expediente = 'propio'
+        AND expediente_id = $1 AND COALESCE(estado, '') <> 'eliminado'
+    `;
+
+    if (excluirId) {
+      params.push(Number(excluirId));
+      sql += ` AND id <> $2`;
+    }
+
+    const { rows } = await client.query(sql, params);
+
+    if (rows.length > 0) {
+      throw new Error('Ese expediente propio ya tiene una jurisprudencia cargada');
+    }
+  }
+
+  // AJENO
+  if (String(tipo_expediente).toLowerCase() === 'ajeno') {
+    const params = [
+      Number(numero),
+      Number(anio),
+      String(fuero || '').toUpperCase().trim()
+    ];
+
+let sql = `
+  SELECT id, numero, anio, fuero, sala, estado
+  FROM public.jurisprudencias
+  WHERE tipo_expediente = 'ajeno'
+    AND numero = $1
+    AND anio = $2
+    AND UPPER(TRIM(COALESCE(fuero, ''))) = $3
+    AND COALESCE(estado, '') <> 'eliminado'
+`;
+
+    if (excluirId) {
+      params.push(Number(excluirId));
+      sql += ` AND id <> $4`;
+    }
+
+    const { rows } = await client.query(sql, params);
+
+    console.log("REPETIDOS ENCONTRADOS =>", rows);
+
+    if (rows.length > 0) {
+      throw new Error("REPETIDOS: " + JSON.stringify(rows));
+    }
+  }
+}
+
 // postgres
 app.post("/jurisprudencias", async (req, res) => {
+  //console.log("🔥 ENTRÓ AL POST /jurisprudencias", req.body);
   const client = await pgPool.connect();
 
   const nextId = async (seq) => {
@@ -5738,11 +5813,11 @@ app.post("/jurisprudencias", async (req, res) => {
         });
       }
 
-      if (!sala || !String(sala).trim()) {
+      /*if (!sala || !String(sala).trim()) {
         return res.status(400).json({
           error: "sala es obligatoria para expediente ajeno"
         });
-      }
+      }*/
 
       if (
         codigo_id === undefined || codigo_id === null || codigo_id === ""
@@ -5815,9 +5890,19 @@ app.post("/jurisprudencias", async (req, res) => {
       });
     }
 
+    await validarJurisprudenciaDuplicada(client, {
+      expediente_id,
+      numero,
+      anio,
+      fuero: fueroNorm,
+      tipo_expediente: tipoExp
+    });
+
+
     await client.query("BEGIN");
 
     const jurisprudenciaId = await nextId("public.seq_jurisprudencias");
+
 
     await client.query(
       `
@@ -6266,6 +6351,15 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         error: "Debe enviar al menos un motivo"
       });
     }
+
+    await validarJurisprudenciaDuplicada(client, {
+      expediente_id,
+      numero,
+      anio,
+      fuero,
+      tipo_expediente: tipoExp,
+      excluirId: id
+    });
 
     await client.query("BEGIN");
 

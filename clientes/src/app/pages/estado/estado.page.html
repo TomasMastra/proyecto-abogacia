@@ -135,7 +135,7 @@
                   <select class="field-select" formControlName="juez">
                     <option [ngValue]="null">Seleccioná el juez</option>
                     <option *ngFor="let j of jueces" [ngValue]="j">
-                      {{ j.nombre }} {{ j.apellido }}
+                      {{ j.apellido }} {{ j.nombre }}
                     </option>
                   </select>
                   <mat-icon class="select-chevron">expand_more</mat-icon>

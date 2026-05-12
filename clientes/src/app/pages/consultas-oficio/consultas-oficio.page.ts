@@ -47,7 +47,8 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
   estados = ['diligenciado', 'pendiente', 'pedir reiteratoria', 'diligenciar', 'reiteratorio solicitado'];
   estadosTestimonial = ['Pendiente'];
   estadosPericia = ['Pendiente'];
-  tiposPericia = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones'];
+  tiposPericia = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones',
+    'pericial psicologica', 'pericial medico'];
 
   ordenCampo = '';
   ordenAscendente = true;

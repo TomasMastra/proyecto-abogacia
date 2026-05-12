@@ -107,7 +107,7 @@ export class DialogExpedienteComponent {
       anio: new FormControl('', [Validators.required]),
       estado: new FormControl('', [Validators.required]),
       porcentaje: new FormControl('', [Validators.required]),
-      juicio: new FormControl('', [Validators.required]),
+      juicio: new FormControl('a definir', [Validators.required]),
       fechaInicio: new FormControl('', [Validators.required]),
 
       tipo: new FormControl('todos', [Validators.required]),

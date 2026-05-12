@@ -60,7 +60,8 @@ export class OficiosPage implements OnInit {
   estadosOficio: string[] = ['Ordenado', 'Diligenciado', 'Pedir reiteratorio / ampliatorio', 'Reiteratorio solicitado'];
   estadosTestimonial: string[] = ['Pendiente'];
   estadosPericia: string[] = ['Pendiente'];
-  tiposPericia: string[] = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones'];
+  tiposPericia: string[] = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones', 
+    'pericial psicologica', 'pericial medico'];
 
   busqueda: string = '';
   expedienteCtrl = new FormControl('');
@@ -175,7 +176,7 @@ ngOnInit() {
     this.form = this.fb.group({
       expediente: ['', Validators.required],
       perito: ['', Validators.required],
-      tipo_pericia: ['Pericial informática', Validators.required], // ✅ nuevo
+      tipo_pericia: ['Pericial informática', Validators.required],
       estado: ['', Validators.required],
       fecha_entrega: [''] // la mapeamos al guardar
     });

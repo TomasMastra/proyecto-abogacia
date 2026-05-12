@@ -14,14 +14,14 @@
       <span class="menu-card-label">Cobranzas</span>
     </button>
 
-    <button class="menu-card" (click)="cambiarMenu(2)">
+    <button class="menu-card" (click)="cambiarMenu(2)" *ngIf="esAdmin">
       <div class="menu-card-icon menu-card-icon--green">
         <mat-icon>calendar_month</mat-icon>
       </div>
       <span class="menu-card-label">Pagos mensuales</span>
     </button>
 
-    <button class="menu-card" (click)="cambiarMenu(3)">
+    <button class="menu-card" (click)="cambiarMenu(3)" *ngIf="esAdmin">
       <div class="menu-card-icon menu-card-icon--purple">
         <mat-icon>history</mat-icon>
       </div>

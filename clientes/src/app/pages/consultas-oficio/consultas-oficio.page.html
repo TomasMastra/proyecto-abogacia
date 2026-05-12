@@ -87,7 +87,6 @@
             <td><div class="skeleton-cell sk-xs"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
-            <td><div class="skeleton-cell sk-xs"></div></td>
           </tr>
 
           <ng-container *ngIf="!cargando">
@@ -152,7 +151,6 @@
             <td><div class="skeleton-cell sk-xs"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
-            <td><div class="skeleton-cell sk-xs"></div></td>
           </tr>
 
           <ng-container *ngIf="!cargando">
@@ -217,13 +215,12 @@
             <td><div class="skeleton-cell sk-xs"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
-            <td><div class="skeleton-cell sk-xs"></div></td>
           </tr>
 
           <ng-container *ngIf="!cargando">
             <tr *ngFor="let item of listaPericiasPaginada">
               <td class="td-caratula">{{ item.expedienteModel?.caratula || 'Sin carátula' }}</td>
-              <td>{{ item.parte || '—' }}</td>
+              <td>{{ item.nombre_oficiada || '—' }}</td>
               <td>{{ item.parte || '—' }}</td>
               <td><span class="estado-chip estado-chip--pericia">{{ item.estado || '—' }}</span></td>
               <td>{{ mostrarFecha(item.fecha_diligenciado) || '—' }}</td>
