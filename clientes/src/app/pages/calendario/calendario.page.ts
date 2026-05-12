@@ -76,6 +76,7 @@ export class CalendarioPage implements OnInit {
     ubicacion: '',
     mediacion: null,
     clientes: [],
+    demandados: [],
     estado: 'En curso',
     expediente_id: null, 
     link_virtual: null,
@@ -97,6 +98,7 @@ export class CalendarioPage implements OnInit {
   listaDemandados: DemandadoModel[] = [];
   listaExpedientes: ExpedienteModel[] = [];
   clientesAgregados: ClienteModel[] = [];
+  demandadosAgregados: DemandadoModel[] = [];
 
   editando: boolean = false;
 
@@ -164,42 +166,53 @@ seleccionarExpediente(expediente: ExpedienteModel) {
     this.nuevoEvento = { ...evento };
     this.nuevaMediacion = evento.mediacion ? { ...evento.mediacion } : this.nuevaMediacion;
     this.clientesAgregados = [...(evento.clientes || [])];
+    this.demandadosAgregados = [...(evento.demandados || [])];
     this.actualizarCalendario();
     this.cargarEventos();
   }
 
-  guardarEvento() {
-    if (this.nuevoEvento.fecha_evento && this.nuevoEvento.tipo_evento) {
-      if (this.nuevoEvento.tipo_evento === 'mediacion') {
-        console.log('Clientes agregados para enviar:', this.clientesAgregados);
-        this.mediacionesService.crearMediacion(this.nuevaMediacion).subscribe({
-          next: (mediacionCreada) => {
-        const eventoConMediacion: EventoModel = {
-          ...this.nuevoEvento,
-          mediacion_id: mediacionCreada.id,
-          mediacion: null, // o mediacionCreada si querés guardar también el objeto
-          clientes: this.clientesAgregados
-        };
-
-
-            this.guardarEventoFinal(eventoConMediacion);
-            this.actualizarCalendario();
-          },
-          error: (error) => {
-            console.error('Error al crear mediación:', error);
-            alert('Error al crear la mediación');
-          }
-        });
-      } else {
-        const eventoSinMediacion = {
-          ...this.nuevoEvento,
-        };
-        this.guardarEventoFinal(eventoSinMediacion);
-      }
-    } else {
-      alert('Completa al menos Título, Fecha y Tipo');
-    }
+guardarEvento() {
+  if (!this.nuevoEvento.fecha_evento || !this.nuevoEvento.tipo_evento) {
+    Swal.fire('Faltan datos', 'Completá al menos Fecha y Tipo.', 'warning');
+    return;
   }
+
+  if (this.nuevoEvento.tipo_evento === 'Mediación') {
+    if (this.clientesAgregados.length === 0) {
+      Swal.fire('Falta cliente', 'Agregá al menos un cliente.', 'warning');
+      return;
+    }
+
+    if (this.demandadosAgregados.length === 0) {
+      Swal.fire('Falta demandado', 'Agregá al menos un demandado.', 'warning');
+      return;
+    }
+
+    const eventoConMediacion: EventoModel = {
+      ...this.nuevoEvento,
+      mediacion_id: null,
+      mediacion: null,
+      expediente_id: null,
+      link_virtual: null,
+      clientes: this.clientesAgregados,
+      demandados: this.demandadosAgregados,
+      descripcion: this.nuevaMediacion.numero
+        ? `Mediación N° ${this.nuevaMediacion.numero}`
+        : 'Mediación'
+    };
+
+    this.guardarEventoFinal(eventoConMediacion);
+    return;
+  }
+
+  const eventoSinMediacion: EventoModel = {
+    ...this.nuevoEvento,
+    clientes: [],
+    demandados: []
+  };
+
+  this.guardarEventoFinal(eventoSinMediacion);
+}
 
   private guardarEventoFinal(evento: EventoModel) {
   const fechaBase = new Date(evento.fecha_evento);
@@ -209,6 +222,7 @@ seleccionarExpediente(expediente: ExpedienteModel) {
   evento.fecha_evento = `${fechaStr} ${horaStr}:00`;
   evento.hora_evento = null;
   evento.clientes = this.clientesAgregados;
+  evento.demandados = this.demandadosAgregados;
 
   if (this.eventoParaEditar) {
     this.editando = false;
@@ -308,12 +322,14 @@ seleccionarExpediente(expediente: ExpedienteModel) {
 
   resetFormulario() {
     this.nuevoEvento = {
-      titulo: '', descripcion: '', fecha_evento: '', hora_evento: '', tipo_evento: '', ubicacion: '', mediacion: null, clientes: [], estado: 'En curso',
+      titulo: '', descripcion: '', fecha_evento: '', hora_evento: '', tipo_evento: '', ubicacion: '', mediacion: null, clientes: [], demandados: [], estado: 'En curso',
     expediente_id: null, link_virtual: null, expediente: null};
     this.nuevaMediacion = {
       numero: '', abogado_id: 0, cliente_id: null, demandado_id: 0, fecha: null, mediadora: '', finalizada: false
     };
     this.clientesAgregados = [];
+    this.demandadosAgregados = [];
+
     this.clienteCtrl.setValue('');
   }
 
@@ -325,6 +341,24 @@ seleccionarExpediente(expediente: ExpedienteModel) {
   eliminarCliente(cliente: ClienteModel) {
     const index = this.clientesAgregados.indexOf(cliente);
     if (index > -1) this.clientesAgregados.splice(index, 1);
+  }
+
+  seleccionarDemandado(demandado: DemandadoModel) {
+    if (!demandado?.id) return;
+
+    const existe = this.demandadosAgregados.some(d =>
+      Number(d.id) === Number(demandado.id)
+    );
+
+    if (!existe) {
+      this.demandadosAgregados.push(demandado);
+    }
+  }
+
+  eliminarDemandado(demandado: DemandadoModel) {
+    this.demandadosAgregados = this.demandadosAgregados.filter(d =>
+      Number(d.id) !== Number(demandado.id)
+    );
   }
 
   displayCliente(cliente: ClienteModel): string {
@@ -445,6 +479,10 @@ if (expediente) {
     .map(c => `${c.nombre} ${c.apellido}`)
     .join(', ') || 'No especificado';
 
+    const demandados = (evento.demandados?.length ? evento.demandados : evento.expediente?.demandados || [])
+  .map(d => d.nombre)
+  .join(', ');
+
   const estado = evento.estado || 'Sin estado';
 
   // 🟢 LINK (si es virtual)
@@ -469,7 +507,9 @@ if (expediente) {
       <p><strong>Fecha:</strong> ${fecha.toLocaleDateString('es-AR') || 'no hay'}</p>
       <p><strong>Hora:</strong> ${hora || 'No hay'}</p>
       <p><strong>Estado:</strong> ${estado || 'No hay'}</p>
-      <p><strong>Asistirán:</strong> ${clientes || 'No hay'}</p>
+      <p><strong>Asistirán:</strong> ${
+        [clientes, demandados].filter(x => x && x !== 'No especificado').join(', ') || 'No hay'
+      }</p>      
       ${ubicacionHTML}
       ${linkHTML}
     </div>`,

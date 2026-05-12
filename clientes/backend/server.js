@@ -80,7 +80,7 @@ async function iniciarServidor() {
         try {
           const result = await pgPool.query(`
             SELECT * FROM public."uma"
-            ORDER BY fecha_resolucion DESC
+            ORDER BY valor DESC
           `);
           res.json(result.rows);
         } catch (err) {
@@ -3082,7 +3082,17 @@ app.get("/eventos", async (req, res) => {
               AND c.id IS NOT NULL
           ),
           '[]'::json
-        ) AS clientes
+        ) AS clientes,
+        COALESCE(
+          (
+            SELECT json_agg(d.*)
+            FROM public.demandados_eventos de
+            JOIN public.demandados d ON d.id = de.id_demandado
+            WHERE de.id_evento = e.id
+              AND d.id IS NOT NULL
+          ),
+          '[]'::json
+        ) AS demandados
       FROM public.eventos_calendario e
       WHERE e.estado <> 'eliminado'
       ORDER BY e.fecha_evento DESC, e.id DESC;
@@ -3111,6 +3121,7 @@ app.post('/eventos/agregar', async (req, res) => {
       ubicacion,
       mediacion_id,
       clientes = [],
+      demandados = [],
       expediente_id,
       link_virtual,
     } = req.body;
@@ -3165,6 +3176,18 @@ for (const c of clientes) {
     `INSERT INTO public.clientes_eventos (id_evento, id_cliente)
      VALUES ($1, $2)`,
     [eventoId, Number(clienteId)]
+  );
+}
+
+for (const d of demandados) {
+  const demandadoId = typeof d === 'object' ? (d.id ?? d.id_demandado ?? d.demandado_id) : d;
+  if (!demandadoId) continue;
+
+  await pgPool.query(
+    `INSERT INTO public.demandados_eventos (id_evento, id_demandado)
+     VALUES ($1, $2)
+     ON CONFLICT DO NOTHING`,
+    [eventoId, Number(demandadoId)]
   );
 }
 
@@ -3506,6 +3529,29 @@ app.put("/eventos/editar/:id", async (req, res) => {
         [id, clienteId]
       );
     }
+
+
+    await client.query(
+      `DELETE FROM public.demandados_eventos WHERE id_evento = $1`,
+      [id]
+    );
+
+    const idsDemandados = [...new Set((e.demandados || [])
+      .map(d => Number(d?.id ?? d?.id_demandado ?? d?.demandado_id ?? d))
+      .filter(x => Number.isInteger(x) && x > 0)
+    )];
+
+    for (const demandadoId of idsDemandados) {
+      await client.query(
+        `
+        INSERT INTO public.demandados_eventos (id_evento, id_demandado)
+        VALUES ($1, $2)
+        ON CONFLICT DO NOTHING
+        `,
+        [id, demandadoId]
+      );
+    }
+  
 
     await client.query("COMMIT");
     return res.send({ message: "Evento actualizado con éxito" });

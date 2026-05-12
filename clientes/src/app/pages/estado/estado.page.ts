@@ -273,7 +273,7 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
           montoAcuerdo: new FormControl(''),
 
           fecha_atencion: new FormControl(''),
-          sala: new FormControl(''),
+          sala: new FormControl('Sin asignar'),
           requiere_atencion: new FormControl(false),
 
           honorariosExtrasSeleccionados: new FormControl([]),  

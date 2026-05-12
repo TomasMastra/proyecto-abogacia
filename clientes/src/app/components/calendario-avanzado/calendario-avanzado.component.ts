@@ -79,6 +79,7 @@ export class CalendarioAvanzadoComponent implements OnInit {
     ubicacion: '',
     mediacion: null,
     clientes: [],
+    demandados: [],
     estado: 'En curso',
     expediente_id: null, 
     link_virtual: null,
@@ -160,7 +161,7 @@ guardarEvento() {
             const eventoConMediacion: EventoModel = {
               ...this.nuevoEvento,
               mediacion_id: mediacionCreada.id,
-              clientes: this.clientesAgregados
+              clientes: this.clientesAgregados,
             };
             this.guardarEventoFinal(eventoConMediacion, false);
           },
@@ -210,7 +211,7 @@ private guardarEventoFinal(evento: EventoModel, esEdicion: boolean) {
 
   resetFormulario() {
     this.nuevoEvento = {
-      titulo: '', descripcion: '', fecha_evento: '', hora_evento: '', tipo_evento: '', ubicacion: '', mediacion: null, clientes: [], estado: 'En curso'
+      titulo: '', descripcion: '', fecha_evento: '', hora_evento: '', tipo_evento: '', ubicacion: '', mediacion: null, clientes: [], demandados: [], estado: 'En curso'
     ,expediente_id: null, link_virtual: null, expediente: null};
     this.nuevaMediacion = {
       numero: '', abogado_id: 0, cliente_id: null, demandado_id: 0, fecha: null, mediadora: '', finalizada: false

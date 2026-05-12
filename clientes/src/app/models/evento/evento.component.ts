@@ -1,6 +1,7 @@
 import { MediacionModel } from '../mediacion/mediacion.component';
 import { ClienteModel } from '../cliente/cliente.component';
 import { ExpedienteModel } from '../expediente/expediente.component';
+import { DemandadoModel } from '../demandado/demandado.component';
 
 
 export interface EventoModel {
@@ -16,6 +17,8 @@ export interface EventoModel {
     mediacion_id?: number | null;
     mediacion: MediacionModel | null;
     clientes: ClienteModel[]; 
+    demandados: DemandadoModel[]; 
+
     estado?: string | null;
     expediente_id: number | null,
     link_virtual: string | null,

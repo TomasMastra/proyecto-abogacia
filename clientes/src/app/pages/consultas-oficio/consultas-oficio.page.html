@@ -201,6 +201,7 @@
           <tr>
             <th>Expediente</th>
             <th>Perito</th>
+            <th>Tipo pericia</th>
             <th>Parte</th>
             <th>Estado</th>
             <th>Fecha</th>
@@ -212,6 +213,7 @@
           <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
             <td><div class="skeleton-cell sk-lg"></div></td>
             <td><div class="skeleton-cell sk-md"></div></td>
+            <td><div class="skeleton-cell sk-md"></div></td>
             <td><div class="skeleton-cell sk-xs"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
@@ -221,6 +223,7 @@
             <tr *ngFor="let item of listaPericiasPaginada">
               <td class="td-caratula">{{ item.expedienteModel?.caratula || 'Sin carátula' }}</td>
               <td>{{ item.nombre_oficiada || '—' }}</td>
+              <td>{{ item.tipo_pericia }}</td>
               <td>{{ item.parte || '—' }}</td>
               <td><span class="estado-chip estado-chip--pericia">{{ item.estado || '—' }}</span></td>
               <td>{{ mostrarFecha(item.fecha_diligenciado) || '—' }}</td>

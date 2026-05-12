@@ -158,13 +158,35 @@
               </div>
             </div>
 
-            <div class="form-field">
+            <!--<div class="form-field">
               <label class="form-label">Demandado</label>
               <mat-form-field appearance="outline" class="mat-field">
                 <mat-select [(ngModel)]="nuevaMediacion.demandado_id" name="demandado_id">
                   <mat-option *ngFor="let d of listaDemandados" [value]="d.id">{{ d.nombre }}</mat-option>
                 </mat-select>
               </mat-form-field>
+            </div>-->
+
+            <div class="form-field form-field--full">
+              <label class="form-label">Demandados</label>
+
+              <mat-form-field appearance="outline" class="mat-field">
+                <mat-select name="demandado_selector" (selectionChange)="seleccionarDemandado($event.value)" placeholder="Buscar demandado...">
+                  <mat-option *ngFor="let d of listaDemandados" [value]="d">
+                    {{ d.nombre }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <div class="clientes-chips" *ngIf="demandadosAgregados.length > 0">
+                <span class="cliente-chip" *ngFor="let d of demandadosAgregados">
+                  {{ d.nombre }}
+
+                  <button class="chip-remove" type="button" (click)="eliminarDemandado(d)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </span>
+              </div>
             </div>
 
             <div class="form-field">
