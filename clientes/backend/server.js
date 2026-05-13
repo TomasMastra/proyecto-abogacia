@@ -889,7 +889,7 @@ app.post("/expedientes/agregar", async (req, res) => {
     fecha_inicio, juez_id, juicio, requiere_atencion, fecha_sentencia,
     numeroCliente, minutosSinLuz, periodoCorte,
     actoras, demandados, porcentaje, procurador_id,
-    tipo_registro 
+    tipo_registro, codigo_id
   } = req.body;
 
   // ✅ normalizo tipo_registro (prioridad) y fallback por estado
@@ -988,7 +988,7 @@ app.post("/expedientes/agregar", async (req, res) => {
         "montoLiquidacionCapital", "montoLiquidacionHonorarios", usuario_id,
         "numeroCliente", "minutosSinLuz", "periodoCorte",
         porcentaje, procurador_id, requiere_atencion,
-        tipo_registro
+        tipo_registro, codigo_id
       )
       VALUES (
         $1,$2,$3,$4,$5,$6,$7,
@@ -997,7 +997,7 @@ app.post("/expedientes/agregar", async (req, res) => {
         $15,$16,$17,
         $18,$19,$20,
         $21,$22,$23,
-        $24
+        $24,$25
       )
       `,
       [
@@ -1034,7 +1034,8 @@ app.post("/expedientes/agregar", async (req, res) => {
         procurador_id ?? null,
         !!requiere_atencion,
 
-        tipoRegistroFinal
+        tipoRegistroFinal,
+        codigo_id ?? null
       ]
     );
 
@@ -6324,11 +6325,11 @@ app.put("/jurisprudencias/:id", async (req, res) => {
         });
       }
 
-      if (!sala || !String(sala).trim()) {
+      /*if (!sala || !String(sala).trim()) {
         return res.status(400).json({
           error: "sala es obligatoria para expediente ajeno"
         });
-      }
+      }*/
 
       if (
         codigo_id === undefined || codigo_id === null || codigo_id === ""

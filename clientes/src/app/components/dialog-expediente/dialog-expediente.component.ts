@@ -465,6 +465,15 @@ if (this.mode !== 'mediacion') {
     if (!this.yaExiste(this.demandadosAgregados, 'empresa', id)) {
       this.demandadosAgregados.push({ tipo: 'empresa', id, nombre: e.nombre ?? '' });
     }
+
+    if (id === 1 || id === 7) {
+      const codigoDanios = this.codigosOriginales.find(c => Number(c.id) === 454) || null;
+
+      if (codigoDanios) {
+        this.form.patchValue({ codigo: codigoDanios }, { emitEvent: false });
+        this.codigoSeleccionado = codigoDanios;
+      }
+    }
   }
 
   eliminarDemandado(d: any) {
