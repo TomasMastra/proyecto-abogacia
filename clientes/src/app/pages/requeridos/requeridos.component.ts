@@ -43,7 +43,7 @@ export class RequeridosPage implements OnInit, OnDestroy {
   cargando: boolean = true;
 
   ordenCampo: string = 'fecha_requerido';
-  ordenAscendente: boolean = false;
+  ordenAscendente: boolean = true;
 
   listaUsuarios: UsuarioModel[] = [];
   listaJuzgados: any[] = [];
@@ -56,32 +56,14 @@ export class RequeridosPage implements OnInit, OnDestroy {
   procuradorSeleccionado: string = '';
   estadoSeleccionado: string = '';
 
+  tabActiva: 'sentencia' | 'sin-sentencia' = 'sentencia';
+
   tiposJuicio: string[] = ['sumarisimo', 'ordinario', 'a definir'];
-  /*estados: string[] = [
-    'Sorteado', 'Inicio - Previo', 'Inicio - Plantea Revocatoria', 'Inicio - Da Cumplimiento',
-    'Inicio - Solicita', 'Inicio - Apela', 'Inicio - Recusa', 'Inicio - Plantea Nulidad',
-    'Inicio - Se Eleve', 'Traslado demanda - Se Ordena', 'Traslado demanda - Cedula Confronte',
-    'Traslado demanda - Cedula Liberada', 'Traslado demanda - Cedula Notificada',
-    'Traslado demanda - Cedula Sin Notificar', 'Traslado demanda - Notificado',
-    'Traslado demanda - Previo Rebeldia', 'Contesta demanda - Traslado', 'Contesta demanda - Cedula',
-    'Contesta Traslado', 'Se resuelva', 'Apertura a Prueba - Solicita', 'Apertura a Prueba - Cedula',
-    'Apertura a Prueba - Audiencia 360', 'Pruebas - Se provean', 'Pruebas - Se provee',
-    'Prueba - Cedula Perito', 'Prueba - Cedula Parte', 'Prueba - Oficio deox',
-    'Prueba - Oficio acredita', 'Prueba - Oficio solicita reiteratorio',
-    'Prueba - Oficio solicita Astreinte', 'Prueba - Testimonial hace saber',
-    'Prueba - Acredita Testimonial', 'Prueba - Desiste', 'Prueba - Impugna',
-    'Prueba - Se intime parte', 'Prueba - Se intime perito',
-    'Clausura periodo Prueba - Solicita', 'Clausura periodo Prueba - Pase a certificar',
-    'Alegatos - Solicita', 'Alegatos - Cedula', 'Alegatos - Presenta',
-    'Fiscal - Solicita', 'Fiscal - Cedula', 'Fiscal - Previo', 'Fiscal - Se ordena',
-    'Fiscal - Contesta traslado', 'Defensor Oficial - Solicita', 'Defensor Oficial - Cedula',
-    'Defensor Oficial - Ratifica lo actuado', 'Sentencia - Previo', 'Sentencia - Solicita',
-    'Sentencia - Pasen autos a Sentencia', 'Sentencia', 'Caducidad',
-  ];*/
 
   estados: string[] = ESTADOS_EXPEDIENTE.filter(
     e => !COBRADO_BLOQUEADO.includes(e)
   );
+
   // Paginador
   pageSize: number = 20;
   pageIndex: number = 0;
@@ -121,8 +103,8 @@ export class RequeridosPage implements OnInit, OnDestroy {
             e.estado !== 'eliminado' && e.estado !== 'Archivo' && e.fecha_atencion
           );
           this.expedientesOriginales = filtrados;
-          this.expedientes = [...filtrados];
           this.pageIndex = 0;
+          this.filtrar();
           this.actualizarPagina();
           this.cargando = false;
           this.cdr.detectChanges();
@@ -169,29 +151,82 @@ export class RequeridosPage implements OnInit, OnDestroy {
     const textoNorm = texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
     this.expedientes = this.expedientesOriginales.filter(exp => {
-      const tipoOk       = this.tipoSeleccionado       ? exp.juzgadoModel?.tipo === this.tipoSeleccionado : true;
-      const juzgadoOk    = this.juzgadoSeleccionado    ? exp.juzgado_id === +this.juzgadoSeleccionado : true;
-      const abogadoOk    = this.abogadoSeleccionado    ? +exp.usuario_id === +this.abogadoSeleccionado : true;
-      const procuradorOk = this.procuradorSeleccionado ? exp.procurador_id === +this.procuradorSeleccionado : true;
-      const juicioOk     = this.juicioSeleccionado     ? exp.juicio?.toLowerCase() === this.juicioSeleccionado.toLowerCase() : true;
-      const estadoOk     = this.estadoSeleccionado     ? exp.estado?.toLowerCase() === this.estadoSeleccionado.toLowerCase() : true;
+      const esSentencia =
+        String(exp.estado || '').trim().toLowerCase() === 'sentencia';
+
+      const tabOk =
+        this.tabActiva === 'sentencia'
+          ? esSentencia
+          : !esSentencia;
+
+      const tipoOk =
+        this.tipoSeleccionado
+          ? exp.juzgadoModel?.tipo === this.tipoSeleccionado
+          : true;
+
+      const juzgadoOk =
+        this.juzgadoSeleccionado
+          ? Number(exp.juzgado_id) === Number(this.juzgadoSeleccionado)
+          : true;
+
+      const abogadoOk =
+        this.abogadoSeleccionado
+          ? Number(exp.usuario_id) === Number(this.abogadoSeleccionado)
+          : true;
+
+      const procuradorOk =
+        this.procuradorSeleccionado
+          ? Number(exp.procurador_id) === Number(this.procuradorSeleccionado)
+          : true;
+
+      const juicioOk =
+        this.juicioSeleccionado
+          ? String(exp.juicio || '').toLowerCase() === this.juicioSeleccionado.toLowerCase()
+          : true;
 
       const matchParte = (p: any) => {
         if (!p) return false;
-        const n = (p.nombre || '').toLowerCase();
-        const a = (p.apellido || '').toLowerCase();
-        const rs = (p.razonSocial ?? p.razon_social ?? '').toLowerCase();
-        return n.includes(texto) || a.includes(texto) || rs.includes(texto) || `${n} ${a}`.trim().includes(texto);
+
+        const textoParte = [
+          p.nombre,
+          p.apellido,
+          p.razonSocial,
+          p.razon_social
+        ].join(' ')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+        return textoParte.includes(textoNorm);
       };
 
-      const numeroOk    = exp.numero?.toString().includes(texto);
-      const anioOk      = exp.anio?.toString().includes(texto);
-      const actoraOk    = exp.clientes?.some(matchParte) ?? false;
+      const numeroOk = String(exp.numero || '').includes(texto);
+      const anioOk = String(exp.anio || '').includes(texto);
+      const actoraOk = exp.clientes?.some(matchParte) ?? false;
       const demandadoOk = exp.demandados?.some(matchParte) ?? false;
-      const caratulaOk  = (exp.caratula || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(textoNorm);
+      const caratulaOk = String(exp.caratula || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .includes(textoNorm);
 
-      const busquedaOk = texto === '' || numeroOk || anioOk || actoraOk || demandadoOk || caratulaOk;
-      return tipoOk && juzgadoOk && abogadoOk && procuradorOk && juicioOk && estadoOk && busquedaOk;
+      const busquedaOk =
+        !texto ||
+        numeroOk ||
+        anioOk ||
+        actoraOk ||
+        demandadoOk ||
+        caratulaOk;
+
+      return (
+        tabOk &&
+        tipoOk &&
+        juzgadoOk &&
+        abogadoOk &&
+        procuradorOk &&
+        juicioOk &&
+        busquedaOk
+      );
     });
 
     this.pageIndex = 0;
@@ -309,5 +344,18 @@ export class RequeridosPage implements OnInit, OnDestroy {
 
   goTo(ruta: string): void {
     this.router.navigate([ruta]);
+  }
+
+  // ── Tabs ────────────────────────────────────────────────
+  get listaSentencia(): any[] {
+    return this.expedientesOriginales.filter(exp =>
+      String(exp.estado || '').toLowerCase() === 'sentencia'
+    );
+  }
+
+  get listaSinSentencia(): any[] {
+    return this.expedientesOriginales.filter(exp =>
+      String(exp.estado || '').toLowerCase() !== 'sentencia'
+    );
   }
 }

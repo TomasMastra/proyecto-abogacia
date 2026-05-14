@@ -338,75 +338,6 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
 
     }
 
-  //calcula los valores para el uma meiante cantidad de uma y valor de uma
-  /*calcularMontoUMA() {
-    const cantidadUMA = this.form.get('cantidadUMA')?.value;
-    const umaSeleccionado = this.form.get('umaSeleccionado')?.value;
-    const montoUMA = this.form.get('montoAcuerdo')?.value;
-
-    this.umaSeleccionado  = umaSeleccionado;
-    console.log(umaSeleccionado);
-
-    if (cantidadUMA && umaSeleccionado != 'acuerdo') {
-    this.montoUMA = umaSeleccionado.valor * cantidadUMA;
-    this.form.get('montoAcuerdo')?.clearValidators();
-      this.form.get('montoAcuerdo')?.updateValueAndValidity();
-
-    this.form.get('cantidadUMA')?.setValidators([Validators.required]);
-    this.form.get('cantidadUMA')?.updateValueAndValidity();
-  } else {
-    // Está en 'acuerdo'
-    //this.form.get('cantidadUMA')?.setValue(null);
-    this.cantidadUMA = null;
-    this.form.get('cantidadUMA')?.clearValidators();
-    this.form.get('cantidadUMA')?.updateValueAndValidity();
-
-    this.form.get('montoAcuerdo')?.setValidators([Validators.required]);
-    this.form.get('montoAcuerdo')?.updateValueAndValidity();
-
-    this.montoUMA = montoUMA;
-  }
-
-  }*/
-
-  /*
-  calcularMontoUMA() {
-  const umaSel = this.form.get('umaSeleccionado')?.value;          // objeto UMA o 'acuerdo'
-  const cantRaw = this.form.get('cantidadUMA')?.value;
-  const cant = (cantRaw === '' || cantRaw === null || cantRaw === undefined) ? null : Number(cantRaw);
-  const montoAcuerdo = this.form.get('montoAcuerdo')?.value;
-
-  this.umaSeleccionado = umaSel;
-
-  if(this.expediente.montoLiquidacionHonorarios && this.expediente.honorarioCobrado){
-    this.montoUMA = this.expediente.montoHonorariosDiferencia;
-  }
-
-  // Caso UMA seleccionado (no 'acuerdo')
-  if (umaSel && umaSel !== 'acuerdo') {
-    // cantidadUMA es requerida (0 permitido)
-    this.form.get('cantidadUMA')?.setValidators([Validators.required, Validators.min(0)]);
-    this.form.get('cantidadUMA')?.updateValueAndValidity();
-
-    this.form.get('montoAcuerdo')?.clearValidators();
-    this.form.get('montoAcuerdo')?.updateValueAndValidity();
-
-    const valorUMA = Number(umaSel.valor ?? 0);
-    // Si cant es null => no calculo; si es 0 => monto 0 (válido)
-    this.montoUMA = (cant === null || isNaN(cant)) ? null : (valorUMA * cant);
-
-  } else { // Caso 'acuerdo'
-    this.form.get('cantidadUMA')?.clearValidators();
-    this.form.get('cantidadUMA')?.updateValueAndValidity();
-
-    this.form.get('montoAcuerdo')?.setValidators([Validators.required, Validators.min(0)]);
-    this.form.get('montoAcuerdo')?.updateValueAndValidity();
-
-    this.montoUMA = (montoAcuerdo === '' || montoAcuerdo === null || montoAcuerdo === undefined)
-      ? null
-      : Number(montoAcuerdo);
-  }
-}*/
 
 calcularMontoUMA() {
   const umaSel = this.form.get('umaSeleccionado')?.value;
@@ -997,7 +928,7 @@ asignarDatos() {
   let montoAcuerdo: number | null = null;
 
   if (this.expediente.valorUMA == null) {
-    umaValue = 'acuerdo';
+    umaValue = this.uma.length > 0 ? this.uma[0] : null;
     montoAcuerdo = this.expediente.montoLiquidacionHonorarios ?? 0;
     this.montoUMA = montoAcuerdo;
   } else {

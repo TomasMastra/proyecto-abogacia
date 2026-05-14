@@ -268,3 +268,46 @@ td { padding: 11px 14px; color: $c-text; vertical-align: middle; }
   width: 1.2rem;
   height: 1.2rem;
 }
+
+// ── Tabs ──────────────────────────────────────────────────────
+.tabs-row {
+  display: flex;
+  gap: 0;
+  padding: 0 20px;
+  border-bottom: 1px solid $c-border;
+  overflow-x: auto;
+  &::-webkit-scrollbar { display: none; }
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  color: $c-muted;
+  white-space: nowrap;
+  transition: all 0.18s $ease;
+  margin-bottom: -1px;
+
+  &:hover { color: $c-text; }
+  &.active { color: $c-blue; border-bottom-color: $c-blue; font-weight: 600; }
+}
+
+.tab-count {
+  background: #f1f5f9;
+  border: 1px solid $c-border;
+  border-radius: 20px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $c-muted;
+
+  .tab-btn.active & { background: #eff6ff; border-color: #bfdbfe; color: $c-blue; }
+}
