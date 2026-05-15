@@ -5259,45 +5259,52 @@ app.delete("/pagos/:id", async (req, res) => {
 app.get("/expedientes/partes/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: "ID inválido" });
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
 
     const rsAct = await pgPool.query(
       `
-      SELECT 'cliente' AS tipo, c.id, c.nombre, c.apellido
+      SELECT
+        ce.id AS orden_id,
+        ce.tipo,
+        COALESCE(c.id, d.id) AS id,
+        COALESCE(c.nombre, d.nombre) AS nombre,
+        c.apellido
       FROM public.clientes_expedientes ce
-      JOIN public.clientes c ON c.id = ce.id_cliente
-      WHERE ce.id_expediente = $1 AND ce.id_cliente IS NOT NULL
-
-      UNION ALL
-
-      SELECT 'empresa' AS tipo, d.id, d.nombre, NULL AS apellido
-      FROM public.clientes_expedientes ce
-      JOIN public.demandados d ON d.id = ce.id_empresa
-      WHERE ce.id_expediente = $1 AND ce.id_empresa IS NOT NULL
-      ORDER BY tipo, nombre
+      LEFT JOIN public.clientes c
+        ON ce.tipo = 'cliente' AND c.id = ce.id_cliente
+      LEFT JOIN public.demandados d
+        ON ce.tipo = 'empresa' AND d.id = ce.id_empresa
+      WHERE ce.id_expediente = $1
+      ORDER BY ce.id ASC
       `,
       [id]
     );
 
     const rsDem = await pgPool.query(
       `
-      SELECT 'empresa' AS tipo, d.id, d.nombre, NULL AS apellido
+      SELECT
+        ed.id AS orden_id,
+        ed.tipo,
+        COALESCE(c.id, d.id) AS id,
+        COALESCE(c.nombre, d.nombre) AS nombre,
+        c.apellido
       FROM public.expedientes_demandados ed
-      JOIN public.demandados d ON d.id = ed.id_demandado
-      WHERE ed.id_expediente = $1 AND ed.id_demandado IS NOT NULL
-
-      UNION ALL
-
-      SELECT 'cliente' AS tipo, c.id, c.nombre, c.apellido
-      FROM public.expedientes_demandados ed
-      JOIN public.clientes c ON c.id = ed.id_cliente
-      WHERE ed.id_expediente = $1 AND ed.id_cliente IS NOT NULL
-      ORDER BY tipo, nombre
+      LEFT JOIN public.clientes c
+        ON ed.tipo = 'cliente' AND c.id = ed.id_cliente
+      LEFT JOIN public.demandados d
+        ON ed.tipo = 'empresa' AND d.id = ed.id_demandado
+      WHERE ed.id_expediente = $1
+      ORDER BY ed.id ASC
       `,
       [id]
     );
 
-    return res.json({ actoras: rsAct.rows, demandados: rsDem.rows });
+    return res.json({
+      actoras: rsAct.rows,
+      demandados: rsDem.rows
+    });
   } catch (err) {
     console.error("GET /expedientes/partes/:id", err);
     return res.status(500).json({ error: "Error obteniendo partes" });
