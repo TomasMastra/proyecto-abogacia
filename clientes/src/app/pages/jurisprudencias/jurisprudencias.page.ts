@@ -162,15 +162,11 @@ armarFiltrosDesdeJurisprudencias(): void {
 
     const tipo = String((j as any).tipo_expediente || '').toLowerCase();
 
-    const salaReal =
-      (j as any).sala ||
-      (j as any).expedienteModel?.sala ||
-      (j as any).expedienteModel?.juzgadoModel?.sala ||
-      null;
+const salaReal = String((j as any).sala || '').trim();
 
-    if (salaReal) {
-      setSalas.add(String(salaReal).trim());
-    }
+if (salaReal) {
+  setSalas.add(salaReal);
+}
   }
 
   this.listaJuzgadosFiltro = Array.from(mapJuzgados.values())
@@ -673,6 +669,11 @@ async agregarJurisprudencias(): Promise<void> {
 
         <div class="grupo-campo-modal">
 
+        <select id="codigoIdAjeno" class="swal2-select campo-unificado">
+          <option value="">Seleccionar código</option>
+          ${(this.codigos || []).map(c => `<option value="${c.id}">${c.codigo} - ${c.descripcion}</option>`).join('')}
+        </select>
+
         <label class="label-modal">Juez</label>
 
         <select id="juezIdAjeno" class="swal2-select campo-unificado">
@@ -685,22 +686,19 @@ async agregarJurisprudencias(): Promise<void> {
         </select>
       </div>
 
+
+
         <div class="grupo-campo-modal">
+          <label class="label-modal">Fecha de sentencia</label>
+          <input id="sentenciaAjeno" type="date" class="swal2-input campo-unificado">
+        </div>
+
+                <div class="grupo-campo-modal">
           <label class="label-modal">Sala</label>
 
           <select id="salaAjeno" class="swal2-select campo-unificado">
             <option value="">Sin asignar</option>
           </select>
-        </div>
-
-        <select id="codigoIdAjeno" class="swal2-select campo-unificado">
-          <option value="">Seleccionar código</option>
-          ${(this.codigos || []).map(c => `<option value="${c.id}">${c.codigo} - ${c.descripcion}</option>`).join('')}
-        </select>
-
-        <div class="grupo-campo-modal">
-          <label class="label-modal">Fecha de sentencia</label>
-          <input id="sentenciaAjeno" type="date" class="swal2-input campo-unificado">
         </div>
 
         <div class="grupo-campo-modal">
@@ -1328,6 +1326,11 @@ async modificarJurisprudencia(j: any): Promise<void> {
             <option value="">Seleccionar juzgado</option>
           </select>
 
+          <select id="codigoIdAjeno" class="swal2-select campo-unificado">
+            <option value="">Seleccionar código</option>
+            ${(this.codigos || []).map(c => `<option value="${c.id}" ${String(c.id) === String(j.codigo_id) ? 'selected' : ''}>${c.codigo} - ${c.descripcion}</option>`).join('')}
+          </select>
+
           <div class="grupo-campo-modal">
             <label class="label-modal">Juez</label>
             <select id="juezIdAjeno" class="swal2-select campo-unificado">
@@ -1339,23 +1342,21 @@ async modificarJurisprudencia(j: any): Promise<void> {
             </select>
           </div>
 
-          <div class="grupo-campo-modal">
-            <label class="label-modal">Sala</label>
-            <select id="salaAjeno" class="swal2-select campo-unificado">
-              <option value="">Sin asignar</option>
-            </select>
-          </div>
 
-          <select id="codigoIdAjeno" class="swal2-select campo-unificado">
-            <option value="">Seleccionar código</option>
-            ${(this.codigos || []).map(c => `<option value="${c.id}" ${String(c.id) === String(j.codigo_id) ? 'selected' : ''}>${c.codigo} - ${c.descripcion}</option>`).join('')}
-          </select>
 
           <div class="grupo-campo-modal">
             <label class="label-modal">Fecha de sentencia</label>
             <input id="sentenciaAjeno" type="date" class="swal2-input campo-unificado"
               value="${j.sentencia ? new Date(j.sentencia).toISOString().slice(0, 10) : ''}">
           </div>
+
+                    <div class="grupo-campo-modal">
+            <label class="label-modal">Sala</label>
+            <select id="salaAjeno" class="swal2-select campo-unificado">
+              <option value="">Sin asignar</option>
+            </select>
+          </div>
+
 
           <!-- FIX: name único → resultadoAjeno -->
           <div class="grupo-campo-modal">

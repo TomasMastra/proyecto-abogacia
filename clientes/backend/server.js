@@ -5558,7 +5558,11 @@ app.get("/jurisprudencias", async (req, res) => {
 
         j.objeto,
         j.fuero,
-        j.sala,
+
+        CASE
+          WHEN j.tipo_expediente = 'propio' THEN e.sala
+          ELSE j.sala
+        END AS sala,
 
         CASE
           WHEN j.tipo_expediente = 'propio' THEN e.juzgado_id
@@ -5642,6 +5646,7 @@ app.get("/jurisprudencias", async (req, res) => {
         e.anio,
         e.juzgado_id,
         e.juez_id,
+        e.sala,
         COALESCE((
           SELECT string_agg(btrim(p.nombre_completo::text), ' | ')
           FROM (
