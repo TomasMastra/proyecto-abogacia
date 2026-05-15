@@ -43,10 +43,10 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
   demandadoSeleccionado = '';
 
   demandados: DemandadoModel[] = [];
-  partes = ['actora', 'demanda', 'tercero'];
+  partes = ['actora', 'demanda', 'tercero', 'citada'];
   estados = ['diligenciado', 'pendiente', 'pedir reiteratoria', 'diligenciar', 'reiteratorio solicitado'];
   estadosTestimonial = ['Pendiente'];
-  estadosPericia = ['Pendiente'];
+  estadosPericia: string[] = ['Proveida', 'Perito noificado cargo', 'Perito presentado', 'Perito previo', 'Perito fija fecha', 'Perito desinsacular', 'Pericia impugnado', 'Pendiente contestar impugnacion'];
   tiposPericia = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones',
     'pericial psicologica', 'pericial medico'];
 

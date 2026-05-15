@@ -1409,6 +1409,19 @@ async abrirModalAlzada() {
   let cantidadUMA = this.expediente.cantidadUMA_alzada || '';
   let montoCalculado = 0;
 
+    if (
+    (umaSeleccionada === '' || umaSeleccionada === null || umaSeleccionada === undefined) &&
+    Array.isArray(this.uma) &&
+    this.uma.length > 0
+  ) {
+    const umaMayor = [...this.uma]
+      .map(u => Number(u.valor))
+      .filter(v => !isNaN(v))
+      .sort((a, b) => b - a)[0];
+
+    umaSeleccionada = umaMayor;
+  }
+
   const estado = this.expediente.estadoHonorariosAlzadaSeleccionado || '';
   const subestado = this.expediente.subEstadoHonorariosAlzadaSeleccionado || '';
   const fecha = this.expediente.fechaHonorariosAlzada?.split('T')[0] || '';
@@ -1666,15 +1679,43 @@ async abrirModalEjecucion() {
     return; 
   }
 
-  let umaSeleccionada = this.expediente.umaSeleccionado_ejecucion || '';
-  let cantidadUMA = this.expediente.cantidadUMA_ejecucion || '';
-  let montoCalculado = 0;
+  let umaSeleccionada = this.expediente.umaSeleccionado_ejecucion ?? '';
+  let cantidadUMA = this.expediente.cantidadUMA_ejecucion ?? '';
+  let montoCalculado = this.expediente.montoHonorariosEjecucion ?? 0;
+
+  if (
+    (umaSeleccionada === '' || umaSeleccionada === null || umaSeleccionada === undefined) &&
+    Array.isArray(this.uma) &&
+    this.uma.length > 0
+  ) {
+    const umaMayor = [...this.uma]
+      .map(u => Number(u.valor))
+      .filter(v => !isNaN(v))
+      .sort((a, b) => b - a)[0];
+
+    umaSeleccionada = umaMayor;
+  }
 
   const estado = this.expediente.estadoHonorariosEjecucionSeleccionado || '';
   const subestado = this.expediente.subEstadoHonorariosEjecucionSeleccionado || '';
   const fecha = this.expediente.fechaHonorariosEjecucion?.split('T')[0] || '';
 
-  const optionsUMA = this.uma.map(uma => `<option value="${uma.valor}" ${uma.valor == umaSeleccionada ? 'selected' : ''}>${uma.valor}</option>`).join('');
+  const umaSeleccionadaNum =
+    umaSeleccionada !== null &&
+    umaSeleccionada !== undefined &&
+    umaSeleccionada !== ''
+      ? Number(umaSeleccionada)
+      : null;
+
+  const optionsUMA = this.uma.map(uma => {
+    const valor = Number(uma.valor);
+
+    return `
+      <option value="${valor}" ${umaSeleccionadaNum !== null && valor === umaSeleccionadaNum ? 'selected' : ''}>
+        ${valor}
+      </option>
+    `;
+  }).join('');
 
   const optionsEstado = ['apelado', 'pendiente', 'firme']
     .map(est => `<option value="${est}" ${est === estado ? 'selected' : ''}>${est}</option>`)
@@ -1711,10 +1752,10 @@ async abrirModalEjecucion() {
         </select>
 
         <label for="cantidadUMA">Cantidad de UMA</label>
-        <input id="cantidadUMA" class="swal2-input" placeholder="Cantidad de UMA" value="${cantidadUMA}" type="number" style="width:300px">
+        <input id="cantidadUMA" class="swal2-input" placeholder="Cantidad de UMA" value="${cantidadUMA ?? ''}" type="number" style="width:300px">
 
         <label for="montoCalculado">Monto Calculado</label>
-        <input id="montoCalculado" class="swal2-input" placeholder="Monto (calculado)" disabled style="width:300px" value="${montoCalculado || ''}">
+        <input id="montoCalculado" class="swal2-input" placeholder="Monto (calculado)" disabled style="width:300px" value="${montoCalculado ?? ''}">
       </div>
     `,
     didOpen: () => {

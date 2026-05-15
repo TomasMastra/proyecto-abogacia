@@ -56,10 +56,10 @@ export class OficiosPage implements OnInit {
   expedienteSeleccionado: any;
   demandadoSeleccionado: any;
 
-  partes: string[] = ['actora', 'demanda', 'tercero'];
+  partes: string[] = ['actora', 'demanda', 'tercero', 'citada'];
   estadosOficio: string[] = ['Ordenado', 'Diligenciado', 'Pedir reiteratorio / ampliatorio', 'Reiteratorio solicitado'];
   estadosTestimonial: string[] = ['Pendiente'];
-  estadosPericia: string[] = ['Pendiente'];
+  estadosPericia: string[] = ['Proveida', 'Perito noificado del cargo', 'Perito presentado', 'Perito previo', 'Perito fija fecha', 'Perito desinsacular', 'Pericia impugnada', 'Pendiente contestar impugnacion'];
   tiposPericia: string[] = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones', 
     'pericial psicologica', 'pericial medico'];
 

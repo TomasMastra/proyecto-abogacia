@@ -6,7 +6,7 @@ export interface OficioModel {
   id?: number;
   expediente_id: number;
   demandado_id: number;
-  parte: 'actora' | 'demanda' | 'tercero';
+  parte: 'actora' | 'demanda' | 'tercero' | 'citada';
 
   estado: 'diligenciado' | 'pendiente' | 'pedir reiteratorio' | 'diligenciar' | 'solicita reiteratorio' | 'eliminado';
 
