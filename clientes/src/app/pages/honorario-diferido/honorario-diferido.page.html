@@ -150,8 +150,12 @@
                   <ng-container *ngIf="item.montoLiquidacionCapital != null; else sinMonto">
                     <span class="monto-final">
                       {{ ((item.esPagoParcial == 1 || item.esPagoParcial === true)
-                          ? (calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id, item.procurador_id) - (item.capitalPagoParcial || 0))
-                          : calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id, item.procurador_id)) | currency:'$' }}
+                          ? (
+                              calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id, item.procurador_id)
+                              - calcularParteAbogado(item.capitalPagoParcial || 0, item.usuario_id, item.procurador_id)
+                            )
+                          : calcularCobroFinal(item.montoLiquidacionCapital, item.porcentaje, item.usuario_id, item.procurador_id)
+                        ) | currency:'$' }}
                     </span>
                     <button *ngIf="!item.capitalCobrado" mat-icon-button color="primary"
                       class="cobrar-btn" matTooltip="Cobrar capital" (click)="cobrar('capital', item)">

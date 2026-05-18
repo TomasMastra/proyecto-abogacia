@@ -32,6 +32,7 @@ export interface ExpedienteModel {
   juzgadoModel: JuzgadoModel | null
   procurador_id: number | null,
   sala: string | null,
+  comentario: string | null,
 
   // 📌 Capital
   estadoCapitalSeleccionado: string | null,
@@ -118,6 +119,8 @@ export interface ExpedienteModel {
   numeroCliente: string | null,
   minutosSinLuz: string | null,
   periodoCorte: string | null,
+
+
 
   }
   

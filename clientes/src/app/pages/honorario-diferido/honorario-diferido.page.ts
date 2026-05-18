@@ -1080,7 +1080,8 @@ calcularCobroFinal(
 calcularParteAbogado(
   montoYaDelEstudio: number | null,
   usuario_id: number | null,
-  procurador_id: number | null
+  procurador_id: number | null,
+
 ): number {
   if (montoYaDelEstudio == null || usuario_id == null || procurador_id == null) return 0;
 

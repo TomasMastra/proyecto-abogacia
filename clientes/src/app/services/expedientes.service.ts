@@ -262,7 +262,11 @@ getExpedientePorId(id: number | string): Observable<ExpedienteModel> {
 
 
   actualizarExpediente(id: string, expediente: ExpedienteModel): Observable<ExpedienteModel> {
+    
     const url = `${this.apiUrl}/modificar/${id}`;   
+      console.log('🔥 URL PUT =>', url);
+  console.log('🔥 BODY PUT comentario =>', expediente.comentario);
+  console.log('🔥 BODY PUT completo =>', expediente);
     console.log('ID a actualizar: ', id);
     console.log('honorario: ', expediente.honorario, ' fecha_inicio: ', expediente.fecha_inicio);
 

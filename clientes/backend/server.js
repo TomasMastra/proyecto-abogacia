@@ -1385,6 +1385,7 @@ app.post('/expedientes/agregar', async (req, res) => {
 */
 
 app.put("/expedientes/modificar/:id", async (req, res) => {
+
   const expedienteIdNum = Number(req.params.id);
   const nuevosDatos = req.body;
 
@@ -1547,8 +1548,9 @@ SET
   tiene_cortes = $66::boolean,
   dias_cortes = $67::double precision,
   observaciones_reclamo = $68,
-  estado_reclamo = $69
-  WHERE id = $70::int;`,
+  estado_reclamo = $69,
+  comentario = $70
+  WHERE id = $71::int;`,
 [
   data.titulo ?? null,
   data.descripcion ?? null,
@@ -1633,6 +1635,7 @@ SET
   toFloatOrNull(data.dias_cortes),
   data.observaciones_reclamo ?? null,
   data.estado_reclamo ?? null,
+  data.comentario ?? null,
 
   expedienteIdNum,
 ]

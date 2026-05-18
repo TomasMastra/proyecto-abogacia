@@ -257,6 +257,7 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
           //monto: new FormControl('', [Validators.required]),
           tipo: new FormControl(''),
           ultimo_movimiento: new FormControl('', [Validators.required]),
+          comentario: new FormControl(''),
 
           // Capital
           estadoCapitalSeleccionado: new FormControl('', [Validators.required]),
@@ -812,10 +813,12 @@ buscar() {
             esPagoParcial: this.expediente?.esPagoParcial,
 
             codigo_id: this.expediente?.codigo_id,
-            tipo_registro: this.expediente?.tipo_registro
+            tipo_registro: this.expediente?.tipo_registro,
+            comentario: this.form.get('comentario')?.value ?? null
 
           };
       
+          console.log('COMENTARIO =>', this.form.get('comentario')?.value);
           console.log('EXPEDIENTE: ', expediente);
           this.expedienteService.deleteClienteExpedientePorId(expediente.id).subscribe({
             next: () => console.log('Clientes eliminados correctamente'),
@@ -959,7 +962,9 @@ asignarDatos() {
     montoAcuerdo,
     sala,
     requiere_atencion: this.expediente.requiere_atencion ?? false,
-    fecha_atencion: fechaAtencion
+    fecha_atencion: fechaAtencion,
+    comentario: this.expediente.comentario ?? ''
+
   });
 
   this.umaSeleccionado = this.form.get('umaSeleccionado')?.value;
@@ -1285,6 +1290,9 @@ private llenarFormularioConExpediente(expediente: ExpedienteModel) {
     fecha_atencion: expediente.fecha_atencion
       ? new Date(expediente.fecha_atencion).toISOString().split('T')[0]
       : '',
+
+    comentario: expediente.comentario ?? ''
+
   };
 
   // Carga de tipos extras (ej. alzada)
