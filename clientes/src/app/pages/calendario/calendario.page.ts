@@ -165,6 +165,7 @@ seleccionarExpediente(expediente: ExpedienteModel) {
     this.mostrarFormulario = true;
     this.nuevoEvento = { ...evento };
     this.nuevaMediacion = evento.mediacion ? { ...evento.mediacion } : this.nuevaMediacion;
+    this.nuevoEvento.hora_evento = this.obtenerHoraEvento(evento.fecha_evento);
     this.clientesAgregados = [...(evento.clientes || [])];
     this.demandadosAgregados = [...(evento.demandados || [])];
     this.actualizarCalendario();

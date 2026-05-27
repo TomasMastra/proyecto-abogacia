@@ -15,6 +15,12 @@ import { UsuarioService } from 'src/app/services/usuario.service';
 import { UsuarioModel } from 'src/app/models/usuario/usuario.component';
 import { IonLabel } from "@ionic/angular/standalone";
 
+import {
+  ESTADOS_EXPEDIENTE,
+  COBRADO_BLOQUEADO,
+  ARCHIVO_BLOQUEADO
+} from 'src/app/config/estados-expediente.config';
+
 @Component({
   selector: 'app-consultas',
   templateUrl: './consultas.page.html',
@@ -52,27 +58,11 @@ export class ConsultasPage implements OnInit, OnDestroy {
   estadoSeleccionado: string = '';
 
   tiposJuicio: string[] = ['sumarisimo', 'ordinario', 'a definir'];
-  estados: string[] = [
-    'Sorteado', 'Inicio - Previo', 'Inicio - Plantea Revocatoria', 'Inicio - Da Cumplimiento',
-    'Inicio - Solicita', 'Inicio - Apela', 'Inicio - Recusa', 'Inicio - Plantea Nulidad',
-    'Inicio - Se Eleve', 'Traslado demanda - Se Ordena', 'Traslado demanda - Cedula Confronte',
-    'Traslado demanda - Cedula Liberada', 'Traslado demanda - Cedula Notificada',
-    'Traslado demanda - Cedula Sin Notificar', 'Traslado demanda - Notificado',
-    'Traslado demanda - Previo Rebeldia', 'Contesta demanda - Traslado', 'Contesta demanda - Cedula',
-    'Contesta Traslado', 'Se resuelva', 'Apertura a Prueba - Solicita', 'Apertura a Prueba - Cedula',
-    'Apertura a Prueba - Audiencia 360', 'Pruebas - Se provean', 'Pruebas - Se provee',
-    'Prueba - Cedula Perito', 'Prueba - Cedula Parte', 'Prueba - Oficio deox',
-    'Prueba - Oficio acredita', 'Prueba - Oficio solicita reiteratorio',
-    'Prueba - Oficio solicita Astreinte', 'Prueba - Testimonial hace saber',
-    'Prueba - Acredita Testimonial', 'Prueba - Desiste', 'Prueba - Impugna',
-    'Prueba - Se intime parte', 'Prueba - Se intime perito',
-    'Clausura periodo Prueba - Solicita', 'Clausura periodo Prueba - Pase a certificar',
-    'Alegatos - Solicita', 'Alegatos - Cedula', 'Alegatos - Presenta',
-    'Fiscal - Solicita', 'Fiscal - Cedula', 'Fiscal - Previo', 'Fiscal - Se ordena',
-    'Fiscal - Contesta traslado', 'Defensor Oficial - Solicita', 'Defensor Oficial - Cedula',
-    'Defensor Oficial - Ratifica lo actuado', 'Sentencia - Previo', 'Sentencia - Solicita',
-    'Sentencia - Pasen autos a Sentencia', 'Sentencia', 'Caducidad',
-  ];
+
+  estados: string[] = ESTADOS_EXPEDIENTE.filter(
+    e => !COBRADO_BLOQUEADO.includes(e) && !ARCHIVO_BLOQUEADO.includes(e)
+  );
+  
 
   // Paginador
   pageSize: number = 20;

@@ -34,10 +34,17 @@ export const ESTADOS_EXPEDIENTE: string[] = [
   'Prueba - Acredita Testimonial',
   'Prueba - Desiste',
   'Prueba - Impugna',
+  'Prueba - Contesta Impugnacion',
+  'Prueba - Re pendiente', /*ver*/ 
+
   'Prueba - Se intime parte',
   'Prueba - Se intime perito',
   'Clausura periodo Prueba - Solicita',
+  'Clausura periodo Prueba - Previo',
   'Clausura periodo Prueba - Pase a certificar',
+  'Clausura periodo Prueba - Prueba certificada',
+  'Clausura periodo Prueba - Prueba pendiente',
+
   'Alegatos - Solicita',
   'Alegatos - Cedula',
   'Alegatos - Presenta',
@@ -66,4 +73,8 @@ export const ESTADOS_BLOQUEADOS: string[] = [
 
 export const COBRADO_BLOQUEADO: string[] = [
   'Cobrado'
+];
+
+export const ARCHIVO_BLOQUEADO: string[] = [
+  'Archivo'
 ];

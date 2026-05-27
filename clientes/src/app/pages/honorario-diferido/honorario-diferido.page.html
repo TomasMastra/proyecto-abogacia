@@ -114,6 +114,11 @@
                     <span class="expediente-num">
                       {{ item.tipo_registro?.toLowerCase() === 'mediacion' ? 'Mediación' : (item.numero + '/' + item.anio) }}
                     </span>
+
+                      <button *ngIf="estado == 'sentencia' && item.tipo_registro?.toLowerCase() == 'mediacion'" mat-icon-button matTooltip="Restaurar cobro"
+                      class="restore-btn" (click)="restaurarEstado(item)">
+                      <mat-icon>restore</mat-icon>
+                    </button>
                     <button *ngIf="estado == 'cobrado'" mat-icon-button matTooltip="Restaurar cobro"
                       class="restore-btn" (click)="restaurarCobro(item)">
                       <mat-icon>restore</mat-icon>

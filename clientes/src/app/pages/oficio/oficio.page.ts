@@ -89,21 +89,7 @@ export class OficiosPage implements OnInit {
       fecha_diligenciado: new FormControl(null)
     });
   }
-/*
-  ngOnInit() {
-    this.cargarExpedientes();
-    this.cargarDemandados();
 
-    console.log(this.expedientes);
-
-    this.filteredExpedientes = this.expedienteCtrl.valueChanges.pipe(
-      startWith(''),
-      map(texto => this.filtrarExpedientes(texto!))
-    );
-
-    console.log(this.filteredExpedientes);
-
-  }*/
 
 seleccionarExpediente(expediente: ExpedienteModel) {
   this.form.get('expediente')?.setValue(expediente);

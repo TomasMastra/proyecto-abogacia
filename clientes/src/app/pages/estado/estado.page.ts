@@ -73,9 +73,8 @@ import {
 export class EstadoPage implements OnInit {
 
   protected form: FormGroup;
-
-  expediente: any;
-  /// Busqueda
+  
+  // Busqueda
   numero: string = '';
   anio: string = '';
   tipos: any[] = ['CCF', 'COM', 'CIV', 'CC'];
@@ -84,14 +83,12 @@ export class EstadoPage implements OnInit {
   // Menu
   menu: string = '1';
 
-  //honorario: string = '';
+  expediente: any;
+
+
   jueces: JuezModel[] = [];
-  //juezSeleccionado: any;
-
-  //juzSel: any;
-
   juzgados: JuzgadoModel[] = [];
-  //juzgadoSeleccionado: any;
+
 /*
 estados: any[] = [
   'Sorteado',
@@ -164,10 +161,8 @@ estados: any[] = [
   estados: string[] = ESTADOS_EXPEDIENTE.filter(
     e => !COBRADO_BLOQUEADO.includes(e)
   );
-  //estadoSeleccionado: any;
 
   honorarios: any[] = ['Regulacion 1º instancia', 'Difiere regulacion 1º instancia', 'Costas por su orden'];
-  //honorarioSeleccionado: any = 'Regulacion 1º instancia';
 
   private destroy$ = new Subject<void>();
   

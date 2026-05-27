@@ -1034,69 +1034,72 @@ calcularCobroFinal(
   usuario_id: number | null,
   procurador_id: number | null
 ): number {
-
-  if (
-    monto == null ||
-    porcentaje == null ||
-    usuario_id == null ||
-    procurador_id == null
-  ) {
+  if (monto == null || porcentaje == null || usuario_id == null || procurador_id == null) {
     return 0;
   }
 
   const ADMIN_ID = 7;
 
-  // 1) Primero se divide con el cliente
+  // Primero se divide con el cliente
   const montoConPorcentajeGeneral = (monto * porcentaje) / 100;
 
-  // 2) Si ambos son tu papá, cobra el 100% de lo que quedó
+  // papá + papá
   if (usuario_id === ADMIN_ID && procurador_id === ADMIN_ID) {
     return montoConPorcentajeGeneral;
   }
 
-  // 3) Si ambos son el mismo otro abogado, tu papá cobra el complemento de ese abogado
+  // NUEVO CASO: dos externos distintos
+  // usuario 50%, procurador 25%, papá 25%
+  if (usuario_id !== ADMIN_ID && procurador_id !== ADMIN_ID && usuario_id !== procurador_id) {
+    return (montoConPorcentajeGeneral * 25) / 100;
+  }
+
+  // mismo abogado externo
   if (usuario_id === procurador_id) {
     const usuario = this.listaUsuarios.find(u => u.id === usuario_id);
-    if (!usuario) return 0;
+    //if (!usuario) return 0;
 
-    const porcentajeOtro = Number(usuario.porcentaje ?? 0);
+    const porcentajeOtro = Number(usuario!.porcentaje ?? 0);
     return (montoConPorcentajeGeneral * (100 - porcentajeOtro)) / 100;
   }
 
-  // 4) Si uno es tu papá y el otro no, buscar al otro abogado
+  // papá + otro
   const otroId = usuario_id === ADMIN_ID ? procurador_id : usuario_id;
   const otroUsuario = this.listaUsuarios.find(u => u.id === otroId);
+  //if (!otroUsuario) return 0;
 
-  if (!otroUsuario) {
-    return 0;
-  }
-
-  const porcentajeOtro = Number(otroUsuario.porcentaje ?? 0);
-
-  // 5) Tu papá cobra el complemento del otro
+  const porcentajeOtro = Number(otroUsuario!.porcentaje ?? 0);
   return (montoConPorcentajeGeneral * (100 - porcentajeOtro)) / 100;
 }
 
 calcularParteAbogado(
   montoYaDelEstudio: number | null,
   usuario_id: number | null,
-  procurador_id: number | null,
-
+  procurador_id: number | null
 ): number {
   if (montoYaDelEstudio == null || usuario_id == null || procurador_id == null) return 0;
 
   const ADMIN_ID = 7;
 
+  // papá + papá
   if (usuario_id === ADMIN_ID && procurador_id === ADMIN_ID) {
     return montoYaDelEstudio;
   }
 
+  // NUEVO CASO: dos abogados externos distintos
+  // usuario 50%, procurador 25%, papá 25%
+  if (usuario_id !== ADMIN_ID && procurador_id !== ADMIN_ID && usuario_id !== procurador_id) {
+    return (montoYaDelEstudio * 25) / 100;
+  }
+
+  // mismo abogado externo
   if (usuario_id === procurador_id) {
     const usuario = this.listaUsuarios.find(u => u.id === usuario_id);
     const porcentajeOtro = Number(usuario?.porcentaje ?? 0);
     return (montoYaDelEstudio * (100 - porcentajeOtro)) / 100;
   }
 
+  // papá + otro
   const otroId = usuario_id === ADMIN_ID ? procurador_id : usuario_id;
   const otroUsuario = this.listaUsuarios.find(u => u.id === otroId);
   const porcentajeOtro = Number(otroUsuario?.porcentaje ?? 0);
@@ -1109,37 +1112,36 @@ calcularCobroFinalHonorario(
   usuario_id: number | null,
   procurador_id: number | null
 ): number {
-  if (monto == null || usuario_id == null || procurador_id == null) {
-    return 0;
-  }
+  if (monto == null || usuario_id == null || procurador_id == null) return 0;
 
   const ADMIN_ID = 7;
 
-  // Si ambos son tu papá, cobra el 100%
+  // papá + papá
   if (usuario_id === ADMIN_ID && procurador_id === ADMIN_ID) {
     return monto;
   }
 
-  // Si ambos son el mismo otro abogado, tu papá cobra el complemento de ese abogado
+  // NUEVO CASO: dos externos distintos
+  // papá cobra 25%
+  if (usuario_id !== ADMIN_ID && procurador_id !== ADMIN_ID && usuario_id !== procurador_id) {
+    return (monto * 25) / 100;
+  }
+
+  // mismo abogado externo
   if (usuario_id === procurador_id) {
     const usuario = this.listaUsuarios.find(u => u.id === usuario_id);
-    if (!usuario) return 0;
+    //if (!usuario) return 0;
 
-    const porcentaje = Number(usuario.porcentajeHonorarios ?? 0);
+    const porcentaje = Number(usuario!.porcentajeHonorarios ?? 0);
     return (monto * (100 - porcentaje)) / 100;
   }
 
-  // Si uno es tu papá y el otro no, buscar al otro abogado
+  // papá + otro
   const otroId = usuario_id === ADMIN_ID ? procurador_id : usuario_id;
   const otroUsuario = this.listaUsuarios.find(u => u.id === otroId);
+  //if (!otroUsuario) return 0;
 
-  if (!otroUsuario) {
-    return 0;
-  }
-
-  const porcentajeOtro = Number(otroUsuario.porcentajeHonorarios ?? 0);
-
-  // Tu papá cobra el complemento del otro
+  const porcentajeOtro = Number(otroUsuario!.porcentajeHonorarios ?? 0);
   return (monto * (100 - porcentajeOtro)) / 100;
 }
 
@@ -1426,6 +1428,52 @@ restaurarCobro(item: any) {
     });
   });
 }*/
+
+restaurarEstado(item: any) {
+  Swal.fire({
+    icon: 'warning',
+    title: '¿Restaurar mediacion?',
+    html: 'Esto modificara el estado a su version por defecto</b> (no borra datos).',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, restaurar',
+    cancelButtonText: 'Cancelar'
+  }).then(res => {
+    if (!res.isConfirmed) return;
+
+    // 🔒 CLAVE: preparar el cuerpo ANTES de enviar
+    const body = { ...item };
+
+    body.estado = 'Mediacion';
+
+
+        this.expedienteService.actualizarExpediente(item.id, body).subscribe({
+          next: () => {
+            Object.assign(item, body);
+
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: 'Mediacion restaurada',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          },
+          error: (e) => {
+            console.error(e);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al restaurar',
+              text: e?.error?.message || 'Intentalo de nuevo'
+            });
+          }
+        
+      
+
+      
+    });
+  });
+}
 
 restaurarCobro(item: any) {
   Swal.fire({

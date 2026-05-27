@@ -285,7 +285,7 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
     //const tipoPericiaOptions= this.tiposPericia.map(t => `<option value="${t}" ${String(item.tipo_pericia || '') === t ? 'selected' : ''}>${t}</option>`).join('');
     const expedienteTexto   = item?.expedienteModel ? `${item.expedienteModel.numero}/${item.expedienteModel.anio}` : '(sin expediente)';
     const estadoActual      = String(item?.estado || '').trim().toLowerCase();
-    const fechaISO          = (estadosQueRequierenFecha.has(estadoActual) && item?.fecha_diligenciado) ? new Date(item.fecha_diligenciado).toISOString().split('T')[0] : '';
+    const fechaISO          = (item?.fecha_diligenciado) ? new Date(item.fecha_diligenciado).toISOString().split('T')[0] : '';
 
     const tipoPericiaActual = String(item?.tipo_pericia || '').trim();
 
@@ -320,7 +320,8 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
         if (!nombre || !parteSel || !estadoSel || !tipoPeri) return Swal.showValidationMessage('Completá todos los campos.');
         if (estadosQueRequierenFecha.has(estadoSel.toLowerCase()) && !fechaInp) return Swal.showValidationMessage('Este estado requiere fecha.');
 
-        return { ...item, tipo: 'pericia', demandado_id: null, nombre_oficiada: nombre, tipo_pericia: tipoPeri, parte: parteSel, estado: estadoSel, fecha_diligenciado: estadosQueRequierenFecha.has(estadoSel.toLowerCase()) ? fechaInp : null };
+        return { ...item, tipo: 'pericia', demandado_id: null, nombre_oficiada: nombre, tipo_pericia: tipoPeri, parte: parteSel, estado: estadoSel,  fecha_diligenciado: fechaInp || item.fecha_diligenciado
+ };
       }
     }).then(res => {
       if (!res.isConfirmed || !res.value) return;

@@ -6980,6 +6980,7 @@ function round2(v) {
   return Number(toNum(v).toFixed(2));
 }
 
+
 function calcularPorcentajeSegunLogica({
   uid,
   adminId = ADMIN_ID,
@@ -6992,30 +6993,52 @@ function calcularPorcentajeSegunLogica({
   const logueadoEsAdmin = uid === adminId;
   const logueadoEsUsuario = uid === usuarioIdExp;
   const logueadoEsProcurador = uid === procuradorIdExp;
+  const adminNoInterviene = usuarioIdExp !== adminId &&
+    procuradorIdExp !== adminId &&
+    !mismoAbogado;
+
+    console.log('PORC LOGICA', {
+  uid,
+  adminId,
+  usuarioIdExp,
+  procuradorIdExp,
+  porcUsuario,
+  porcProcurador,
+  mismoAbogado,
+  logueadoEsAdmin,
+  logueadoEsUsuario,
+  logueadoEsProcurador,
+  adminNoInterviene
+});
 
   // 1) SIEMPRE el admin cobra complemento
   if (logueadoEsAdmin) {
-    // papá + papá
+
+    // abogados externos diferentes
+    if (adminNoInterviene) {
+      return 25;
+    }
+
+    // admin + admin
     if (usuarioIdExp === adminId && procuradorIdExp === adminId) {
       return 100;
     }
 
-    // papá + otro
+    // admin + otro
     if (usuarioIdExp === adminId) {
       return 100 - porcProcurador;
     }
 
-    // otro + papá
+    // otro + admin
     if (procuradorIdExp === adminId) {
       return 100 - porcUsuario;
     }
 
-    // pepe + pepe / jose + jose / pepe + jose
     return 100 - porcUsuario;
   }
 
-  // 2) Si no es admin, NUNCA cobra 100 por lógica
-  // mismo abogado en ambos roles (pepe + pepe / jose + jose)
+  // 2) Si no es admin, NO entra
+  // mismo abogado en ambos roles
   if (mismoAbogado) {
     if (logueadoEsUsuario || logueadoEsProcurador) {
       return porcUsuario;
@@ -7023,19 +7046,93 @@ function calcularPorcentajeSegunLogica({
     return 0;
   }
 
-  // 3) Usuario principal: cobra SU porcentaje
+  // 3) Usuario principal
   if (logueadoEsUsuario) {
+    if (adminNoInterviene) {
+      return 50;
+    }
+
     return porcUsuario;
   }
 
-  // 4) Procurador: cobra SU porcentaje
+  // 4) Procurador
   if (logueadoEsProcurador) {
+    if (adminNoInterviene) {
+      return 25;
+    }
+
     return porcProcurador;
   }
 
   // 5) No participa
   return 0;
 }
+
+/*
+function calcularPorcentajeSegunLogica({
+  uid,
+  adminId = ADMIN_ID,
+  usuarioIdExp,
+  procuradorIdExp,
+  porcUsuario,
+  porcProcurador
+}) {
+  porcUsuario = Number(porcUsuario ?? 0);
+  porcProcurador = Number(porcProcurador ?? 0);
+
+  const mismoAbogado = usuarioIdExp === procuradorIdExp;
+  const logueadoEsAdmin = uid === adminId;
+  const logueadoEsUsuario = uid === usuarioIdExp;
+  const logueadoEsProcurador = uid === procuradorIdExp;
+
+  // 1) ADMIN
+  if (logueadoEsAdmin) {
+    // admin + admin
+    if (usuarioIdExp === adminId && procuradorIdExp === adminId) {
+      return 100;
+    }
+
+    // admin + procurador
+    if (usuarioIdExp === adminId) {
+      return 100 - porcProcurador;
+    }
+
+    // usuario + admin
+    if (procuradorIdExp === adminId) {
+      return 100 - porcUsuario;
+    }
+
+    // mismo abogado externo: matias + matias
+    if (mismoAbogado) {
+      return 100 - porcUsuario;
+    }
+
+    // abogados externos diferentes
+    return 100 - porcUsuario - porcProcurador;
+  }
+
+  // 2) NO ADMIN: mismo abogado en ambos roles
+  if (mismoAbogado) {
+    if (logueadoEsUsuario || logueadoEsProcurador) {
+      return porcUsuario;
+    }
+
+    return 0;
+  }
+
+  // 3) Usuario principal
+  if (logueadoEsUsuario) {
+    return porcUsuario;
+  }
+
+  // 4) Procurador
+  if (logueadoEsProcurador) {
+    return porcProcurador;
+  }
+
+  // 5) No participa
+  return 0;
+}*/
 
 /*
 function enriquecerMovimientoConMonto(row, uid) {
@@ -7140,35 +7237,50 @@ function calcularPorcentajeUsuarioLogueadoCapital(item, uid) {
   const logueadoEsUsuario = uid === usuarioIdExp;
   const logueadoEsProcurador = uid === procuradorIdExp;
 
-  // Caso 1: entra papá
+  const adminNoInterviene =
+    usuarioIdExp !== ADMIN_ID &&
+    procuradorIdExp !== ADMIN_ID &&
+    !mismoAbogado;
+
+  // CASO 1: Entra ADMIN / papá
   if (logueadoEsAdmin) {
-    // andres + andres
+
+    // Caso nuevo: usuario externo + procurador externo distintos.
+    // Reparto fijo: usuario 50%, procurador 25%, admin 25%.
+    if (adminNoInterviene) {
+      return 25;
+    }
+
+    // admin + admin: papá tiene ambos roles, cobra todo.
     if (usuarioIdExp === ADMIN_ID && procuradorIdExp === ADMIN_ID) {
       return 100;
     }
 
-    // andres + matias
+    // admin + procurador externo:
+    // papá cobra el complemento del procurador.
     if (usuarioIdExp === ADMIN_ID) {
       return 100 - porcProcurador;
     }
 
-    // matias + andres
+    // usuario externo + admin:
+    // papá cobra el complemento del usuario.
     if (procuradorIdExp === ADMIN_ID) {
       return 100 - porcUsuario;
     }
 
-    // matias + matias / pepe + pepe
+    // mismo abogado externo en ambos roles:
+    // papá cobra el complemento de ese abogado.
     if (mismoAbogado) {
       return 100 - porcUsuario;
     }
 
-    // pepe + jose
+    // Seguridad/fallback.
     return 100 - porcUsuario;
   }
 
-  // Caso 2: mismo abogado en ambos roles
+  // CASO 2: No es admin y el mismo abogado está como usuario y procurador.
+  // Ese abogado cobra su porcentaje. Cualquier otro cobra 0.
   if (mismoAbogado) {
-    // matias + matias / pepe + pepe
     if (logueadoEsUsuario || logueadoEsProcurador) {
       return porcUsuario;
     }
@@ -7176,104 +7288,212 @@ function calcularPorcentajeUsuarioLogueadoCapital(item, uid) {
     return 0;
   }
 
-  // Caso 3: entra usuario principal
+  // CASO 3: Entra el usuario principal.
   if (logueadoEsUsuario) {
-    // andres + matias no debería entrar acá porque admin ya salió arriba,
-    // pero igual no molesta dejarlo explícito
-    if (usuarioIdExp === ADMIN_ID) {
-      return 100 - porcProcurador;
+
+    // Caso nuevo: usuario externo + procurador externo.
+    // Usuario principal cobra fijo 50%.
+    if (adminNoInterviene) {
+      return 50;
     }
 
-    // matias + andres / matias + jose
+    // Caso normal: cobra su porcentaje real.
     return porcUsuario;
   }
 
-  // Caso 4: entra procurador
+  // CASO 4: Entra el procurador.
   if (logueadoEsProcurador) {
-    // matias + andres
-    if (procuradorIdExp === ADMIN_ID) {
-      return 100 - porcUsuario;
+
+    // Caso nuevo: usuario externo + procurador externo.
+    // Procurador cobra fijo 25%.
+    if (adminNoInterviene) {
+      return 25;
     }
 
-    // andres + matias / jose + matias
+    // Caso normal: cobra su porcentaje real.
     return porcProcurador;
   }
 
-  // Caso 5: no participa
+  // CASO 5: No participa en el expediente.
   return 0;
 }
 
+
 function calcularPorcentajeUsuarioLogueadoHonorarios(item, uid) {
+
+  // =========================================================
+  // DATOS BASE
+  // =========================================================
+
   const usuarioIdExp = toNum(item.usuario_id);
   const procuradorIdExp = toNum(item.procurador_id);
+
   const porcUsuario = toNum(item.porc_usuario);
   const porcProcurador = toNum(item.porc_procurador);
 
   const mismoAbogado = usuarioIdExp === procuradorIdExp;
+
   const logueadoEsAdmin = uid === ADMIN_ID;
   const logueadoEsUsuario = uid === usuarioIdExp;
   const logueadoEsProcurador = uid === procuradorIdExp;
 
-  // Caso 1: entra papá
+  // =========================================================
+  // CASO NUEVO:
+  // admin NO participa pero igual cobra
+  //
+  // usuario = 50
+  // procurador = 25
+  // admin = 25
+  // =========================================================
+
+  const adminNoInterviene =
+    usuarioIdExp !== ADMIN_ID &&
+    procuradorIdExp !== ADMIN_ID &&
+    !mismoAbogado;
+
+  // =========================================================
+  // CASO 1: ENTRA ADMIN
+  // =========================================================
+
   if (logueadoEsAdmin) {
-    // andres + andres
-    if (usuarioIdExp === ADMIN_ID && procuradorIdExp === ADMIN_ID) {
+
+    // ---------------------------------------------------------
+    // externos distintos
+    // ejemplo:
+    // usuario = pepe
+    // procurador = jose
+    // admin cobra fijo 25
+    // ---------------------------------------------------------
+    if (adminNoInterviene) {
+      return 25;
+    }
+
+    // ---------------------------------------------------------
+    // admin + admin
+    // cobra todo
+    // ---------------------------------------------------------
+    if (
+      usuarioIdExp === ADMIN_ID &&
+      procuradorIdExp === ADMIN_ID
+    ) {
       return 100;
     }
 
-    // andres + matias
+    // ---------------------------------------------------------
+    // admin + otro
+    // ejemplo:
+    // admin + matias(30)
+    // admin cobra 70
+    // ---------------------------------------------------------
     if (usuarioIdExp === ADMIN_ID) {
       return 100 - porcProcurador;
     }
 
-    // matias + andres
+    // ---------------------------------------------------------
+    // otro + admin
+    // ejemplo:
+    // matias(30) + admin
+    // admin cobra 70
+    // ---------------------------------------------------------
     if (procuradorIdExp === ADMIN_ID) {
       return 100 - porcUsuario;
     }
 
-    // matias + matias / pepe + pepe
+    // ---------------------------------------------------------
+    // mismo abogado externo
+    // ejemplo:
+    // matias + matias
+    // matias cobra 30
+    // admin cobra 70
+    // ---------------------------------------------------------
     if (mismoAbogado) {
       return 100 - porcUsuario;
     }
 
-    // pepe + jose
+    // ---------------------------------------------------------
+    // fallback
+    // realmente casi nunca debería entrar acá
+    // ---------------------------------------------------------
     return 100 - porcUsuario;
   }
 
-  // Caso 2: mismo abogado en ambos roles
+  // =========================================================
+  // CASO 2:
+  // mismo abogado en ambos roles
+  // =========================================================
+
   if (mismoAbogado) {
-    // matias + matias / pepe + pepe
-    if (logueadoEsUsuario || logueadoEsProcurador) {
+
+    // ---------------------------------------------------------
+    // si el logueado ES ese abogado
+    // cobra su %
+    // ---------------------------------------------------------
+    if (
+      logueadoEsUsuario ||
+      logueadoEsProcurador
+    ) {
       return porcUsuario;
     }
 
+    // ---------------------------------------------------------
+    // no participa
+    // ---------------------------------------------------------
     return 0;
   }
 
-  // Caso 3: entra usuario principal
+  // =========================================================
+  // CASO 3:
+  // entra usuario principal
+  // =========================================================
+
   if (logueadoEsUsuario) {
-    // andres + matias no debería entrar acá porque admin ya salió arriba,
-    // pero igual no molesta dejarlo explícito
-    if (usuarioIdExp === ADMIN_ID) {
-      return 100 - porcProcurador;
+
+    // ---------------------------------------------------------
+    // caso nuevo:
+    // externos distintos
+    //
+    // usuario cobra fijo 50
+    // ---------------------------------------------------------
+    if (adminNoInterviene) {
+      return 50;
     }
 
-    // matias + andres / matias + jose
+    // ---------------------------------------------------------
+    // caso normal:
+    // cobra su %
+    // ---------------------------------------------------------
     return porcUsuario;
   }
 
-  // Caso 4: entra procurador
+  // =========================================================
+  // CASO 4:
+  // entra procurador
+  // =========================================================
+
   if (logueadoEsProcurador) {
-    // matias + andres
-    if (procuradorIdExp === ADMIN_ID) {
-      return 100 - porcUsuario;
+
+    // ---------------------------------------------------------
+    // caso nuevo:
+    // externos distintos
+    //
+    // procurador cobra fijo 25
+    // ---------------------------------------------------------
+    if (adminNoInterviene) {
+      return 25;
     }
 
-    // andres + matias / jose + matias
+    // ---------------------------------------------------------
+    // caso normal:
+    // cobra su %
+    // ---------------------------------------------------------
     return porcProcurador;
   }
 
-  // Caso 5: no participa
+  // =========================================================
+  // CASO 5:
+  // no participa
+  // =========================================================
+
   return 0;
 }
 

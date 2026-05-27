@@ -513,7 +513,7 @@ if (this.mode !== 'mediacion') {
     fecha_inicio: this.form.value['fechaInicio'],
 
     juez_id: this.juezSeleccionado?.id ?? null,
-    usuario_id: this.abogadoSeleccionado?.id ?? null,
+    usuario_id: this.form.value['abogado'],
     procurador_id: this.procuradorSeleccionado?.id ?? null,
 
     actoras: this.actorasAgregadas,

@@ -91,11 +91,11 @@
 
       <mat-form-field appearance="outline" class="full-width">
         <mat-label style="color:black">Abogado</mat-label>
-        <mat-select style="color:black" formControlName="abogado" [(ngModel)]="abogadoSeleccionado">
-          <mat-option style="color:black" *ngFor="let usuario of listaUsuarios" [value]="usuario.id">
-            {{ usuario.nombre }}
-          </mat-option>
-        </mat-select>
+<mat-select formControlName="abogado">
+  <mat-option *ngFor="let usuario of listaUsuarios" [value]="usuario.id">
+    {{ usuario.nombre }}
+  </mat-option>
+</mat-select>
         <mat-error *ngIf="form.controls?.['abogado']?.invalid && (form.controls?.['abogado']?.dirty || form.controls?.['abogado']?.touched)">
           <span *ngIf="form.controls?.['abogado']?.errors?.['required']" style="color:red">El abogado es requerido</span>
         </mat-error>
