@@ -109,9 +109,11 @@ export class RequeridosPage implements OnInit, OnDestroy {
           this.cargando = false;
           this.cdr.detectChanges();
 
-          this.expedientes.forEach(exp => {
-            this.juzgadoService.getJuzgadoPorId(exp.juzgado_id).subscribe(j => {
-              exp.juzgadoModel = j;
+this.expedientesOriginales.forEach(exp => {
+  this.juzgadoService.getJuzgadoPorId(exp.juzgado_id).subscribe(j => {
+    exp.juzgadoModel = j;
+
+    this.filtrar();
             });
           });
         },
@@ -159,9 +161,16 @@ export class RequeridosPage implements OnInit, OnDestroy {
           ? esSentencia
           : !esSentencia;
 
+      const tipoExp =
+        exp.juzgadoModel?.tipo ||
+        exp.tipo ||
+        exp.juzgado_tipo ||
+        '';
+
       const tipoOk =
         this.tipoSeleccionado
-          ? exp.juzgadoModel?.tipo === this.tipoSeleccionado
+          ? String(tipoExp).trim().toUpperCase() ===
+            String(this.tipoSeleccionado).trim().toUpperCase()
           : true;
 
       const juzgadoOk =
@@ -221,6 +230,7 @@ export class RequeridosPage implements OnInit, OnDestroy {
       return (
         tabOk &&
         tipoOk &&
+
         juzgadoOk &&
         abogadoOk &&
         procuradorOk &&

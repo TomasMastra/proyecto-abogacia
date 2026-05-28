@@ -8,6 +8,15 @@ $c-icon-bg:   #f1f5f9;
 $c-accent:    #1e40af;
 $ease:        cubic-bezier(0.4, 0, 0.2, 1);
 
+$c-white:    #ffffff;
+$c-bg:       #f0f2f7;
+$c-text:     #1e293b;
+$c-muted:    #64748b;
+$c-border:   #e2e8f0;
+$c-blue:     #1e40af;
+$c-blue-mid: #1e6fbe;
+$ease:       cubic-bezier(0.4, 0, 0.2, 1);
+
 .home-container {
   padding: 32px;
   max-width: 1200px;
@@ -327,3 +336,164 @@ $ease:        cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 
+
+
+// ============================================================
+// AGENDA DE HOY
+// ============================================================
+.today-panel {
+  margin-top: 32px;
+}
+ 
+.agenda-card {
+  background: $c-white;
+  border: 1px solid $c-border;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+ 
+// ── Tabs de agenda ────────────────────────────────────────────
+.agenda-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 16px;
+  background: $c-bg;
+  border-bottom: 1px solid $c-border;
+}
+ 
+.agenda-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 1.5px solid $c-border;
+  border-radius: 10px;
+  background: $c-white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Poppins', sans-serif;
+  color: $c-muted;
+  white-space: nowrap;
+  transition: all 0.18s $ease;
+ 
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+ 
+  &:hover { border-color: #94a3b8; color: $c-text; }
+ 
+  // Expedientes → azul
+  &--expedientes.active {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: $c-blue;
+    font-weight: 700;
+    mat-icon { color: $c-blue; }
+    .tab-count { background: #dbeafe; border-color: #bfdbfe; color: $c-blue; }
+  }
+ 
+  // Pruebas → verde
+  &--oficios.active {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #15803d;
+    font-weight: 700;
+    mat-icon { color: #15803d; }
+    .tab-count { background: #dcfce7; border-color: #bbf7d0; color: #15803d; }
+  }
+}
+ 
+.tab-count {
+  background: #f1f5f9;
+  border: 1px solid $c-border;
+  border-radius: 20px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $c-muted;
+  transition: all 0.18s $ease;
+}
+ 
+// ── Tabla ─────────────────────────────────────────────────────
+.agenda-table-wrap {
+  overflow-x: auto;
+}
+ 
+.agenda-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+ 
+  thead tr {
+    background: $c-bg;
+    border-bottom: 2px solid $c-border;
+ 
+    th {
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: $c-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      text-align: left;
+      white-space: nowrap;
+    }
+  }
+ 
+  tbody tr {
+    border-bottom: 1px solid $c-border;
+    background: $c-white;
+    transition: background 0.15s $ease;
+ 
+    &:last-child { border-bottom: none; }
+    &:hover { background: #f8fafc; }
+  }
+ 
+  td {
+    padding: 12px 16px;
+    color: $c-text;
+    vertical-align: middle;
+  }
+}
+ 
+.td-num      { font-weight: 700; white-space: nowrap; }
+.td-caratula { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.td-fecha    { white-space: nowrap; color: $c-muted; font-size: 12.5px; }
+ 
+// ── Badges de estado ──────────────────────────────────────────
+.agenda-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+ 
+  &--estado {
+    background: #eff6ff;
+    color: $c-blue;
+    border: 1px solid #bfdbfe;
+  }
+ 
+  &--prueba {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
+}
+ 
+// ── Empty ─────────────────────────────────────────────────────
+.agenda-empty {
+  text-align: center;
+  padding: 36px 20px !important;
+  color: $c-muted;
+ 
+  mat-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    display: block;
+    margin: 0 auto 8px;
+    opacity: 0.35;
+  }
+}

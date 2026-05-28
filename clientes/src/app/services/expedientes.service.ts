@@ -708,4 +708,8 @@ actualizarCapitalTest(id: number, capitalTest: number) {
   );
 }
 
+getAgendaHoy() {
+  return this.http.get<any[]>(`${this.apiUrl}/agenda-hoy`);
+}
+
 }

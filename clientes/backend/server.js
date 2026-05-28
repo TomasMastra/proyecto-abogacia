@@ -7802,6 +7802,58 @@ app.put("/expedientes/informes-enre/manual/:id", async (req, res) => {
     });
   }
 });
+
+app.get("/expedientes/agenda-hoy", async (req, res) => {
+  try {
+    const result = await pgPool.query(`
+      SELECT
+        'expediente'::text AS tipo,
+        e.id AS id,
+        e.id AS expediente_id,
+        NULL::int AS demandado_id,
+        e.numero AS numero,
+        e.anio AS anio,
+        e.caratula AS caratula,
+        e.estado AS estado,
+        e.fecha_atencion AS fecha,
+        NULL::text AS parte,
+        NULL::text AS oficiada
+      FROM public.expedientes e
+      WHERE e.fecha_atencion::date = CURRENT_DATE
+        AND e.estado <> 'eliminado'
+
+      UNION ALL
+
+      SELECT
+        o.tipo::text AS tipo,
+        o.id AS id,
+        o.expediente_id AS expediente_id,
+        o.demandado_id AS demandado_id,
+        e.numero AS numero,
+        e.anio AS anio,
+        e.caratula AS caratula,
+        o.estado AS estado,
+        o.fecha_diligenciado AS fecha,
+        o.parte AS parte,
+        COALESCE(d.nombre, o.nombre_oficiada)::text AS oficiada
+      FROM public.oficios o
+      LEFT JOIN public.expedientes e ON e.id = o.expediente_id
+      LEFT JOIN public.demandados d ON d.id = o.demandado_id
+      WHERE o.fecha_diligenciado::date = CURRENT_DATE
+        AND o.estado <> 'eliminado'
+
+      ORDER BY fecha ASC;
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("GET /home/agenda-hoy ERROR:", error);
+    res.status(500).json({
+      error: "Error al obtener agenda de hoy",
+      message: error.message
+    });
+  }
+});
 module.exports = router;
 
 

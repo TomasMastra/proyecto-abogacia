@@ -76,6 +76,8 @@
             <th>Parte</th>
             <th>Estado</th>
             <th>Fecha diligenciado</th>
+            <th>Fecha atencion<th>
+
             <th></th>
           </tr>
         </thead>
@@ -87,6 +89,7 @@
             <td><div class="skeleton-cell sk-xs"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
           </tr>
 
           <ng-container *ngIf="!cargando">
@@ -96,6 +99,7 @@
               <td>{{ oficio.parte || '—' }}</td>
               <td><span class="estado-chip estado-chip--oficio">{{ oficio.estado || '—' }}</span></td>
               <td>{{ mostrarFecha(oficio.fecha_diligenciado) || '—' }}</td>
+              <td>{{ sumarDias(oficio.fecha_diligenciado, 15) }}</td>
               <td>
                 <div class="row-actions">
                   <button class="action-icon-btn" matTooltip="Editar"

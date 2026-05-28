@@ -1,6 +1,6 @@
 <div class="home-container">
 
-  <!-- Header de bienvenida -->
+  <!-- Header -->
   <div class="home-header">
     <div class="home-header-text">
       <h1 class="home-title">
@@ -14,47 +14,31 @@
     </div>
   </div>
 
-  <!-- Tarjetas de resumen -->
+  <!-- Summary cards -->
   <div class="summary-cards">
-
-    <!-- Expedientes activos -->
     <div class="summary-card">
-      <div class="card-icon card-icon--blue">
-        <mat-icon>folder_open</mat-icon>
-      </div>
+      <div class="card-icon card-icon--blue"><mat-icon>folder_open</mat-icon></div>
       <div class="card-body">
         <span class="card-label">Expedientes activos</span>
         <span class="card-value" *ngIf="!cargando; else skeleton">{{ expedientesActivos }}</span>
       </div>
     </div>
-
-    <!-- Clientes registrados -->
     <div class="summary-card">
-      <div class="card-icon card-icon--green">
-        <mat-icon>people</mat-icon>
-      </div>
+      <div class="card-icon card-icon--green"><mat-icon>people</mat-icon></div>
       <div class="card-body">
         <span class="card-label">Clientes registrados</span>
         <span class="card-value" *ngIf="!cargando; else skeleton">{{ clientesRegistrados }}</span>
       </div>
     </div>
-
-    <!-- Sentencias emitidas -->
     <div class="summary-card">
-      <div class="card-icon card-icon--purple">
-        <mat-icon>gavel</mat-icon>
-      </div>
+      <div class="card-icon card-icon--purple"><mat-icon>gavel</mat-icon></div>
       <div class="card-body">
         <span class="card-label">Sentencias emitidas</span>
         <span class="card-value" *ngIf="!cargando; else skeleton">{{ sentenciasEmitidas }}</span>
       </div>
     </div>
-
-    <!-- Honorarios pendientes -->
     <div class="summary-card">
-      <div class="card-icon card-icon--orange">
-        <mat-icon>attach_money</mat-icon>
-      </div>
+      <div class="card-icon card-icon--orange"><mat-icon>attach_money</mat-icon></div>
       <div class="card-body">
         <span class="card-label">Honorarios pendientes</span>
         <span class="card-value card-value--currency" *ngIf="!cargando; else skeleton">
@@ -62,72 +46,135 @@
         </span>
       </div>
     </div>
-
   </div>
 
-  <!-- Skeleton template -->
-  <ng-template #skeleton>
-    <span class="skeleton-line"></span>
-  </ng-template>
+  <ng-template #skeleton><span class="skeleton-line"></span></ng-template>
 
   <!-- Acciones rápidas -->
   <div class="section-title">
     <mat-icon>bolt</mat-icon>
     <h2>Acciones rápidas</h2>
   </div>
-
   <div class="quick-actions">
-
-    <button class="action-btn action-btn--blue" (click)="goTo('lista-clientes')" *ngIf="verificarRol()">
-      <div class="action-icon"><mat-icon>person</mat-icon></div>
-      <span>Clientes</span>
+    <button class="action-btn action-btn--blue"   (click)="goTo('lista-clientes')"    *ngIf="verificarRol()">
+      <div class="action-icon"><mat-icon>person</mat-icon></div><span>Clientes</span>
     </button>
-
-    <button class="action-btn action-btn--navy" (click)="goTo('lista-expedientes')">
-      <div class="action-icon"><mat-icon>folder_open</mat-icon></div>
-      <span>Expedientes</span>
+    <button class="action-btn action-btn--navy"   (click)="goTo('lista-expedientes')">
+      <div class="action-icon"><mat-icon>folder_open</mat-icon></div><span>Expedientes</span>
     </button>
-
-    <button class="action-btn action-btn--green" (click)="goTo('honorario-diferido')" *ngIf="verificarRol()">
-      <div class="action-icon"><mat-icon>paid</mat-icon></div>
-      <span>Honorarios</span>
+    <button class="action-btn action-btn--green"  (click)="goTo('honorario-diferido')" *ngIf="verificarRol()">
+      <div class="action-icon"><mat-icon>paid</mat-icon></div><span>Honorarios</span>
     </button>
-
-    <button class="action-btn action-btn--purple" (click)="goTo('calendario')" *ngIf="verificarRol()">
-      <div class="action-icon"><mat-icon>date_range</mat-icon></div>
-      <span>Calendario</span>
+    <button class="action-btn action-btn--purple" (click)="goTo('calendario')"         *ngIf="verificarRol()">
+      <div class="action-icon"><mat-icon>date_range</mat-icon></div><span>Calendario</span>
     </button>
-
     <button class="action-btn action-btn--orange" (click)="goTo('cobranzas')">
-      <div class="action-icon"><mat-icon>account_balance_wallet</mat-icon></div>
-      <span>Cobranzas</span>
+      <div class="action-icon"><mat-icon>account_balance_wallet</mat-icon></div><span>Cobranzas</span>
     </button>
-
-    <button class="action-btn action-btn--red" (click)="goTo('requeridos')" *ngIf="verificarRol()">
-      <div class="action-icon"><mat-icon>alarm</mat-icon></div>
-      <span>Requieren atención</span>
+    <button class="action-btn action-btn--red"    (click)="goTo('requeridos')"         *ngIf="verificarRol()">
+      <div class="action-icon"><mat-icon>alarm</mat-icon></div><span>Requieren atención</span>
     </button>
-
   </div>
 
-  <!-- Sección de ayuda -->
+  <!-- Ayuda -->
   <div class="help-section">
-    <div class="help-icon">
-      <mat-icon>help_outline</mat-icon>
-    </div>
+    <div class="help-icon"><mat-icon>help_outline</mat-icon></div>
     <div class="help-text">
       <h3>¿Necesitás ayuda?</h3>
       <p>Contactanos por soporte o consultá la documentación del sistema.</p>
     </div>
     <div class="help-actions">
-      <button class="help-btn help-btn--outline" >
-        <mat-icon>support_agent</mat-icon>
-        Soporte técnico
+      <button class="help-btn help-btn--outline">
+        <mat-icon>support_agent</mat-icon>Soporte técnico
       </button>
       <button class="help-btn help-btn--outline">
-        <mat-icon>menu_book</mat-icon>
-        Ver manual
+        <mat-icon>menu_book</mat-icon>Ver manual
       </button>
+    </div>
+  </div>
+
+  <!-- ══ Agenda de hoy ══ -->
+  <div class="today-panel">
+
+    <div class="section-title">
+      <mat-icon>today</mat-icon>
+      <h2>Agenda de hoy</h2>
+    </div>
+
+    <div class="agenda-card">
+
+      <!-- Tabs -->
+      <div class="agenda-tabs">
+        <button class="agenda-tab agenda-tab--expedientes"
+          [class.active]="tabHoy === 'expedientes'"
+          (click)="tabHoy = 'expedientes'">
+          <mat-icon>folder_open</mat-icon>
+          Expedientes
+          <span class="tab-count">{{ expedientesAtencionHoy.length }}</span>
+        </button>
+        <button class="agenda-tab agenda-tab--oficios"
+          [class.active]="tabHoy === 'oficios'"
+          (click)="tabHoy = 'oficios'">
+          <mat-icon>description</mat-icon>
+          Pruebas
+          <span class="tab-count">{{ oficiosHoy.length }}</span>
+        </button>
+      </div>
+
+      <!-- Tabla expedientes -->
+      <div class="agenda-table-wrap" *ngIf="tabHoy === 'expedientes'">
+        <table class="agenda-table">
+          <thead>
+            <tr>
+              <th>Nº exp.</th>
+              <th>Carátula</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let e of expedientesAtencionHoy">
+              <td class="td-num">{{ e.numero }}/{{ e.anio }}</td>
+              <td class="td-caratula">{{ e.caratula || 'Sin carátula' }}</td>
+              <td><span class="agenda-badge agenda-badge--estado">{{ e.estado || '—' }}</span></td>
+            </tr>
+            <tr *ngIf="expedientesAtencionHoy.length === 0">
+              <td colspan="4" class="agenda-empty">
+                <mat-icon>event_available</mat-icon>
+                No hay expedientes con atención para hoy
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tabla pruebas -->
+      <div class="agenda-table-wrap" *ngIf="tabHoy === 'oficios'">
+        <table class="agenda-table">
+          <thead>
+            <tr>
+              <th>Nº exp.</th>
+              <th>Officiada / Perito</th>
+              <th>Parte</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let o of oficiosHoy">
+              <td class="td-num">{{ o.expedienteModel?.numero }}/{{ o.expedienteModel?.anio }}</td>
+              <td>{{ o.demandadoModel?.nombre || o.nombre_oficiada || '—' }}</td>
+              <td>{{ o.parte || '—' }}</td>
+              <td><span class="agenda-badge agenda-badge--prueba">{{ o.estado || '—' }}</span></td>
+            </tr>
+            <tr *ngIf="oficiosHoy.length === 0">
+              <td colspan="5" class="agenda-empty">
+                <mat-icon>description</mat-icon>
+                No hay pruebas con fecha de hoy
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
     </div>
   </div>
 
