@@ -31,6 +31,19 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core'; // ¡no te olvides!
 
+
+import {
+  ESTADOS_OFICIO
+} from 'src/app/config/estados-oficio.config';
+
+import {
+  ESTADOS_TESTIMONIALES
+} from 'src/app/config/estados-testimoniales.config';
+
+import {
+  ESTADOS_PERICIA, TIPOS_PERICIA
+} from 'src/app/config/estados-pericia.config';
+
 @Component({
   selector: 'app-oficios',
   templateUrl: './oficio.page.html',
@@ -57,11 +70,12 @@ export class OficiosPage implements OnInit {
   demandadoSeleccionado: any;
 
   partes: string[] = ['actora', 'demanda', 'tercero', 'citada'];
-  estadosOficio: string[] = ['Ordenado', 'Diligenciado', 'Pedir reiteratorio / ampliatorio', 'Reiteratorio solicitado'];
-  estadosTestimonial: string[] = ['Pendiente'];
-  estadosPericia: string[] = ['Proveida', 'Perito noificado del cargo', 'Perito presentado', 'Perito previo', 'Perito fija fecha', 'Perito desinsacular', 'Pericia impugnada', 'Pendiente contestar impugnacion'];
-  tiposPericia: string[] = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones', 
-    'pericial psicologica', 'pericial medico'];
+  estadosOficio: string[] = ESTADOS_OFICIO;
+  estadosTestimonial: string[] = ESTADOS_TESTIMONIALES;
+  estadosPericia: string[] = ESTADOS_PERICIA;
+  tiposPericia: string[] = TIPOS_PERICIA;
+
+    
 
   busqueda: string = '';
   expedienteCtrl = new FormControl('');

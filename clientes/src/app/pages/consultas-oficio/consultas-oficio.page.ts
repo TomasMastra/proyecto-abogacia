@@ -15,6 +15,18 @@ import { DemandadoModel } from 'src/app/models/demandado/demandado.component';
 
 import Swal from 'sweetalert2';
 
+import {
+  ESTADOS_OFICIO
+} from 'src/app/config/estados-oficio.config';
+
+import {
+  ESTADOS_TESTIMONIALES
+} from 'src/app/config/estados-testimoniales.config';
+
+import {
+  ESTADOS_PERICIA, TIPOS_PERICIA
+} from 'src/app/config/estados-pericia.config';
+
 @Component({
   selector: 'app-consultas-oficio',
   templateUrl: './consultas-oficio.page.html',
@@ -44,11 +56,10 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
 
   demandados: DemandadoModel[] = [];
   partes = ['actora', 'demanda', 'tercero', 'citada'];
-  estados = ['diligenciado', 'pendiente', 'pedir reiteratoria', 'diligenciar', 'reiteratorio solicitado'];
-  estadosTestimonial = ['Pendiente'];
-  estadosPericia: string[] = ['Proveida', 'Perito noificado cargo', 'Perito presentado', 'Perito previo', 'Perito fija fecha', 'Perito desinsacular', 'Pericia impugnado', 'Pendiente contestar impugnacion'];
-  tiposPericia = ['Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones',
-    'pericial psicologica', 'pericial medico'];
+   estadosOficio: string[] = ESTADOS_OFICIO;
+   estadosTestimonial: string[] = ESTADOS_TESTIMONIALES;
+   estadosPericia: string[] = ESTADOS_PERICIA;
+   tiposPericia: string[] = TIPOS_PERICIA;
 
   ordenCampo = '';
   ordenAscendente = true;
@@ -234,7 +245,7 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
   modificarOficio(oficio: any): void {
     const estadosQueRequierenFecha = new Set(['ordenado', 'diligenciado', 'reiteratorio solicitado']);
     const estadoActual = String(oficio?.estado || '').trim().toLowerCase();
-    const estadoOptions = this.estados.map(e => `<option value="${e}" ${String(oficio.estado) === e ? 'selected' : ''}>${e}</option>`).join('');
+    const estadoOptions = this.estadosOficio.map(e => `<option value="${e}" ${String(oficio.estado) === e ? 'selected' : ''}>${e}</option>`).join('');
     const parteOptions  = this.partes.map(p => `<option value="${p}" ${String(oficio.parte).toLowerCase() === p.toLowerCase() ? 'selected' : ''}>${p}</option>`).join('');
     const demandadoOptions = this.demandados.map(d => `<option value="${d.id}" ${Number(oficio.demandado_id) === Number(d.id) ? 'selected' : ''}>${d.nombre}</option>`).join('');
     const expedienteTexto = oficio.expedienteModel ? `${oficio.expedienteModel.numero}/${oficio.expedienteModel.anio}` : '(sin expediente)';

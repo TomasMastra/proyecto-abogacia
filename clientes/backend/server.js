@@ -3099,7 +3099,7 @@ app.get("/eventos", async (req, res) => {
         ) AS demandados
       FROM public.eventos_calendario e
       WHERE e.estado <> 'eliminado'
-      ORDER BY e.fecha_evento DESC, e.id DESC;
+      ORDER BY e.fecha_evento ASC;
 
       `
     );

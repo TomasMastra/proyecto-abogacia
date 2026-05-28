@@ -17,7 +17,7 @@
       <div class="filter-select-wrap">
         <select class="filter-select" [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
           <option value="todos">Todos los estados</option>
-          <option *ngFor="let est of estados" [value]="est">{{ est }}</option>
+          <option *ngFor="let est of estadosOficio" [value]="est">{{ est }}</option>
         </select>
         <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
