@@ -209,6 +209,8 @@
             <th>Parte</th>
             <th>Estado</th>
             <th>Fecha</th>
+            <th>Fecha atencion<th>
+
             <th></th>
           </tr>
         </thead>
@@ -221,6 +223,8 @@
             <td><div class="skeleton-cell sk-xs"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
             <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+
           </tr>
 
           <ng-container *ngIf="!cargando">
@@ -231,6 +235,7 @@
               <td>{{ item.parte || '—' }}</td>
               <td><span class="estado-chip estado-chip--pericia">{{ item.estado || '—' }}</span></td>
               <td>{{ mostrarFecha(item.fecha_diligenciado) || '—' }}</td>
+              <td>{{ mostrarFecha(item.fecha_atencion) || '—' }}</td>
               <td>
                 <div class="row-actions">
                   <button class="action-icon-btn" matTooltip="Editar"

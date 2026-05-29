@@ -49,21 +49,27 @@ getOficios(): Observable<OficioModel[]> {
 
 
 actualizarOficio(id: number, data: Partial<OficioModel>): Observable<any> {
-  const body = {
-    expediente_id: data.expediente_id,
-    demandado_id: data.demandado_id,
+
+  const body: any = {
     parte: data.parte,
     estado: data.estado,
     fecha_diligenciado: data.fecha_diligenciado || null,
 
-    // 🔥 FALTABAN ESTOS
     nombre_oficiada: data.nombre_oficiada,
     tipo_pericia: data.tipo_pericia,
     supletoria: data.supletoria,
+    fecha_atencion: data.fecha_atencion || null,
 
-    // opcional pero recomendable
     tipo: data.tipo
   };
+
+  if (data.expediente_id != null) {
+    body.expediente_id = data.expediente_id;
+  }
+
+  if (data.demandado_id != null) {
+    body.demandado_id = data.demandado_id;
+  }
 
   console.log("PAYLOAD REAL =>", body);
 

@@ -297,7 +297,9 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
     const expedienteTexto   = item?.expedienteModel ? `${item.expedienteModel.numero}/${item.expedienteModel.anio}` : '(sin expediente)';
     const estadoActual      = String(item?.estado || '').trim().toLowerCase();
     const fechaISO          = (item?.fecha_diligenciado) ? new Date(item.fecha_diligenciado).toISOString().split('T')[0] : '';
-
+    const fechaAtISO = item?.fecha_atencion
+      ? String(item.fecha_atencion).split('T')[0]
+      : '';
     const tipoPericiaActual = String(item?.tipo_pericia || '').trim();
 
     const tipoPericiaOptions =
@@ -320,6 +322,8 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
         <label>Estado</label><select id="sw-estado" class="swal2-select" style="width:100%">${estadoOptions}</select>
         <label>Tipo de pericia</label><select id="sw-tipo-pericia" class="swal2-select" style="width:100%">${tipoPericiaOptions}</select>
         <label>Fecha</label><input id="sw-fecha" class="swal2-input" type="date" value="${fechaISO}" />
+        <label>Fecha de atención</label><input id="sw-fecha_at" class="swal2-input" type="date" value="${fechaAtISO}" />
+
       </div>`,
       showCancelButton: true, confirmButtonText: 'Guardar', cancelButtonText: 'Cancelar',
       preConfirm: () => {
@@ -328,11 +332,12 @@ export class ConsultasOficioPage implements OnInit, OnDestroy {
         const estadoSel= (document.getElementById('sw-estado') as HTMLSelectElement)?.value || '';
         const tipoPeri = (document.getElementById('sw-tipo-pericia') as HTMLSelectElement)?.value || '';
         const fechaInp = (document.getElementById('sw-fecha') as HTMLInputElement)?.value || '';
+        const fechaAtInp = (document.getElementById('sw-fecha_at') as HTMLInputElement)?.value || '';
         if (!nombre || !parteSel || !estadoSel || !tipoPeri) return Swal.showValidationMessage('Completá todos los campos.');
         if (estadosQueRequierenFecha.has(estadoSel.toLowerCase()) && !fechaInp) return Swal.showValidationMessage('Este estado requiere fecha.');
 
-        return { ...item, tipo: 'pericia', demandado_id: null, nombre_oficiada: nombre, tipo_pericia: tipoPeri, parte: parteSel, estado: estadoSel,  fecha_diligenciado: fechaInp || item.fecha_diligenciado
- };
+        return { ...item, tipo: 'pericia', demandado_id: null, nombre_oficiada: nombre, tipo_pericia: tipoPeri, parte: parteSel, 
+          estado: estadoSel,  fecha_diligenciado: fechaInp || item.fecha_diligenciado,   fecha_atencion: fechaAtInp || null};
       }
     }).then(res => {
       if (!res.isConfirmed || !res.value) return;

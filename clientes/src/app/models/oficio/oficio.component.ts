@@ -11,6 +11,7 @@ export interface OficioModel {
   estado: 'diligenciado' | 'pendiente' | 'pedir reiteratorio' | 'diligenciar' | 'solicita reiteratorio' | 'eliminado';
 
   fecha_diligenciado?: string | null;
+  fecha_atencion?: string | null;
 
   expedienteModel?: ExpedienteModel;
   demandadoModel?: DemandadoModel | null;

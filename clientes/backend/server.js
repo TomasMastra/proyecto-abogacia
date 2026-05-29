@@ -4476,12 +4476,10 @@ app.get("/oficios", async (req, res) => {
 });
 
 // postgres
-
 app.put("/oficios/modificar/:id", async (req, res) => {
   try {
+    
     const id = Number(req.params.id);
-
-
 
     if (!Number.isInteger(id) || id <= 0) {
       return res.status(400).json({ mensaje: "ID inválido" });
@@ -4497,7 +4495,12 @@ app.put("/oficios/modificar/:id", async (req, res) => {
     }
 
     const prev = prevR.rows[0];
-    const tipo = String(prev.tipo || "").toLowerCase();
+
+    // Priorizar tipo del body, fallback al de la DB
+    const tipoDelBody = req.body.tipo ? String(req.body.tipo).toLowerCase().trim() : null;
+    const tipo = tipoDelBody || String(prev.tipo || "").toLowerCase().trim();
+
+    console.log("TIPO CALCULADO =>", tipo, "| EN DB =>", prev.tipo, "| EN BODY =>", req.body.tipo);
 
     const {
       demandado_id,
@@ -4506,24 +4509,26 @@ app.put("/oficios/modificar/:id", async (req, res) => {
       fecha_diligenciado,
       nombre_oficiada,
       tipo_pericia,
-      supletoria
+      supletoria,
+      fecha_atencion
     } = req.body;
+
+
 
     let query = "";
     let params = [];
 
+
+    console.log("FECHA ATENCION RECIBIDA =>", fecha_atencion);
+   
+
     if (tipo === "oficio") {
       query = `
         UPDATE public.oficios
-        SET
-          demandado_id = $1,
-          parte = $2,
-          estado = $3,
-          fecha_diligenciado = $4
+        SET demandado_id = $1, parte = $2, estado = $3, fecha_diligenciado = $4
         WHERE id = $5
         RETURNING *
       `;
-
       params = [
         demandado_id != null ? Number(demandado_id) : prev.demandado_id,
         parte ?? prev.parte,
@@ -4536,16 +4541,10 @@ app.put("/oficios/modificar/:id", async (req, res) => {
     else if (tipo === "testimonial") {
       query = `
         UPDATE public.oficios
-        SET
-          nombre_oficiada = $1,
-          parte = $2,
-          estado = $3,
-          fecha_diligenciado = $4,
-          supletoria = $5
+        SET nombre_oficiada = $1, parte = $2, estado = $3, fecha_diligenciado = $4, supletoria = $5
         WHERE id = $6
         RETURNING *
       `;
-
       params = [
         nombre_oficiada ?? prev.nombre_oficiada,
         parte ?? prev.parte,
@@ -4557,24 +4556,21 @@ app.put("/oficios/modificar/:id", async (req, res) => {
     }
 
     else if (tipo === "pericia") {
+      console.log("BODY PERICIA =>", req.body);
+
       query = `
         UPDATE public.oficios
-        SET
-          nombre_oficiada = $1,
-          parte = $2,
-          estado = $3,
-          fecha_diligenciado = $4,
-          tipo_pericia = $5
-        WHERE id = $6
+        SET nombre_oficiada = $1, parte = $2, estado = $3, fecha_diligenciado = $4, tipo_pericia = $5, fecha_atencion = $6
+        WHERE id = $7
         RETURNING *
       `;
-
       params = [
         nombre_oficiada ?? prev.nombre_oficiada,
         parte ?? prev.parte,
         estado ?? prev.estado,
         fecha_diligenciado ?? prev.fecha_diligenciado,
         tipo_pericia ?? prev.tipo_pericia,
+        fecha_atencion ?? prev.fecha_atencion,
         id
       ];
     }
@@ -4584,20 +4580,13 @@ app.put("/oficios/modificar/:id", async (req, res) => {
     }
 
     const { rows } = await pgPool.query(query, params);
-
     return res.status(200).json(rows[0]);
 
   } catch (error) {
     console.error("Error al actualizar prueba:", error);
-    return res.status(500).json({
-      mensaje: "Error al actualizar prueba",
-      message: error.message
-    });
+    return res.status(500).json({ mensaje: "Error al actualizar prueba", message: error.message });
   }
 });
-// postgres
-
-
 
 
 
@@ -5012,6 +5001,7 @@ app.get("/expedientes/demandados-por-mes", async (req, res) => {
 });
 
 // postgres
+/*
 app.put("/oficios/modificar/:id", async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -5028,7 +5018,8 @@ app.put("/oficios/modificar/:id", async (req, res) => {
       tipo,
       nombre_oficiada,
       tipo_pericia,
-      supletoria
+      supletoria,
+      fecha_atencion
     } = req.body;
 
     // Traigo registro actual
@@ -5050,6 +5041,9 @@ app.put("/oficios/modificar/:id", async (req, res) => {
       return res.status(400).json({ error: "Tipo inválido. Use: oficio | testimonial | pericia" });
     }
 
+    console.log("BODY =>", req.body);
+    console.log("FINAL FECHA AT =>", final.fecha_atencion);
+
     const final = {
       expediente_id: has("expediente_id") ? Number(expediente_id) : prev.expediente_id,
       demandado_id: has("demandado_id")
@@ -5060,7 +5054,8 @@ app.put("/oficios/modificar/:id", async (req, res) => {
       fecha_diligenciado: has("fecha_diligenciado") ? normDate(fecha_diligenciado) : prev.fecha_diligenciado,
       nombre_oficiada: has("nombre_oficiada") ? normStr(nombre_oficiada) : prev.nombre_oficiada,
       tipo_pericia: has("tipo_pericia") ? normStr(tipo_pericia) : prev.tipo_pericia,
-      supletoria: has("supletoria") ? normDate(supletoria) : prev.supletoria
+      supletoria: has("supletoria") ? normDate(supletoria) : prev.supletoria,
+      fecha_atencion: has("fecha_atencion") ? normDate(fecha_atencion) : prev.fecha_atencion
     };
 
     // Validaciones por tipo
@@ -5107,8 +5102,9 @@ app.put("/oficios/modificar/:id", async (req, res) => {
         tipo               = $6,
         nombre_oficiada    = $7,
         tipo_pericia       = $8,
-        supletoria         = $9
-      WHERE id = $10
+        supletoria         = $9,
+        fecha_atencion = $10
+      WHERE id = $11
       `,
       [
         final.expediente_id ?? null,
@@ -5120,6 +5116,7 @@ app.put("/oficios/modificar/:id", async (req, res) => {
         final.nombre_oficiada ?? null,
         final.tipo_pericia ?? null,
         final.supletoria || null,
+        final.fecha_atencion || null,
         id
       ]
     );
@@ -5130,7 +5127,7 @@ app.put("/oficios/modificar/:id", async (req, res) => {
     console.error("Error al modificar prueba:", err);
     return res.status(500).json({ error: "Error al modificar prueba" });
   }
-});
+});*/
 
 
 
@@ -7823,7 +7820,7 @@ app.get("/expedientes/agenda-hoy", async (req, res) => {
         AND e.estado <> 'eliminado'
 
       UNION ALL
-
+      
       SELECT
         o.tipo::text AS tipo,
         o.id AS id,
@@ -7833,14 +7830,29 @@ app.get("/expedientes/agenda-hoy", async (req, res) => {
         e.anio AS anio,
         e.caratula AS caratula,
         o.estado AS estado,
-        o.fecha_diligenciado AS fecha,
+
+        CASE
+          WHEN o.tipo = 'pericia'
+            THEN o.fecha_atencion
+          ELSE o.fecha_diligenciado + INTERVAL '15 days'
+        END AS fecha,
+
         o.parte AS parte,
         COALESCE(d.nombre, o.nombre_oficiada)::text AS oficiada
+
       FROM public.oficios o
       LEFT JOIN public.expedientes e ON e.id = o.expediente_id
       LEFT JOIN public.demandados d ON d.id = o.demandado_id
-      WHERE o.fecha_diligenciado::date = CURRENT_DATE
-        AND o.estado <> 'eliminado'
+
+      WHERE (
+        CASE
+          WHEN o.tipo = 'pericia'
+            THEN o.fecha_atencion::date
+          ELSE (o.fecha_diligenciado + INTERVAL '15 days')::date
+        END
+      ) = CURRENT_DATE
+
+      AND o.estado <> 'eliminado'
 
       ORDER BY fecha ASC;
     `);
