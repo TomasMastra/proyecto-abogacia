@@ -28,6 +28,9 @@ import { JuezModel } from 'src/app/models/juez/juez.component';
 import { JuzgadosService } from 'src/app/services/juzgados.service';
 import { JuzgadoModel } from 'src/app/models/juzgado/juzgado.component';
 
+import { EstudioService, EstudioModel } from 'src/app/services/estudio.service';
+import { UsuarioService } from 'src/app/services/usuario.service';
+
 import Swal from 'sweetalert2'
 
 import { takeUntil } from 'rxjs/operators';
@@ -88,6 +91,8 @@ export class EstadoPage implements OnInit {
 
   jueces: JuezModel[] = [];
   juzgados: JuzgadoModel[] = [];
+  estudios: EstudioModel[] = [];
+  listaUsuarios: any[] = [];
 
 /*
 estados: any[] = [
@@ -238,7 +243,9 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
     private expedienteService: ExpedientesService,
       private juezService: JuezService,
       private juzgadosService: JuzgadosService,
-      private umaService: UmaService
+      private umaService: UmaService,
+      private estudioService: EstudioService,
+      private usuarioService: UsuarioService
     ) {
   
       //this.resetearCamposEstadoYHonorarios();
@@ -296,6 +303,12 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
           monto_diferencia: new FormControl(''),
 
 
+          //
+          estudio_id: new FormControl(null),
+          abogado_presentado_id: new FormControl(null),
+          vincular: new FormControl(false),
+
+
 
         }
       );    
@@ -318,9 +331,17 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
         this.calcularMontoUMA();
       });
 
+      this.form.get('estado')?.valueChanges.subscribe((val) => {
+        if (val === 'Contesta demanda - Traslado') {
+          setTimeout(() => this.abrirModalTraslado(), 150);
+        }
+      });
+
       this.cargarJueces();
       this.cargarJuzgados();
       this.cargarUma();
+      this.cargarEstudios();
+      this.cargarUsuarios();
     }
 
     ngOnInit() {
@@ -333,6 +354,20 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
       }
 
     }
+
+    cargarEstudios() {
+    this.estudioService.getEstudios().subscribe({
+      next: data => this.estudios = data,
+      error: err => console.error('Error cargando estudios', err)
+    });
+  }
+
+  cargarUsuarios() {
+    this.usuarioService.getUsuarios().subscribe({
+      next: data => this.listaUsuarios = data,
+      error: err => console.error('Error cargando usuarios', err)
+    });
+  }
 
 
 calcularMontoUMA() {
@@ -809,7 +844,10 @@ buscar() {
 
             codigo_id: this.expediente?.codigo_id,
             tipo_registro: this.expediente?.tipo_registro,
-            comentario: this.form.get('comentario')?.value ?? null
+            comentario: this.form.get('comentario')?.value ?? null,
+            estudio_id: this.expediente?.estudio_id ?? null,
+            abogados_presentados: this.expediente?.abogados_presentados ?? [],         
+            vincular: this.form.get('vincular')?.value ?? false,
 
           };
       
@@ -935,6 +973,8 @@ asignarDatos() {
 
   this.tipoSeleccionado = this.expediente.tipo ?? null;
 
+
+
   this.form.patchValue({
     estado: this.expediente.estado ?? '',
     honorario,
@@ -958,7 +998,10 @@ asignarDatos() {
     sala,
     requiere_atencion: this.expediente.requiere_atencion ?? false,
     fecha_atencion: fechaAtencion,
-    comentario: this.expediente.comentario ?? ''
+    comentario: this.expediente.comentario ?? '',
+    estudio_id: this.expediente.estudio_id ?? null,
+    abogado_presentado_id: this.expediente.abogado_presentado_id ?? null,
+    vincular: this.expediente.vincular ?? false,
 
   });
 
@@ -1906,7 +1949,170 @@ mostrarMontoCapital(): boolean {
   return habilitados.includes(estado);
 }
 
+// ═══════════════════════════════════════════════════════════
+// MÉTODO COMPLETO — pegar dentro de la clase EstadoPage
+// ═══════════════════════════════════════════════════════════
+ 
+  async abrirModalTraslado(): Promise<void> {
+    // Valores previos guardados en el expediente
+  const estudioActual = Number(this.expediente?.estudio_id ?? 0);
 
+const abogadosPrevios: number[] = Array.isArray(this.expediente?.abogados_presentados)
+  ? this.expediente.abogados_presentados.map((a: any) => Number(a.usuario_id ?? a.id))
+  : [];
+
+  const vincularActual = Array.isArray(this.expediente?.abogados_presentados)
+    ? this.expediente.abogados_presentados.some((a: any) => a.vincular === true)
+    : false;
+
+  const estudiosOptions = `
+    <option value="">Seleccionar estudio</option>
+    ${(this.estudios || []).map(e => `
+      <option value="${e.id}" ${Number(e.id) === estudioActual ? 'selected' : ''}>
+        ${e.nombre}
+      </option>
+    `).join('')}
+  `;
+ 
+    // Construir checkboxes de usuarios
+  const checkboxesHTML = (this.listaUsuarios || []).map(u => `
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;border:1px solid #e2e8f0;margin-bottom:6px;">
+      <input
+        type="checkbox"
+        class="checkbox-abogado"
+        value="${u.id}"
+        ${abogadosPrevios.includes(Number(u.id)) ? 'checked' : ''}
+        style="width:16px;height:16px;cursor:pointer;accent-color:#1e40af;"
+      >
+      <span>${u.nombre ?? ''} ${u.apellido ?? ''}</span>
+    </label>
+  `).join('');
+ 
+    await Swal.fire({
+      title: 'Contesta demanda — Traslado',
+      width: 540,
+      html: `
+        <style>
+          .traslado-section {
+            text-align: left;
+            margin-bottom: 18px;
+          }
+          .traslado-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            padding-left: 2px;
+          }
+          .traslado-input {
+            width: 100%;
+            height: 42px;
+            padding: 0 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
+            color: #1e293b;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+          }
+          .traslado-input:focus {
+            border-color: #1e6fbe;
+            box-shadow: 0 0 0 3px rgba(30,111,190,0.10);
+          }
+          .abogados-list {
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px;
+          }
+        </style>
+ 
+        <div class="traslado-section">
+          <label class="traslado-label">Estudio</label>
+          <select id="traslado-estudio" class="traslado-input">
+            ${estudiosOptions}
+          </select>
+        </div>
+
+        <div class="traslado-section">
+          <label style="display:flex;gap:10px;align-items:center;font-weight:700;">
+            <input id="traslado-vincular" type="checkbox" ${vincularActual ? 'checked' : ''}>
+            Vincular
+          </label>
+        </div>
+ 
+        <div class="traslado-section">
+          <label class="traslado-label">Abogados presentados</label>
+          <div class="abogados-list">
+            ${checkboxesHTML || '<p style="color:#64748b;font-size:13px;text-align:center;padding:12px 0;">Sin usuarios cargados</p>'}
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      focusConfirm: false,
+preConfirm: () => {
+  const estudio_id = Number(
+    (document.getElementById('traslado-estudio') as HTMLSelectElement)?.value
+  ) || null;
+
+  const vincular = (
+    document.getElementById('traslado-vincular') as HTMLInputElement
+  )?.checked ?? false;
+
+  const abogados = Array.from(
+    document.querySelectorAll<HTMLInputElement>('.checkbox-abogado:checked')
+  ).map(cb => ({
+    usuario_id: Number(cb.value),
+    vincular
+  }));
+
+  if (!estudio_id) {
+    Swal.showValidationMessage('Debe seleccionar un estudio.');
+    return false;
+  }
+
+  if (abogados.length === 0) {
+    Swal.showValidationMessage('Debe seleccionar al menos un abogado.');
+    return false;
+  }
+
+  return {
+    estudio_id,
+    abogados,
+    vincular
+  };
+}
+    }).then(result => {
+      if (!result.isConfirmed || !result.value) return;
+ 
+      this.expediente.estudio_id = result.value.estudio_id;
+      this.expediente.abogados_presentados = result.value.abogados;
+      this.expediente.vincular_traslado = result.value.vincular;
+ 
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: 'Datos de traslado guardados',
+        showConfirmButton: false,
+        timer: 2000
+      });
+    });
+  }
+
+getNombreAbogado(id: number): string {
+  const abogado = this.listaUsuarios?.find(
+    (u: any) => Number(u.id) === Number(id)
+  );
+
+  return abogado?.nombre || `ID ${id}`;
+}  
 
 }
 

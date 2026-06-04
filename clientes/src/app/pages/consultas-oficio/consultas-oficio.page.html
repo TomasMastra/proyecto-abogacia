@@ -14,10 +14,26 @@
           [(ngModel)]="busqueda" (ngModelChange)="filtrar()" />
       </div>
 
-      <div class="filter-select-wrap">
+      <div class="filter-select-wrap" *ngIf="tabActiva === 'oficios'">
         <select class="filter-select" [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
           <option value="todos">Todos los estados</option>
           <option *ngFor="let est of estadosOficio" [value]="est">{{ est }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="filter-select-wrap" *ngIf="tabActiva === 'testimoniales'">
+        <select class="filter-select" [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
+          <option value="todos">Todos los estados</option>
+          <option *ngFor="let est of estadosTestimonial" [value]="est">{{ est }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="filter-select-wrap" *ngIf="tabActiva === 'pericias'">
+        <select class="filter-select" [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
+          <option value="todos">Todos los estados</option>
+          <option *ngFor="let est of estadosPericia" [value]="est">{{ est }}</option>
         </select>
         <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
@@ -41,25 +57,25 @@
 
     <!-- Tabs -->
     <div class="tabs-row">
-      <button class="tab-btn tab-btn--oficios"
-        [class.active]="tabActiva === 'oficios'"
-        (click)="tabActiva = 'oficios'">
+<button class="tab-btn tab-btn--oficios"
+  [class.active]="tabActiva === 'oficios'"
+  (click)="tabActiva = 'oficios'; estadoSeleccionado = 'todos'; filtrar()">
         <mat-icon>mail</mat-icon>
         Oficios
         <span class="tab-count">{{ listaOficios.length }}</span>
       </button>
 
-      <button class="tab-btn tab-btn--testimoniales"
-        [class.active]="tabActiva === 'testimoniales'"
-        (click)="tabActiva = 'testimoniales'">
+<button class="tab-btn tab-btn--testimoniales"
+  [class.active]="tabActiva === 'testimoniales'"
+  (click)="tabActiva = 'testimoniales'; estadoSeleccionado = 'todos'; filtrar()">
         <mat-icon>record_voice_over</mat-icon>
         Testimoniales
         <span class="tab-count">{{ listaTestimoniales.length }}</span>
       </button>
 
-      <button class="tab-btn tab-btn--pericias"
-        [class.active]="tabActiva === 'pericias'"
-        (click)="tabActiva = 'pericias'">
+<button class="tab-btn tab-btn--pericias"
+  [class.active]="tabActiva === 'pericias'"
+  (click)="tabActiva = 'pericias'; estadoSeleccionado = 'todos'; filtrar()">
         <mat-icon>manage_search</mat-icon>
         Pericias
         <span class="tab-count">{{ listaPericias.length }}</span>

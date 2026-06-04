@@ -100,7 +100,8 @@ export class RequeridosPage implements OnInit, OnDestroy {
       .subscribe({
         next: (expedientes) => {
           const filtrados = (expedientes ?? []).filter(e =>
-            e.estado !== 'eliminado' && e.estado !== 'Archivo' && e.fecha_atencion
+            e.estado !== 'eliminado' && e.estado !== 'Archivo' && e.estado !== 'Cobrado' &&
+            e.fecha_atencion
           );
           this.expedientesOriginales = filtrados;
           this.pageIndex = 0;
@@ -365,7 +366,8 @@ this.expedientesOriginales.forEach(exp => {
 
   get listaSinSentencia(): any[] {
     return this.expedientesOriginales.filter(exp =>
-      String(exp.estado || '').toLowerCase() !== 'sentencia'
+      String(exp.estado || '').toLowerCase() !== 'sentencia' &&
+      String(exp.estado || '').toLowerCase() !== 'Cobrado'
     );
   }
 }

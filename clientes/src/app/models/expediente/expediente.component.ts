@@ -2,6 +2,7 @@ import { ClienteModel } from '../cliente/cliente.component';
 import { DemandadoModel } from '../demandado/demandado.component';
 import { JuezModel } from '../juez/juez.component';
 import { JuzgadoModel } from '../juzgado/juzgado.component';
+import { UsuarioModel } from '../usuario/usuario.component';
 
 export interface ExpedienteModel {
   id: string,
@@ -113,6 +114,11 @@ export interface ExpedienteModel {
   dias_cortes?: number | null;
   observaciones?: string | null;
   estado_reclamo?: string | null;
+
+  estudio_id?: string | null,
+  abogados_presentados?: UsuarioModel[],
+
+  vincular?: boolean | null,
 
 
   // borrar

@@ -1467,178 +1467,183 @@ const keepBoolIfUndefined = (nuevo, actual) => {
     // =========================
     const updateRes = await client.query(
       `
-UPDATE public.expedientes
-SET
-  titulo = $1,
-  descripcion = $2,
-  numero = $3::int,
-  anio = $4::int,
-  juzgado_id = $5::int,
-  estado = $6,
-  juez_id = $7::int,
-  honorario = $8,
-  fecha_inicio = $9::timestamp,
-  juicio = $10,
-  fecha_sentencia = $11::timestamp,
-  apela = $12::boolean,
-  ultimo_movimiento = $13::timestamp,
-  porcentaje = $14::double precision,
-  usuario_id = $15::int,
-  fecha_cobro = $16::timestamp,
-  fecha_cobro_capital = $17::timestamp,
-  procurador_id = $18::int,
-  "valorUMA" = $19::int,
-  sala = $20,
-  requiere_atencion = $21::boolean,
-  fecha_atencion = $22::date,
+    UPDATE public.expedientes
+    SET
+      titulo = $1,
+      descripcion = $2,
+      numero = $3::int,
+      anio = $4::int,
+      juzgado_id = $5::int,
+      estado = $6,
+      juez_id = $7::int,
+      honorario = $8,
+      fecha_inicio = $9::timestamp,
+      juicio = $10,
+      fecha_sentencia = $11::timestamp,
+      apela = $12::boolean,
+      ultimo_movimiento = $13::timestamp,
+      porcentaje = $14::double precision,
+      usuario_id = $15::int,
+      fecha_cobro = $16::timestamp,
+      fecha_cobro_capital = $17::timestamp,
+      procurador_id = $18::int,
+      "valorUMA" = $19::int,
+      sala = $20,
+      requiere_atencion = $21::boolean,
+      fecha_atencion = $22::date,
 
-  -- Capital
-  "estadoCapitalSeleccionado" = $23,
-  "subEstadoCapitalSeleccionado" = $24,
-  "fechaCapitalSubestado" = $25::timestamp,
-  "estadoLiquidacionCapitalSeleccionado" = $26,
-  "fechaLiquidacionCapital" = $27::timestamp,
-  "montoLiquidacionCapital" = $28::double precision,
-  "capitalCobrado" = $29::boolean,
+      -- Capital
+      "estadoCapitalSeleccionado" = $23,
+      "subEstadoCapitalSeleccionado" = $24,
+      "fechaCapitalSubestado" = $25::timestamp,
+      "estadoLiquidacionCapitalSeleccionado" = $26,
+      "fechaLiquidacionCapital" = $27::timestamp,
+      "montoLiquidacionCapital" = $28::double precision,
+      "capitalCobrado" = $29::boolean,
 
-  -- Honorarios
-  "estadoHonorariosSeleccionado" = $30,
-  "subEstadoHonorariosSeleccionado" = $31,
-  "fechaHonorariosSubestado" = $32::timestamp,
-  "estadoLiquidacionHonorariosSeleccionado" = $33,
-  "fechaLiquidacionHonorarios" = $34::timestamp,
-  "montoLiquidacionHonorarios" = $35::double precision,
-  "honorarioCobrado" = $36::boolean,
-  "cantidadUMA" = $37::double precision,
+      -- Honorarios
+      "estadoHonorariosSeleccionado" = $30,
+      "subEstadoHonorariosSeleccionado" = $31,
+      "fechaHonorariosSubestado" = $32::timestamp,
+      "estadoLiquidacionHonorariosSeleccionado" = $33,
+      "fechaLiquidacionHonorarios" = $34::timestamp,
+      "montoLiquidacionHonorarios" = $35::double precision,
+      "honorarioCobrado" = $36::boolean,
+      "cantidadUMA" = $37::double precision,
 
-  -- Alzada
-  "estadoHonorariosAlzadaSeleccionado" = $38,
-  "subEstadoHonorariosAlzadaSeleccionado" = $39,
-  "fechaHonorariosAlzada" = $40::timestamp,
-  "umaSeleccionado_alzada" = $41::int,
-  "cantidadUMA_alzada" = $42::double precision,
-  "montoAcuerdo_alzada" = $43::double precision,
-  "honorarioAlzadaCobrado" = $44::boolean,
-  "fechaCobroAlzada" = $45::timestamp,
+      -- Alzada
+      "estadoHonorariosAlzadaSeleccionado" = $38,
+      "subEstadoHonorariosAlzadaSeleccionado" = $39,
+      "fechaHonorariosAlzada" = $40::timestamp,
+      "umaSeleccionado_alzada" = $41::int,
+      "cantidadUMA_alzada" = $42::double precision,
+      "montoAcuerdo_alzada" = $43::double precision,
+      "honorarioAlzadaCobrado" = $44::boolean,
+      "fechaCobroAlzada" = $45::timestamp,
 
-  -- Ejecución
-  "estadoHonorariosEjecucionSeleccionado" = $46,
-  "subEstadoHonorariosEjecucionSeleccionado" = $47,
-  "fechaHonorariosEjecucion" = $48::timestamp,
-  "montoHonorariosEjecucion" = $49::double precision,
-  "honorarioEjecucionCobrado" = $50::boolean,
-  "fechaCobroEjecucion" = $51::timestamp,
-  "cantidadUMA_ejecucion" = $52::double precision,
-  "umaSeleccionado_ejecucion" = $53::int,
+      -- Ejecución
+      "estadoHonorariosEjecucionSeleccionado" = $46,
+      "subEstadoHonorariosEjecucionSeleccionado" = $47,
+      "fechaHonorariosEjecucion" = $48::timestamp,
+      "montoHonorariosEjecucion" = $49::double precision,
+      "honorarioEjecucionCobrado" = $50::boolean,
+      "fechaCobroEjecucion" = $51::timestamp,
+      "cantidadUMA_ejecucion" = $52::double precision,
+      "umaSeleccionado_ejecucion" = $53::int,
 
-  -- Diferencia
-  "estadoHonorariosDiferenciaSeleccionado" = $54,
-  "subEstadoHonorariosDiferenciaSeleccionado" = $55,
-  "fechaHonorariosDiferencia" = $56::timestamp,
-  "montoHonorariosDiferencia" = $57::double precision,
-  "honorarioDiferenciaCobrado" = $58::boolean,
-  "fechaCobroDiferencia" = $59::timestamp,
+      -- Diferencia
+      "estadoHonorariosDiferenciaSeleccionado" = $54,
+      "subEstadoHonorariosDiferenciaSeleccionado" = $55,
+      "fechaHonorariosDiferencia" = $56::timestamp,
+      "montoHonorariosDiferencia" = $57::double precision,
+      "honorarioDiferenciaCobrado" = $58::boolean,
+      "fechaCobroDiferencia" = $59::timestamp,
 
-  "capitalPagoParcial" = $60::double precision,
-  "esPagoParcial" = $61::boolean,
-  codigo_id = $62::int,
-  numero_cliente_edesur = $63,
-  fecha_pedido_informe = $64::date,
-  fecha_respuesta_informe = $65::date,
-  tiene_cortes = $66::boolean,
-  dias_cortes = $67::double precision,
-  observaciones_reclamo = $68,
-  estado_reclamo = $69,
-  comentario = $70
-  WHERE id = $71::int;`,
-[
-  data.titulo ?? null,
-  data.descripcion ?? null,
-  toIntOrNull(data.numero),
-  toIntOrNull(data.anio),
-  toIntOrNull(data.juzgado_id),
-  data.estado ?? null,
-  toIntOrNull(data.juez_id),
-  data.honorario ?? null,
-  toNullIfEmpty(data.fecha_inicio),
-  data.juicio ?? null,
-  toNullIfEmpty(data.fecha_sentencia),
-  //toIntOrNull(data.monto),
-  keepBoolIfUndefined(data.apela, actual.apela),
-  toNullIfEmpty(data.ultimo_movimiento),
-  toFloatOrNull(data.porcentaje),
-  toIntOrNull(data.usuario_id),
-  toNullIfEmpty(data.fecha_cobro),
-  toNullIfEmpty(data.fecha_cobro_capital),
-  toIntOrNull(data.procurador_id),
-  toIntOrNull(data.valorUMA),
-  data.sala ?? null,
-  keepBoolIfUndefined(data.requiere_atencion, actual.requiere_atencion),
-  toNullIfEmpty(data.fecha_atencion),
+      "capitalPagoParcial" = $60::double precision,
+      "esPagoParcial" = $61::boolean,
+      codigo_id = $62::int,
+      numero_cliente_edesur = $63,
+      fecha_pedido_informe = $64::date,
+      fecha_respuesta_informe = $65::date,
+      tiene_cortes = $66::boolean,
+      dias_cortes = $67::double precision,
+      observaciones_reclamo = $68,
+      estado_reclamo = $69,
+      comentario = $70,
+      estudio_id = $71,
+      vincular = $72
+      WHERE id = $73::int;`,
+    [
+      data.titulo ?? null,
+      data.descripcion ?? null,
+      toIntOrNull(data.numero),
+      toIntOrNull(data.anio),
+      toIntOrNull(data.juzgado_id),
+      data.estado ?? null,
+      toIntOrNull(data.juez_id),
+      data.honorario ?? null,
+      toNullIfEmpty(data.fecha_inicio),
+      data.juicio ?? null,
+      toNullIfEmpty(data.fecha_sentencia),
+      //toIntOrNull(data.monto),
+      keepBoolIfUndefined(data.apela, actual.apela),
+      toNullIfEmpty(data.ultimo_movimiento),
+      toFloatOrNull(data.porcentaje),
+      toIntOrNull(data.usuario_id),
+      toNullIfEmpty(data.fecha_cobro),
+      toNullIfEmpty(data.fecha_cobro_capital),
+      toIntOrNull(data.procurador_id),
+      toIntOrNull(data.valorUMA),
+      data.sala ?? null,
+      keepBoolIfUndefined(data.requiere_atencion, actual.requiere_atencion),
+      toNullIfEmpty(data.fecha_atencion),
 
-  // Capital
-  data.estadoCapitalSeleccionado ?? null,
-  data.subEstadoCapitalSeleccionado ?? null,
-  toNullIfEmpty(data.fechaCapitalSubestado),
-  data.estadoLiquidacionCapitalSeleccionado ?? null,
-  toNullIfEmpty(data.fechaLiquidacionCapital),
-  toFloatOrNull(data.montoLiquidacionCapital),
-  keepBoolIfUndefined(data.capitalCobrado, actual.capitalCobrado),
+      // Capital
+      data.estadoCapitalSeleccionado ?? null,
+      data.subEstadoCapitalSeleccionado ?? null,
+      toNullIfEmpty(data.fechaCapitalSubestado),
+      data.estadoLiquidacionCapitalSeleccionado ?? null,
+      toNullIfEmpty(data.fechaLiquidacionCapital),
+      toFloatOrNull(data.montoLiquidacionCapital),
+      keepBoolIfUndefined(data.capitalCobrado, actual.capitalCobrado),
 
-  // Honorarios
-  data.estadoHonorariosSeleccionado ?? null,
-  data.subEstadoHonorariosSeleccionado ?? null,
-  toNullIfEmpty(data.fechaHonorariosSubestado),
-  data.estadoLiquidacionHonorariosSeleccionado ?? null,
-  toNullIfEmpty(data.fechaLiquidacionHonorarios),
-  toFloatOrNull(data.montoLiquidacionHonorarios),
-  keepBoolIfUndefined(data.honorarioCobrado, actual.honorarioCobrado),
-  toFloatOrNull(data.cantidadUMA),
+      // Honorarios
+      data.estadoHonorariosSeleccionado ?? null,
+      data.subEstadoHonorariosSeleccionado ?? null,
+      toNullIfEmpty(data.fechaHonorariosSubestado),
+      data.estadoLiquidacionHonorariosSeleccionado ?? null,
+      toNullIfEmpty(data.fechaLiquidacionHonorarios),
+      toFloatOrNull(data.montoLiquidacionHonorarios),
+      keepBoolIfUndefined(data.honorarioCobrado, actual.honorarioCobrado),
+      toFloatOrNull(data.cantidadUMA),
 
-  // Alzada
-  data.estadoHonorariosAlzadaSeleccionado ?? null,
-  data.subEstadoHonorariosAlzadaSeleccionado ?? null,
-  toNullIfEmpty(data.fechaHonorariosAlzada),
-  toIntOrNull(data.umaSeleccionado_alzada),
-  toFloatOrNull(data.cantidadUMA_alzada),
-  toFloatOrNull(data.montoAcuerdo_alzada),
-  keepBoolIfUndefined(data.honorarioAlzadaCobrado, actual.honorarioAlzadaCobrado),
-  toNullIfEmpty(data.fechaCobroAlzada),
+      // Alzada
+      data.estadoHonorariosAlzadaSeleccionado ?? null,
+      data.subEstadoHonorariosAlzadaSeleccionado ?? null,
+      toNullIfEmpty(data.fechaHonorariosAlzada),
+      toIntOrNull(data.umaSeleccionado_alzada),
+      toFloatOrNull(data.cantidadUMA_alzada),
+      toFloatOrNull(data.montoAcuerdo_alzada),
+      keepBoolIfUndefined(data.honorarioAlzadaCobrado, actual.honorarioAlzadaCobrado),
+      toNullIfEmpty(data.fechaCobroAlzada),
 
-  // Ejecución
-  data.estadoHonorariosEjecucionSeleccionado ?? null,
-  data.subEstadoHonorariosEjecucionSeleccionado ?? null,
-  toNullIfEmpty(data.fechaHonorariosEjecucion),
-  toFloatOrNull(data.montoHonorariosEjecucion),
-  keepBoolIfUndefined(data.honorarioEjecucionCobrado, actual.honorarioEjecucionCobrado),
-  toNullIfEmpty(data.fechaCobroEjecucion),
-  toFloatOrNull(data.cantidadUMA_ejecucion),
-  toIntOrNull(data.umaSeleccionado_ejecucion),
+      // Ejecución
+      data.estadoHonorariosEjecucionSeleccionado ?? null,
+      data.subEstadoHonorariosEjecucionSeleccionado ?? null,
+      toNullIfEmpty(data.fechaHonorariosEjecucion),
+      toFloatOrNull(data.montoHonorariosEjecucion),
+      keepBoolIfUndefined(data.honorarioEjecucionCobrado, actual.honorarioEjecucionCobrado),
+      toNullIfEmpty(data.fechaCobroEjecucion),
+      toFloatOrNull(data.cantidadUMA_ejecucion),
+      toIntOrNull(data.umaSeleccionado_ejecucion),
 
-  // Diferencia
-  data.estadoHonorariosDiferenciaSeleccionado ?? null,
-  data.subEstadoHonorariosDiferenciaSeleccionado ?? null,
-  toNullIfEmpty(data.fechaHonorariosDiferencia),
-  toFloatOrNull(data.montoHonorariosDiferencia),
-  keepBoolIfUndefined(data.honorarioDiferenciaCobrado, actual.honorarioDiferenciaCobrado),
-  toNullIfEmpty(data.fechaCobroDiferencia),
+      // Diferencia
+      data.estadoHonorariosDiferenciaSeleccionado ?? null,
+      data.subEstadoHonorariosDiferenciaSeleccionado ?? null,
+      toNullIfEmpty(data.fechaHonorariosDiferencia),
+      toFloatOrNull(data.montoHonorariosDiferencia),
+      keepBoolIfUndefined(data.honorarioDiferenciaCobrado, actual.honorarioDiferenciaCobrado),
+      toNullIfEmpty(data.fechaCobroDiferencia),
 
-  toFloatOrNull(data.capitalPagoParcial),
-  keepBoolIfUndefined(data.esPagoParcial, actual.esPagoParcial),
-  toIntOrNull(data.codigo_id),
+      toFloatOrNull(data.capitalPagoParcial),
+      keepBoolIfUndefined(data.esPagoParcial, actual.esPagoParcial),
+      toIntOrNull(data.codigo_id),
 
-  // Edesur
-  data.numero_cliente_edesur ?? null,
-  toNullIfEmpty(data.fecha_pedido_informe),
-  toNullIfEmpty(data.fecha_respuesta_informe),
-  keepBoolIfUndefined(data.tiene_cortes, actual.tiene_cortes),
-  toFloatOrNull(data.dias_cortes),
-  data.observaciones_reclamo ?? null,
-  data.estado_reclamo ?? null,
-  data.comentario ?? null,
+      // Edesur
+      data.numero_cliente_edesur ?? null,
+      toNullIfEmpty(data.fecha_pedido_informe),
+      toNullIfEmpty(data.fecha_respuesta_informe),
+      keepBoolIfUndefined(data.tiene_cortes, actual.tiene_cortes),
+      toFloatOrNull(data.dias_cortes),
+      data.observaciones_reclamo ?? null,
+      data.estado_reclamo ?? null,
+      data.comentario ?? null,
+      toIntOrNull(data.estudio_id),
 
-  expedienteIdNum,
-]
+      data.vincular ?? false,
+
+      expedienteIdNum,
+    ]
     );
 
     // =========================
@@ -1713,9 +1718,9 @@ SET
           ///const relacionId = await generarNuevoId(client, "clientes_expedientes", "id");
 
           const { rows } = await client.query(
-  `SELECT nextval('public.seq_clientes_expedientes') AS id`
-);
-const relacionId = Number(rows[0].id);
+            `SELECT nextval('public.seq_clientes_expedientes') AS id`
+          );
+          const relacionId = Number(rows[0].id);
 
           await client.query(
             `
@@ -1735,6 +1740,35 @@ const relacionId = Number(rows[0].id);
 
       // recalcular caratula (si tu función espera client, perfecto)
       await recalcularCaratulaPg(client, expedienteIdNum);
+    }
+
+    // abogados presentados
+        if (Array.isArray(data.abogados_presentados)) {
+      await client.query(
+        `DELETE FROM public.expediente_abogado_presentado
+        WHERE expediente_id = $1::int`,
+        [expedienteIdNum]
+      );
+
+      for (const ab of data.abogados_presentados) {
+        const usuarioId = Number(ab.usuario_id ?? ab.id);
+        if (!Number.isInteger(usuarioId) || usuarioId <= 0) continue;
+
+        await client.query(
+          `
+          INSERT INTO public.expediente_abogado_presentado
+            (expediente_id, usuario_id, vincular)
+          VALUES ($1::int, $2::int, $3::boolean)
+          ON CONFLICT (expediente_id, usuario_id)
+          DO UPDATE SET vincular = EXCLUDED.vincular
+          `,
+          [
+            expedienteIdNum,
+            usuarioId,
+            !!ab.vincular
+          ]
+        );
+      }
     }
 
     await client.query("COMMIT");
@@ -2891,8 +2925,6 @@ app.get("/expedientes/buscarPorNumeroAnioTipo", async (req, res) => {
   try {
     const { numero, anio, tipo, usuario_id, rol } = req.query;
 
-    console.log("Busqueda realizada:", { numero, anio, tipo });
-
     const n = Number(numero);
     const a = Number(anio);
     const t = (tipo ?? "").toString().trim();
@@ -2902,9 +2934,24 @@ app.get("/expedientes/buscarPorNumeroAnioTipo", async (req, res) => {
     }
 
     let query = `
-      SELECT e.*
+      SELECT
+        e.*,
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'usuario_id', u.id,
+              'nombre', u.nombre,
+              'vincular', eap.vincular
+            )
+          ) FILTER (WHERE u.id IS NOT NULL),
+          '[]'
+        ) AS abogados_presentados
       FROM public.expedientes e
       JOIN public.juzgados j ON e.juzgado_id = j.id
+      LEFT JOIN public.expediente_abogado_presentado eap
+        ON eap.expediente_id = e.id
+      LEFT JOIN public.usuario u
+        ON u.id = eap.usuario_id
       WHERE e.estado <> 'eliminado'
         AND e.numero = $1
         AND e.anio = $2
@@ -2918,20 +2965,21 @@ app.get("/expedientes/buscarPorNumeroAnioTipo", async (req, res) => {
       if (!Number.isInteger(u) || u <= 0) {
         return res.status(400).json({ error: "usuario_id inválido para rol no-admin." });
       }
+
       query += ` AND e.usuario_id = $4`;
       params.push(u);
     }
 
+    query += ` GROUP BY e.id`;
+
     const { rows } = await pgPool.query(query, params);
     return res.json(rows);
+
   } catch (err) {
     console.error("Error al obtener expedientes:", err);
     return res.status(500).json({ error: "Error interno", message: err.message });
   }
 });
-
-
-
 
 
 //postgres
@@ -4421,7 +4469,7 @@ app.post("/oficios/agregar", async (req, res) => {
       }
       const tp = String(tipo_pericia || "").toLowerCase().trim();
       if (!["pericial informática", "pericial informatica","pericial contable", "pericial caligrafica", "pericial telecomunicaciones",
-            "pericial psicologica", "pericial medico"].includes(tp)) {
+            "pericial psicologica", "pericial medico", "pericial mecanico"].includes(tp)) {
         return res.status(400).json({ error: 'tipo_pericia inválido. Solo "Pericial informática".' });
       }
     }
@@ -7817,7 +7865,7 @@ app.get("/expedientes/agenda-hoy", async (req, res) => {
         NULL::text AS oficiada
       FROM public.expedientes e
       WHERE e.fecha_atencion::date = CURRENT_DATE
-        AND e.estado <> 'eliminado'
+        AND e.estado <> 'eliminado' AND e.estado <> 'Cobrado' AND e.estado <> 'Archivo" 
 
       UNION ALL
       
@@ -7866,6 +7914,45 @@ app.get("/expedientes/agenda-hoy", async (req, res) => {
     });
   }
 });
+
+app.get("/estudios", async (req, res) => {
+  try {
+    const { rows } = await pgPool.query(`
+      SELECT id, nombre, estado
+      FROM public.estudio
+      WHERE estado = true
+      ORDER BY nombre ASC
+    `);
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Error al obtener estudios:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post("/estudios", async (req, res) => {
+  try {
+    const { nombre } = req.body;
+
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ mensaje: "El nombre es obligatorio" });
+    }
+
+    const { rows } = await pgPool.query(`
+      INSERT INTO public.estudio (nombre)
+      VALUES ($1)
+      RETURNING *
+    `, [nombre.trim()]);
+
+    res.status(201).json(rows[0]);
+  } catch (error) {
+    console.error("Error al crear estudio:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
 module.exports = router;
 
 

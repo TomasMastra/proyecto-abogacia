@@ -81,7 +81,6 @@
       </div>
 
       <form [formGroup]="form">
-
         <!-- ── CARD 1: Estado general ── -->
         <div class="section-card">
           <div class="section-card-header">
@@ -114,6 +113,26 @@
               <input type="date" class="field-input" formControlName="fecha_atencion">
             </div>
 
+                        <!-- Botón traslado — visible solo si el estado es "Contesta demanda - Traslado" -->
+            <div class="field-group"
+              *ngIf="form.get('estado')?.value === 'Contesta demanda - Traslado'">
+              <label class="field-label">Traslado</label>
+              <button class="btn-traslado" type="button" (click)="abrirModalTraslado()">
+                <mat-icon>{{ expediente?.traslado_abogados?.length ? 'edit' : 'add' }}</mat-icon>
+                {{ expediente?.traslado_abogados?.length
+                    ? 'Editar traslado (' + expediente.traslado_abogados.length + ' abogado/s)'
+                    : 'Cargar traslado' }}
+              </button>
+          
+              <!-- Mini-resumen de lo cargado -->
+              <div class="traslado-resumen" *ngIf="expediente?.traslado_abogados?.length">
+                <span *ngFor="let id of expediente.traslado_abogados" class="abogado-chip">
+                  {{ getNombreAbogado(id) }}
+                </span>
+              </div>
+            </div>
+          </div>
+
             <div class="field-group field-group-full">
               <label class="field-label">Observaciones</label>
 
@@ -124,7 +143,8 @@
                 placeholder="Escribí observaciones del expediente..."
               ></textarea>
             </div>
-          </div>
+
+
 
         </div>
 

@@ -11,5 +11,5 @@ export const ESTADOS_PERICIA: string[] = [
 
 export const TIPOS_PERICIA: string[] = [
 'Pericial informática', 'Pericial contable', 'Pericial caligrafica', 'Pericial Telecomunicaciones', 
-    'pericial psicologica', 'pericial medico'
+    'pericial psicologica', 'pericial medico', 'pericial mecanico'
 ];
