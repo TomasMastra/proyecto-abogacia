@@ -124,14 +124,13 @@ export class UsuarioService {
       );
   }
 
-  crearUsuarioPresentado(nombre: string): Observable<UsuarioModel> {
-    console.log(this.apiUrl)
-    return this.http.post<UsuarioModel>(
-      `${this.apiUrl}/presentados`,
-      { nombre },
-      this.httpOptions
-    );
-  }
+crearUsuarioPresentado(nombre: string, email: string, telefono?: string): Observable<UsuarioModel> {
+  return this.http.post<UsuarioModel>(
+    `${this.apiUrl}/presentados`,
+    { nombre, email, telefono },
+    this.httpOptions
+  );
+}
 
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: HttpErrorResponse): Observable<T> => {

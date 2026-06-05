@@ -7967,54 +7967,33 @@ app.get("/usuario/presentados", async (req, res) => {
 
 app.post("/usuario/presentados", async (req, res) => {
   try {
-    const { nombre } = req.body;
+    const { nombre, email, telefono } = req.body;
 
     const nombreLimpio = nombre?.trim();
+    const emailLimpio = email?.trim();
+    const telefonoLimpio = telefono?.trim() || null;
 
     if (!nombreLimpio) {
-      return res.status(400).json({
-        mensaje: "El nombre es obligatorio"
-      });
+      return res.status(400).json({ mensaje: "El nombre es obligatorio" });
     }
 
-    const existe = await pgPool.query(
+    if (!emailLimpio) {
+      return res.status(400).json({ mensaje: "El email es obligatorio" });
+    }
+
+    const { rows } = await pgPool.query(
       `
-      SELECT id
-      FROM public.usuario
-      WHERE LOWER(nombre) = LOWER($1)
-        AND rol = 'Presentado'
-      LIMIT 1
+      INSERT INTO public.usuario (nombre, email, telefono, rol)
+      VALUES ($1, $2, $3, 'Presentado')
+      RETURNING id, nombre, email, telefono, rol
       `,
-      [nombreLimpio]
+      [nombreLimpio, emailLimpio, telefonoLimpio]
     );
-
-    if (existe.rows.length) {
-      return res.status(409).json({
-        mensaje: "Ya existe un abogado presentado con ese nombre"
-      });
-    }
-
-  const emailAuto = `${nombreLimpio
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, ".")
-    .replace(/(^\.|\.$)/g, "")}.${Date.now()}@presentado.local`;
-
-  const { rows } = await pgPool.query(
-    `
-    INSERT INTO public.usuario (nombre, email, rol)
-    VALUES ($1, $2, 'Presentado')
-    RETURNING id, nombre, email, rol
-    `,
-    [nombreLimpio, emailAuto]
-  );
 
     res.status(201).json(rows[0]);
 
   } catch (error) {
     console.error("Error al crear usuario presentado:", error);
-
     res.status(500).json({
       mensaje: "Error al crear usuario presentado",
       message: error.message

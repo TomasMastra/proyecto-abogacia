@@ -2102,49 +2102,71 @@ const abogadosPrevios: number[] = Array.isArray(this.expediente?.abogados_presen
     });
   });
 
-  btnCrearAbogado?.addEventListener('click', async () => {
-    const result = await Swal.fire({
-      title: 'Nuevo abogado presentado',
-      input: 'text',
-      inputPlaceholder: 'Nombre del abogado',
-      showCancelButton: true,
-      confirmButtonText: 'Crear',
-      preConfirm: value => {
-        if (!value?.trim()) {
-          Swal.showValidationMessage('Ingresá un nombre.');
-          return false;
-        }
-        return value.trim();
+btnCrearAbogado?.addEventListener('click', async () => {
+  const result = await Swal.fire({
+    title: 'Nuevo abogado presentado',
+    html: `
+      <input id="nuevo-abogado-nombre" class="swal2-input" placeholder="Nombre del abogado">
+      <input id="nuevo-abogado-email" class="swal2-input" placeholder="Email">
+      <input id="nuevo-abogado-telefono" class="swal2-input" placeholder="Teléfono">
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Crear',
+    cancelButtonText: 'Cancelar',
+    preConfirm: () => {
+      const nombre = (document.getElementById('nuevo-abogado-nombre') as HTMLInputElement)?.value?.trim();
+      const email = (document.getElementById('nuevo-abogado-email') as HTMLInputElement)?.value?.trim();
+      const telefono = (document.getElementById('nuevo-abogado-telefono') as HTMLInputElement)?.value?.trim();
+
+      if (!nombre) {
+        Swal.showValidationMessage('Ingresá un nombre.');
+        return false;
       }
-    });
 
-    if (!result.isConfirmed || !result.value) return;
+      if (!email) {
+        Swal.showValidationMessage('Ingresá un email.');
+        return false;
+      }
 
-    this.usuarioService.crearUsuarioPresentado(result.value).subscribe({
-      next: nuevo => {
-        this.listaUsuarios.push(nuevo);
-
-        const lista = document.querySelector('.abogados-list') as HTMLElement;
-
-        const label = document.createElement('label');
-        label.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;border:1px solid #e2e8f0;margin-bottom:6px;';
-
-        label.innerHTML = `
-          <input
-            type="checkbox"
-            class="checkbox-abogado"
-            value="${nuevo.id}"
-            checked
-            style="width:16px;height:16px;cursor:pointer;accent-color:#1e40af;"
-          >
-          <span>${nuevo.nombre ?? ''}</span>
-        `;
-
-        lista.appendChild(label);
-      },
-      error: err => Swal.fire('Error', err?.error?.message || 'No se pudo crear el abogado', 'error')
-    });
+      return { nombre, email, telefono };
+    }
   });
+
+  if (!result.isConfirmed || !result.value) return;
+
+  this.usuarioService.crearUsuarioPresentado(
+    result.value.nombre,
+    result.value.email,
+    result.value.telefono
+  ).subscribe({
+    next: nuevo => {
+      this.listaUsuarios.push(nuevo);
+
+      const lista = document.querySelector('.abogados-list') as HTMLElement;
+
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;border:1px solid #e2e8f0;margin-bottom:6px;';
+
+      label.innerHTML = `
+        <input
+          type="checkbox"
+          class="checkbox-abogado"
+          value="${nuevo.id}"
+          checked
+          style="width:16px;height:16px;cursor:pointer;accent-color:#1e40af;"
+        >
+        <span>${nuevo.nombre ?? ''}</span>
+      `;
+
+      lista.appendChild(label);
+    },
+    error: err => Swal.fire(
+      'Error',
+      err?.error?.mensaje || err?.error?.message || 'No se pudo crear el abogado',
+      'error'
+    )
+  });
+});
 },
 preConfirm: () => {
   const estudio_id = Number(

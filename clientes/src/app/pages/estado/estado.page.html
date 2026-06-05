@@ -116,12 +116,12 @@
                         <!-- Botón traslado — visible solo si el estado es "Contesta demanda - Traslado" -->
             <div class="field-group"
               *ngIf="form.get('estado')?.value === 'Contesta demanda - Traslado'">
-              <label class="field-label">Traslado</label>
+              <label class="field-label">Estudio de la contraria</label>
               <button class="btn-traslado" type="button" (click)="abrirModalTraslado()">
                 <mat-icon>{{ expediente?.traslado_abogados?.length ? 'edit' : 'add' }}</mat-icon>
                 {{ expediente?.traslado_abogados?.length
-                    ? 'Editar traslado (' + expediente.traslado_abogados.length + ' abogado/s)'
-                    : 'Cargar traslado' }}
+                    ? 'Vincular (' + expediente.traslado_abogados.length + ' abogado/s)'
+                    : 'Vincular' }}
               </button>
           
               <!-- Mini-resumen de lo cargado -->
