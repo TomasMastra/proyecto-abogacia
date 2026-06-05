@@ -363,7 +363,7 @@ subestadosPorTipo: { [tipo: string]: string[] } = {
   }
 
   cargarUsuarios() {
-    this.usuarioService.getUsuarios().subscribe({
+    this.usuarioService.getUsuariosPresentados().subscribe({
       next: data => this.listaUsuarios = data,
       error: err => console.error('Error cargando usuarios', err)
     });
@@ -2036,6 +2036,10 @@ const abogadosPrevios: number[] = Array.isArray(this.expediente?.abogados_presen
           <select id="traslado-estudio" class="traslado-input">
             ${estudiosOptions}
           </select>
+
+          <button type="button" id="btn-crear-estudio" class="swal2-confirm swal2-styled" style="margin:6px 0;">
+            Crear estudio
+          </button>
         </div>
 
         <div class="traslado-section">
@@ -2050,12 +2054,98 @@ const abogadosPrevios: number[] = Array.isArray(this.expediente?.abogados_presen
           <div class="abogados-list">
             ${checkboxesHTML || '<p style="color:#64748b;font-size:13px;text-align:center;padding:12px 0;">Sin usuarios cargados</p>'}
           </div>
+
+          <button type="button" id="btn-crear-abogado" class="swal2-confirm swal2-styled" style="margin:6px 0;">
+            Crear abogado presentado
+          </button>
         </div>
       `,
       showCancelButton: true,
       confirmButtonText: 'Guardar',
       cancelButtonText: 'Cancelar',
       focusConfirm: false,
+
+      didOpen: () => {
+  const btnCrearEstudio = document.getElementById('btn-crear-estudio');
+  const btnCrearAbogado = document.getElementById('btn-crear-abogado');
+
+  btnCrearEstudio?.addEventListener('click', async () => {
+    const result = await Swal.fire({
+      title: 'Nuevo estudio',
+      input: 'text',
+      inputPlaceholder: 'Nombre del estudio',
+      showCancelButton: true,
+      confirmButtonText: 'Crear',
+      preConfirm: value => {
+        if (!value?.trim()) {
+          Swal.showValidationMessage('Ingresá un nombre.');
+          return false;
+        }
+        return value.trim();
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+
+    this.estudioService.crearEstudio(result.value).subscribe({
+      next: nuevo => {
+        this.estudios.push(nuevo);
+
+        const select = document.getElementById('traslado-estudio') as HTMLSelectElement;
+        const option = document.createElement('option');
+        option.value = String(nuevo.id);
+        option.textContent = nuevo.nombre;
+        option.selected = true;
+        select.appendChild(option);
+      },
+      error: err => Swal.fire('Error', err?.error?.message || 'No se pudo crear el estudio', 'error')
+    });
+  });
+
+  btnCrearAbogado?.addEventListener('click', async () => {
+    const result = await Swal.fire({
+      title: 'Nuevo abogado presentado',
+      input: 'text',
+      inputPlaceholder: 'Nombre del abogado',
+      showCancelButton: true,
+      confirmButtonText: 'Crear',
+      preConfirm: value => {
+        if (!value?.trim()) {
+          Swal.showValidationMessage('Ingresá un nombre.');
+          return false;
+        }
+        return value.trim();
+      }
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+
+    this.usuarioService.crearUsuarioPresentado(result.value).subscribe({
+      next: nuevo => {
+        this.listaUsuarios.push(nuevo);
+
+        const lista = document.querySelector('.abogados-list') as HTMLElement;
+
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;border:1px solid #e2e8f0;margin-bottom:6px;';
+
+        label.innerHTML = `
+          <input
+            type="checkbox"
+            class="checkbox-abogado"
+            value="${nuevo.id}"
+            checked
+            style="width:16px;height:16px;cursor:pointer;accent-color:#1e40af;"
+          >
+          <span>${nuevo.nombre ?? ''}</span>
+        `;
+
+        lista.appendChild(label);
+      },
+      error: err => Swal.fire('Error', err?.error?.message || 'No se pudo crear el abogado', 'error')
+    });
+  });
+},
 preConfirm: () => {
   const estudio_id = Number(
     (document.getElementById('traslado-estudio') as HTMLSelectElement)?.value

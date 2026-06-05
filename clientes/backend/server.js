@@ -67,7 +67,7 @@ async function iniciarServidor() {
     // Ruta para obtener todos los usuarios (postgres)
     app.get("/usuario", async (req, res) => {
       try {
-        const result = await pgPool.query(`SELECT * FROM public."usuario"`);
+        const result = await pgPool.query(`SELECT * FROM public."usuario" WHERE rol != "Presentado"`);
         res.json(result.rows);
       } catch (err) {
         console.error(err);
@@ -7952,6 +7952,75 @@ app.post("/estudios", async (req, res) => {
   }
 });
 
+
+
+app.get("/usuario/presentados", async (req, res) => {
+  try {
+    // CAMBIO: 'Presentado' con comillas simples
+    const result = await pgPool.query(`SELECT * FROM public."usuario" WHERE rol = 'Presentado'`);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send(err);
+  }
+});
+
+app.post("/usuario/presentados", async (req, res) => {
+  try {
+    const { nombre } = req.body;
+
+    const nombreLimpio = nombre?.trim();
+
+    if (!nombreLimpio) {
+      return res.status(400).json({
+        mensaje: "El nombre es obligatorio"
+      });
+    }
+
+    const existe = await pgPool.query(
+      `
+      SELECT id
+      FROM public.usuario
+      WHERE LOWER(nombre) = LOWER($1)
+        AND rol = 'Presentado'
+      LIMIT 1
+      `,
+      [nombreLimpio]
+    );
+
+    if (existe.rows.length) {
+      return res.status(409).json({
+        mensaje: "Ya existe un abogado presentado con ese nombre"
+      });
+    }
+
+  const emailAuto = `${nombreLimpio
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/(^\.|\.$)/g, "")}.${Date.now()}@presentado.local`;
+
+  const { rows } = await pgPool.query(
+    `
+    INSERT INTO public.usuario (nombre, email, rol)
+    VALUES ($1, $2, 'Presentado')
+    RETURNING id, nombre, email, rol
+    `,
+    [nombreLimpio, emailAuto]
+  );
+
+    res.status(201).json(rows[0]);
+
+  } catch (error) {
+    console.error("Error al crear usuario presentado:", error);
+
+    res.status(500).json({
+      mensaje: "Error al crear usuario presentado",
+      message: error.message
+    });
+  }
+});
 
 module.exports = router;
 

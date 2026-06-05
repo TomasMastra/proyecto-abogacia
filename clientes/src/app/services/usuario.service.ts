@@ -114,6 +114,25 @@ export class UsuarioService {
     );
   }
 
+  getUsuariosPresentados(): Observable<UsuarioModel[]> {
+    console.log('Obteniendo usuarios presentados');
+
+    return this.http
+      .get<UsuarioModel[]>(`${this.apiUrl}/presentados`, this.httpOptions)
+      .pipe(
+        catchError(this.handleError<UsuarioModel[]>('getUsuariosPresentados', []))
+      );
+  }
+
+  crearUsuarioPresentado(nombre: string): Observable<UsuarioModel> {
+    console.log(this.apiUrl)
+    return this.http.post<UsuarioModel>(
+      `${this.apiUrl}/presentados`,
+      { nombre },
+      this.httpOptions
+    );
+  }
+
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: HttpErrorResponse): Observable<T> => {
       console.error(`${operation} failed: ${error.message}`);
