@@ -67,7 +67,7 @@ async function iniciarServidor() {
     // Ruta para obtener todos los usuarios (postgres)
     app.get("/usuario", async (req, res) => {
       try {
-        const result = await pgPool.query(`SELECT * FROM public."usuario" WHERE rol != "Presentado"`);
+        const result = await pgPool.query(`SELECT * FROM public."usuario" WHERE rol != 'Presentado'`);
         res.json(result.rows);
       } catch (err) {
         console.error(err);
