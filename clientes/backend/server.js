@@ -8001,6 +8001,73 @@ app.post("/usuario/presentados", async (req, res) => {
   }
 });
 
+
+app.post("/uma", async (req, res) => {
+  try {
+    const { fecha_vigencia, valor, usuario_id } = req.body;
+
+    /*if (!fecha_vigencia) {
+      return res.status(400).json({ message: "Falta fecha_vigencia" });
+    }*/
+
+    const valorNum = Number(valor);
+    if (!Number.isFinite(valorNum) || valorNum <= 0) {
+      return res.status(400).json({ message: "Valor UMA inválido" });
+    }
+
+    const result = await pgPool.query(
+      `
+      INSERT INTO public.uma (valor)
+      VALUES ($1::numeric)
+      RETURNING *
+      `,
+      [valorNum]
+    );
+
+    return res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error al crear UMA:", err);
+    return res.status(500).json({
+      message: "Error al crear UMA",
+      error: err.message
+    });
+  }
+});
+
+app.delete("/uma/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ message: "ID inválido" });
+    }
+
+    const result = await pgPool.query(
+      `
+      DELETE FROM public.uma
+      WHERE id = $1::int
+      RETURNING *
+      `,
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Valor UMA no encontrado" });
+    }
+
+    return res.json({
+      message: "Valor UMA eliminado",
+      deleted: result.rows[0]
+    });
+  } catch (err) {
+    console.error("Error al eliminar UMA:", err);
+    return res.status(500).json({
+      message: "Error al eliminar UMA",
+      error: err.message
+    });
+  }
+});
+
 module.exports = router;
 
 

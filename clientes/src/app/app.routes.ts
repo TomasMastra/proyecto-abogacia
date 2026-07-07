@@ -64,10 +64,16 @@ export const routes: Routes = [
         path: 'fix-capital',
         loadComponent: () => import('./pages/fix-capital/fix-capital.page').then( m => m.FixCapitalPage)
       },
+      {
+        path: 'uma',
+        loadComponent: () => import('./pages/uma/uma.page').then( m => m.UmaPage)
+      },
     ],
   },
 
   // ── Wildcard ─────────────────────────────────────────────
   { path: '**', redirectTo: 'login' },
+
+
 
 ];

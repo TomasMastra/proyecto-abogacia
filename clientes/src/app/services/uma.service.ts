@@ -5,6 +5,7 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { UmaModel } from '../models/uma/uma.component';
 
 
 @Injectable({
@@ -20,7 +21,7 @@ export class UmaService {
   };
 
   //private apiUrl = 'http://localhost:3000/localidades';  
-    private apiUrl = `${environment.apiBase}/uma`;
+    private url = `${environment.apiBase}/uma`;
 
   private umaSubject = new BehaviorSubject<any[]>([]); 
   uma$ = this.umaSubject.asObservable();  
@@ -28,7 +29,7 @@ export class UmaService {
   constructor(private http: HttpClient) {}
 
   getUMA() {
-    this.http.get<any[]>(this.apiUrl).subscribe(
+    this.http.get<any[]>(this.url).subscribe(
       (uma) => {
         this.umaSubject.next(uma); 
       },
@@ -38,5 +39,17 @@ export class UmaService {
     );
     return this.uma$;  
   }
+
+    addUMA(uma: Partial<UmaModel>): Observable<UmaModel> {
+    return this.http.post<UmaModel>(this.url, uma);
+    }
+  
+    actualizarUMA(id: number | string, uma: Partial<UmaModel>): Observable<UmaModel> {
+      return this.http.put<UmaModel>(`${this.url}/${id}`, uma);
+    }
+  
+    eliminarUMA(id: number | string): Observable<void> {
+      return this.http.delete<void>(`${this.url}/${id}`);
+    }
 
 }

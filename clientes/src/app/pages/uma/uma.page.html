@@ -1,0 +1,213 @@
+<div class="page-wrapper">
+
+  <!-- ── Header ── -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Valor de UMA</h1>
+      <p class="page-subtitle">
+        Administrá el valor vigente de la Unidad de Medida Arancelaria (UMA),
+        utilizada para el cálculo automático de honorarios.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Card formulario ── -->
+  <div class="form-card">
+
+    <div class="form-card-header">
+      <div class="form-card-icon">
+        <mat-icon>attach_money</mat-icon>
+      </div>
+      <div>
+        <div class="form-card-title">Nuevo valor de UMA</div>
+        <div class="form-card-subtitle">Completá los datos para registrar el valor vigente de la UMA.</div>
+      </div>
+    </div>
+
+    <!-- Campos -->
+    <div class="form-fields">
+
+      <div class="field-group">
+        <label class="field-label">
+          Fecha de vigencia <span class="required-star">*</span>
+        </label>
+        <div class="input-icon-wrap">
+          <mat-icon class="input-icon">calendar_today</mat-icon>
+          <input
+            type="date"
+            class="field-input field-input--with-icon"
+            [(ngModel)]="fechaVigencia"
+            [max]="'2099-12-31'"
+          />
+        </div>
+        <span class="field-hint">Desde qué fecha se aplica este valor.</span>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">
+          Valor de UMA (en $) <span class="required-star">*</span>
+        </label>
+        <div class="input-prefix-wrap">
+          <span class="input-prefix">$</span>
+          <input
+            type="number"
+            class="field-input field-input--prefix"
+            placeholder="128.567,89"
+            [(ngModel)]="valorUMA"
+            min="0.01"
+            step="0.01"
+            (input)="onValorInput($event)"
+          />
+        </div>
+        <span class="field-hint">Ingresá el valor actual de la UMA.</span>
+      </div>
+
+    </div>
+
+    <!-- Alerta informativa -->
+    <div class="info-banner">
+      <mat-icon>info</mat-icon>
+      <span>
+        El valor registrado será utilizado automáticamente para calcular honorarios
+        cuya fecha corresponda a esta vigencia.
+      </span>
+    </div>
+
+    <!-- Botones -->
+    <div class="form-actions">
+      <button class="btn btn--ghost" type="button" (click)="limpiar()" [disabled]="guardando">
+        Cancelar
+      </button>
+      <button class="btn btn--primary" type="button" (click)="guardar()" [disabled]="guardando">
+        <mat-icon>save</mat-icon>
+        {{ guardando ? 'Guardando...' : 'Guardar valor' }}
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ── Card historial ── -->
+  <div class="list-card">
+
+    <div class="form-card-header" style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0;">
+      <div class="form-card-icon form-card-icon--muted">
+        <mat-icon>history</mat-icon>
+      </div>
+      <div>
+        <div class="form-card-title">Valores de UMA cargados</div>
+        <div class="form-card-subtitle">Historial de valores registrados.</div>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha de vigencia</th>
+            <th>Valor de UMA (en $)</th>
+            <th>Usuario</th>
+            <th>Fecha de carga</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Skeleton -->
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-md"></div></td>
+            <td><div class="skeleton-cell sk-md"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando">
+
+            <!-- Fila en modo edición -->
+            <tr *ngFor="let uma of listaPaginada"
+              [class.row--editing]="editandoId === uma.id">
+
+              <!-- Fecha -->
+              <td>
+                <input *ngIf="editandoId === uma.id"
+                  type="date" class="field-input field-input--inline"
+                  [(ngModel)]="editFecha">
+                <span *ngIf="editandoId !== uma.id">
+                  {{ formatearFecha(uma.fecha_vigencia) }}
+                </span>
+              </td>
+
+              <!-- Valor -->
+              <td class="td-valor">
+                <div *ngIf="editandoId === uma.id" class="input-prefix-wrap input-prefix-wrap--sm">
+                  <span class="input-prefix">$</span>
+                  <input type="number" class="field-input field-input--prefix field-input--inline"
+                    [(ngModel)]="editValor" min="0.01" step="0.01">
+                </div>
+                <span *ngIf="editandoId !== uma.id">
+                  $ {{ formatearValor(uma.valor) }}
+                </span>
+              </td>
+
+              <!-- Usuario -->
+              <td class="td-usuario">{{ uma.usuario_nombre || '—' }}</td>
+
+              <!-- Fecha creación -->
+              <td class="td-muted">{{ formatearFecha(uma.created_at) }}</td>
+
+              <!-- Acciones -->
+              <td>
+                <!-- Modo normal -->
+                <div class="row-actions" *ngIf="editandoId !== uma.id">
+                  <button class="action-icon-btn" matTooltip="Editar"
+                    (click)="iniciarEdicion(uma)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--danger" matTooltip="Eliminar"
+                    (click)="eliminar(uma)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+
+                <!-- Modo edición -->
+                <div class="row-actions row-actions--editing" *ngIf="editandoId === uma.id">
+                  <button class="action-icon-btn action-icon-btn--confirm" matTooltip="Guardar"
+                    (click)="guardarEdicion(uma)">
+                    <mat-icon>check</mat-icon>
+                  </button>
+                  <button class="action-icon-btn action-icon-btn--cancel" matTooltip="Cancelar"
+                    (click)="cancelarEdicion()">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+              </td>
+
+            </tr>
+
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="5" class="empty-row">
+                <mat-icon>attach_money</mat-icon>
+                No hay valores de UMA registrados
+              </td>
+            </tr>
+
+          </ng-container>
+
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginador -->
+    <mat-paginator
+      [length]="listaUMA.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[5, 10, 20, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
+
+</div>
