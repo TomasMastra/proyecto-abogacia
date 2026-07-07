@@ -131,6 +131,12 @@
         <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('uma')" (click)="goTo('uma')">
           <mat-icon>money_range</mat-icon><span>UMA</span>
         </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('estudios')" (click)="goTo('estudios')">
+          <mat-icon>money_range</mat-icon><span>Estudios</span>
+        </button>
+        <button class="nav-subitem" *ngIf="esAdmin" [class.active]="isActive('abogados-presentados')" (click)="goTo('abogados-presentados')">
+          <mat-icon>money_range</mat-icon><span>Abogados presentados</span>
+        </button>
         <button class="nav-subitem" [class.active]="isActive('juzgados')" (click)="goTo('juzgados')">
           <mat-icon>account_balance</mat-icon><span>Juzgados</span>
         </button>

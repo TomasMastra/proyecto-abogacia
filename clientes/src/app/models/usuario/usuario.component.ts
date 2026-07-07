@@ -8,5 +8,7 @@ export interface UsuarioModel {
   fecha_creacion: string;
   porcentaje: number;
   porcentajeHonorarios: number;
+  estudio_id: number | null;
+  nombre_estudio: string | null;
 
 }

@@ -7956,18 +7956,29 @@ app.post("/estudios", async (req, res) => {
 
 app.get("/usuario/presentados", async (req, res) => {
   try {
-    // CAMBIO: 'Presentado' con comillas simples
-    const result = await pgPool.query(`SELECT * FROM public."usuario" WHERE rol = 'Presentado'`);
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send(err);
+    const { rows } = await pgPool.query(`
+      SELECT
+        u.id,
+        u.nombre,
+        u.email,
+        u.telefono,
+        u.estudio_id,
+        e.nombre AS estudio_nombre
+      FROM public.usuario u
+      LEFT JOIN public.estudio e ON e.id = u.estudio_id
+      WHERE u.rol = 'Presentado'
+      ORDER BY u.nombre ASC
+    `);
+
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error al obtener abogados", message: error.message });
   }
 });
 
 app.post("/usuario/presentados", async (req, res) => {
   try {
-    const { nombre, email, telefono } = req.body;
+    const { nombre, email, telefono, estudio_id } = req.body;
 
     const nombreLimpio = nombre?.trim();
     const emailLimpio = email?.trim();
@@ -7983,11 +7994,11 @@ app.post("/usuario/presentados", async (req, res) => {
 
     const { rows } = await pgPool.query(
       `
-      INSERT INTO public.usuario (nombre, email, telefono, rol)
-      VALUES ($1, $2, $3, 'Presentado')
-      RETURNING id, nombre, email, telefono, rol
+      INSERT INTO public.usuario (nombre, email, telefono, rol, estudio_id)
+      VALUES ($1, $2, $3, 'Presentado, $4')
+      RETURNING id, nombre, email, telefono, rol, estudio_id
       `,
-      [nombreLimpio, emailLimpio, telefonoLimpio]
+      [nombreLimpio, emailLimpio, telefonoLimpio, estudio_id || null]
     );
 
     res.status(201).json(rows[0]);
@@ -8064,6 +8075,150 @@ app.delete("/uma/:id", async (req, res) => {
     return res.status(500).json({
       message: "Error al eliminar UMA",
       error: err.message
+    });
+  }
+});
+
+app.delete("/estudios/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const usado = await pgPool.query(
+      `SELECT 1 FROM public.usuario WHERE estudio_id = $1 LIMIT 1`,
+      [id]
+    );
+
+    if (usado.rows.length) {
+      return res.status(409).json({
+        mensaje: "No se puede eliminar el estudio porque tiene abogados asociados."
+      });
+    }
+
+    await pgPool.query(`DELETE FROM public.estudio WHERE id = $1`, [id]);
+
+    res.json({ mensaje: "Estudio eliminado" });
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error al eliminar estudio", message: error.message });
+  }
+});
+
+app.delete("/usuario/presentados/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const usado = await pgPool.query(
+      `SELECT 1 FROM public.expediente_abogado_presentado WHERE usuario_id = $1 LIMIT 1`,
+      [id]
+    );
+
+    if (usado.rows.length) {
+      return res.status(409).json({
+        mensaje: "No se puede eliminar el abogado porque está vinculado a un expediente."
+      });
+    }
+
+    await pgPool.query(
+      `DELETE FROM public.usuario WHERE id = $1 AND rol = 'Presentado'`,
+      [id]
+    );
+
+    res.json({ mensaje: "Abogado presentado eliminado" });
+  } catch (error) {
+    res.status(500).json({ mensaje: "Error al eliminar abogado", message: error.message });
+  }
+});
+
+app.put("/estudios/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { nombre, estado } = req.body;
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ mensaje: "ID inválido" });
+    }
+
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ mensaje: "El nombre es obligatorio" });
+    }
+
+    const { rows } = await pgPool.query(
+      `
+      UPDATE public.estudio
+      SET
+        nombre = $1,
+        estado = $2
+      WHERE id = $3
+      RETURNING *
+      `,
+      [
+        nombre.trim(),
+        estado ?? true,
+        id
+      ]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ mensaje: "Estudio no encontrado" });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Error al actualizar estudio:", error);
+    res.status(500).json({
+      mensaje: "Error al actualizar estudio",
+      message: error.message
+    });
+  }
+});
+
+app.put("/usuario/presentados/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { nombre, email, telefono, estudio_id } = req.body;
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ mensaje: "ID inválido" });
+    }
+
+    if (!nombre || !nombre.trim()) {
+      return res.status(400).json({ mensaje: "El nombre es obligatorio" });
+    }
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({ mensaje: "El email es obligatorio" });
+    }
+
+    const { rows } = await pgPool.query(
+      `
+      UPDATE public.usuario
+      SET
+        nombre = $1,
+        email = $2,
+        telefono = $3,
+        estudio_id = $4
+      WHERE id = $5
+        AND rol = 'Presentado'
+      RETURNING id, nombre, email, telefono, rol, estudio_id
+      `,
+      [
+        nombre.trim(),
+        email.trim(),
+        telefono?.trim() || null,
+        estudio_id || null,
+        id
+      ]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ mensaje: "Abogado presentado no encontrado" });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Error al actualizar abogado presentado:", error);
+    res.status(500).json({
+      mensaje: "Error al actualizar abogado presentado",
+      message: error.message
     });
   }
 });

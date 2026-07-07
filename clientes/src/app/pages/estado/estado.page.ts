@@ -2037,9 +2037,6 @@ const abogadosPrevios: number[] = Array.isArray(this.expediente?.abogados_presen
             ${estudiosOptions}
           </select>
 
-          <button type="button" id="btn-crear-estudio" class="swal2-confirm swal2-styled" style="margin:6px 0;">
-            Crear estudio
-          </button>
         </div>
 
         <div class="traslado-section">
@@ -2055,9 +2052,6 @@ const abogadosPrevios: number[] = Array.isArray(this.expediente?.abogados_presen
             ${checkboxesHTML || '<p style="color:#64748b;font-size:13px;text-align:center;padding:12px 0;">Sin usuarios cargados</p>'}
           </div>
 
-          <button type="button" id="btn-crear-abogado" class="swal2-confirm swal2-styled" style="margin:6px 0;">
-            Crear abogado presentado
-          </button>
         </div>
       `,
       showCancelButton: true,

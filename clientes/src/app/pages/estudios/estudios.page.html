@@ -1,0 +1,90 @@
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Estudios</h1>
+  </div>
+
+  <div class="list-card">
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="search-input"
+          placeholder="Buscar estudio..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="buscar()" />
+      </div>
+
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="agregarEstudio()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar estudio</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let e of listaPaginada">
+              <td class="td-nombre">{{ e.nombre }}</td>
+              <td>
+                <span class="tipo-chip">{{ e.estado ? 'Activo' : 'Inactivo' }}</span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button
+                    class="action-icon-btn"
+                    matTooltip="Editar"
+                    (click)="editarEstudio(e)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+
+                  <button
+                    class="action-icon-btn action-icon-btn--danger"
+                    matTooltip="Eliminar"
+                    (click)="eliminarEstudio(e)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="3" class="empty-row">
+                <mat-icon>business</mat-icon>
+                No se encontraron estudios
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="estudios.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
+</div>

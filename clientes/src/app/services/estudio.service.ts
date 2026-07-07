@@ -24,4 +24,12 @@ export class EstudioService {
   crearEstudio(nombre: string): Observable<EstudioModel> {
     return this.http.post<EstudioModel>(this.apiUrl, { nombre });
   }
+
+  deleteEstudio(id: number) {
+  return this.http.delete(`${this.apiUrl}/${id}`);
+}
+
+updateEstudio(id: number, data: any) {
+  return this.http.put<any>(`${this.apiUrl}/${id}`, data);
+}
 }

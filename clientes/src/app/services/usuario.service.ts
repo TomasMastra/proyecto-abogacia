@@ -124,10 +124,10 @@ export class UsuarioService {
       );
   }
 
-crearUsuarioPresentado(nombre: string, email: string, telefono?: string): Observable<UsuarioModel> {
+crearUsuarioPresentado(nombre: string, email: string, telefono?: string, estudio_id?: number): Observable<UsuarioModel> {
   return this.http.post<UsuarioModel>(
     `${this.apiUrl}/presentados`,
-    { nombre, email, telefono },
+    { nombre, email, telefono, estudio_id },
     this.httpOptions
   );
 }
@@ -138,4 +138,20 @@ crearUsuarioPresentado(nombre: string, email: string, telefono?: string): Observ
       return throwError(() => new Error('Error en la solicitud HTTP'));
     };
   }
+
+  deleteUsuarioPresentado(id: number) {
+    return this.http.delete(`${this.apiUrl}/presentados/${id}`, this.httpOptions);
+  }
+
+  updateEstudio(id: number, data: any) {
+    return this.http.put<any>(`${this.apiUrl}/${id}`, data, this.httpOptions);
+  }
+
+  updateUsuarioPresentado(id: number, data: any) {
+  return this.http.put<any>(
+    `${this.apiUrl}/presentados/${id}`,
+    data,
+    this.httpOptions
+  );
+}
 }

@@ -68,11 +68,21 @@ export const routes: Routes = [
         path: 'uma',
         loadComponent: () => import('./pages/uma/uma.page').then( m => m.UmaPage)
       },
+        {
+    path: 'abogados-presentados',
+    loadComponent: () => import('./pages/abogados-presentados/abogados-presentados.page').then( m => m.AbogadosPresentadosPage)
+  },
+  {
+    path: 'estudios',
+    loadComponent: () => import('./pages/estudios/estudios.page').then( m => m.EstudiosPage)
+  },
+
     ],
   },
 
   // ── Wildcard ─────────────────────────────────────────────
   { path: '**', redirectTo: 'login' },
+
 
 
 

@@ -1,0 +1,103 @@
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Abogados presentados</h1>
+  </div>
+
+  <div class="list-card">
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="search-input"
+          placeholder="Buscar por nombre, email, teléfono o estudio..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="buscar()" />
+      </div>
+
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="agregarEstudio()">
+          <mat-icon>business</mat-icon>
+          <span>Agregar estudio</span>
+        </button>
+
+        <button class="btn btn--primary" (click)="agregarAbogado()">
+          <mat-icon>add</mat-icon>
+          <span>Agregar abogado</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Estudio</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let a of listaPaginada">
+              <td class="td-nombre">{{ a.nombre }}</td>
+              <td>{{ a.email || '-' }}</td>
+              <td>{{ a.telefono || '-' }}</td>
+              <td>
+                <span class="tipo-chip">{{ a.estudio_nombre || 'Sin estudio' }}</span>
+              </td>
+              <td>
+                <div class="row-actions">
+
+                  <button
+                    class="action-icon-btn"
+                    matTooltip="Editar"
+                    (click)="editarAbogado(a)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+
+                  <button
+                    class="action-icon-btn action-icon-btn--danger"
+                    matTooltip="Eliminar"
+                    (click)="eliminarAbogado(a)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="5" class="empty-row">
+                <mat-icon>person</mat-icon>
+                No se encontraron abogados presentados
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="abogados.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
+</div>
