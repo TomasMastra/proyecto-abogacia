@@ -75,7 +75,7 @@ const usuario = this.usuarioService.usuarioLogeado;
   return this.clientes$; // lo que ya devolvías
 }*/
 
-
+/*
 getExpedientes() {
   const usuario = this.usuarioService.usuarioLogeado;
   const params = { usuario_id: usuario!.id, rol: usuario!.rol }
@@ -85,6 +85,21 @@ getExpedientes() {
         ...e,
         clientes: [],
         demandados: []
+      }));
+    })
+  );
+}*/
+
+getExpedientes() {
+  const usuario = this.usuarioService.usuarioLogeado;
+  const params = { usuario_id: usuario!.id, rol: usuario!.rol };
+
+  return this.http.get<any[]>(this.apiUrl, { params }).pipe(
+    map((expedientes) => {
+      return (expedientes ?? []).map(e => ({
+        ...e,
+        clientes: e.clientes ?? [],
+        demandados: e.demandados ?? []
       }));
     })
   );

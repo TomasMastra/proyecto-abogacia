@@ -335,7 +335,7 @@ app.get("/expedientes", async (req, res) => {
       SELECT 
         e.id, e.numero, e.anio, e.caratula, e.estado,
         e.juzgado_id, e.usuario_id, e.procurador_id, e.juicio,
-        e.ultimo_movimiento, e.fecha_atencion, e."capitalCobrado",
+        e.ultimo_movimiento, e.fecha_atencion, e."capitalCobrado", e.fecha_inicio,
         e."estadoHonorariosSeleccionado", e.tipo_registro, e.codigo_id, e.juez_id, e.juzgado_id, e.fecha_sentencia,
         COALESCE((
           SELECT string_agg(btrim(p.nombre_completo::text), ' | ')
@@ -359,7 +359,17 @@ app.get("/expedientes", async (req, res) => {
             JOIN public.clientes c2 ON c2.id = ed2.id_cliente
             WHERE ed2.id_expediente = e.id
           ) p
-        ), '') AS busqueda
+        ), '') AS busqueda,
+
+COALESCE((
+  SELECT json_agg(json_build_object(
+    'id', d.id,
+    'nombre', d.nombre
+  ))
+  FROM public.expedientes_demandados ed
+  JOIN public.demandados d ON d.id = ed.id_demandado
+  WHERE ed.id_expediente = e.id
+), '[]'::json) AS demandados
       FROM public.expedientes e
       WHERE e.estado <> 'eliminado'
         AND (LOWER(e.tipo_registro) <> 'mediacion' OR e.tipo_registro IS NULL)
@@ -8220,6 +8230,182 @@ app.put("/usuario/presentados/:id", async (req, res) => {
       mensaje: "Error al actualizar abogado presentado",
       message: error.message
     });
+  }
+});
+
+app.get("/reintegros", async (req, res) => {
+  try {
+    const { estado, usuario_id } = req.query;
+
+    const params = [];
+    let where = `WHERE 1=1`;
+
+    if (estado) {
+      params.push(estado);
+      where += ` AND r.estado = $${params.length}`;
+    }
+
+    if (usuario_id) {
+      params.push(Number(usuario_id));
+      where += ` AND (
+        r.pagado_por_usuario_id = $${params.length}
+        OR r.debe_pagar_usuario_id = $${params.length}
+        OR r.creado_por_usuario_id = $${params.length}
+      )`;
+    }
+
+    const { rows } = await pgPool.query(`
+      SELECT
+        r.*,
+        up.nombre AS pagado_por_nombre,
+        ud.nombre AS debe_pagar_nombre,
+        uc.nombre AS creado_por_nombre,
+        c.nombre AS cliente_nombre,
+        c.apellido AS cliente_apellido,
+        e.numero AS expediente_numero,
+        e.anio AS expediente_anio,
+        e.caratula AS expediente_caratula
+      FROM public.reintegros r
+      LEFT JOIN public.usuario up ON up.id = r.pagado_por_usuario_id
+      LEFT JOIN public.usuario ud ON ud.id = r.debe_pagar_usuario_id
+      LEFT JOIN public.usuario uc ON uc.id = r.creado_por_usuario_id
+      LEFT JOIN public.clientes c ON c.id = r.cliente_id
+      LEFT JOIN public.expedientes e ON e.id = r.expediente_id
+      ${where}
+      ORDER BY r.fecha_gasto DESC, r.id DESC
+    `, params);
+
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/reintegros", async (req, res) => {
+  try {
+    const d = req.body;
+
+    const { rows } = await pgPool.query(`
+      INSERT INTO public.reintegros (
+        fecha_gasto, monto, descripcion, categoria, estado,
+        pagado_por_usuario_id, debe_pagar_usuario_id,
+        cliente_id, expediente_id,
+        beneficiario_nombre, beneficiario_tipo,
+        metodo_pago, comprobante_url, observaciones,
+        creado_por_usuario_id
+      )
+      VALUES (
+        $1,$2,$3,$4,COALESCE($5,'pendiente'),
+        $6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+      )
+      RETURNING *
+    `, [
+      d.fecha_gasto,
+      Number(d.monto),
+      d.descripcion,
+      d.categoria ?? null,
+      d.estado ?? 'pendiente',
+      d.pagado_por_usuario_id ?? null,
+      d.debe_pagar_usuario_id ?? null,
+      d.cliente_id ?? null,
+      d.expediente_id ?? null,
+      d.beneficiario_nombre ?? null,
+      d.beneficiario_tipo ?? null,
+      d.metodo_pago ?? null,
+      d.comprobante_url ?? null,
+      d.observaciones ?? null,
+      d.creado_por_usuario_id ?? null
+    ]);
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/reintegros/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const d = req.body;
+
+    const { rows } = await pgPool.query(`
+      UPDATE public.reintegros
+      SET
+        fecha_gasto = $1,
+        monto = $2,
+        descripcion = $3,
+        categoria = $4,
+        estado = $5,
+        pagado_por_usuario_id = $6,
+        debe_pagar_usuario_id = $7,
+        cliente_id = $8,
+        expediente_id = $9,
+        beneficiario_nombre = $10,
+        beneficiario_tipo = $11,
+        metodo_pago = $12,
+        comprobante_url = $13,
+        observaciones = $14,
+        fecha_pagado = $15,
+        updated_at = now()
+      WHERE id = $16
+      RETURNING *
+    `, [
+      d.fecha_gasto,
+      Number(d.monto),
+      d.descripcion,
+      d.categoria ?? null,
+      d.estado ?? 'pendiente',
+      d.pagado_por_usuario_id ?? null,
+      d.debe_pagar_usuario_id ?? null,
+      d.cliente_id ?? null,
+      d.expediente_id ?? null,
+      d.beneficiario_nombre ?? null,
+      d.beneficiario_tipo ?? null,
+      d.metodo_pago ?? null,
+      d.comprobante_url ?? null,
+      d.observaciones ?? null,
+      d.fecha_pagado ?? null,
+      id
+    ]);
+
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch("/reintegros/:id/pagar", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { fecha_pagado } = req.body;
+
+    const { rows } = await pgPool.query(`
+      UPDATE public.reintegros
+      SET estado = 'pagado',
+          fecha_pagado = COALESCE($1::date, CURRENT_DATE),
+          updated_at = now()
+      WHERE id = $2
+      RETURNING *
+    `, [fecha_pagado ?? null, id]);
+
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/reintegros/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    await pgPool.query(
+      `DELETE FROM public.reintegros WHERE id = $1`,
+      [id]
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

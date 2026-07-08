@@ -76,12 +76,18 @@ export const routes: Routes = [
     path: 'estudios',
     loadComponent: () => import('./pages/estudios/estudios.page').then( m => m.EstudiosPage)
   },
+    {
+    path: 'reintegros',
+    loadComponent: () => import('./pages/reintegros/reintegros.page').then( m => m.ReintegrosPage)
+  },
 
     ],
   },
 
   // ── Wildcard ─────────────────────────────────────────────
   { path: '**', redirectTo: 'login' },
+
+
 
 
 

@@ -1,0 +1,307 @@
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <h1 class="page-title">Reintegros/pagos</h1>
+  </div>
+
+  <div class="resumen-row">
+    <div class="resumen-card resumen-card--pendiente">
+      <mat-icon>payments</mat-icon>
+      <div>
+        <span>Pendiente</span>
+        <strong>{{ totalPendiente() | currency:'$':'symbol':'1.0-0' }}</strong>
+      </div>
+    </div>
+
+    <div class="resumen-card resumen-card--movimientos">
+      <mat-icon>receipt_long</mat-icon>
+      <div>
+        <span>Movimientos</span>
+        <strong>{{ reintegros.length }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="list-card">
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="search-input"
+          placeholder="Buscar por descripción, persona, cliente o expediente..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="filtrar()" />
+      </div>
+
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="estadoSeleccionado" (change)="filtrar()">
+          <option value="">Todos los estados</option>
+          <option *ngFor="let e of estados" [value]="e">{{ e | titlecase }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="categoriaSeleccionada" (change)="filtrar()">
+          <option value="">Todas las categorías</option>
+          <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="toolbar-actions">
+        <button class="btn btn--primary" (click)="abrirNuevo()">
+          <mat-icon>add</mat-icon>
+          <span>Nuevo reintegro</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Descripción</th>
+            <th>Categoría</th>
+            <th>Pagó</th>
+            <th>Debe pagar</th>
+            <th>Referencia</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+            <td><div class="skeleton-cell sk-xs"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando">
+            <tr *ngFor="let item of listaPaginada">
+              <td>{{ mostrarFecha(item.fecha_gasto) }}</td>
+
+              <td class="td-caratula">
+                {{ item.descripcion }}
+                <small *ngIf="item.observaciones">{{ item.observaciones }}</small>
+              </td>
+
+              <td>
+                <span class="tipo-chip">{{ item.categoria || 'Sin categoría' }}</span>
+              </td>
+
+              <td>{{ item.pagado_por_nombre || '—' }}</td>
+
+              <td>
+                {{ item.debe_pagar_nombre || item.beneficiario_nombre || '—' }}
+              </td>
+
+              <td class="td-ref">
+                <span *ngIf="item.cliente_nombre || item.cliente_apellido">
+                  {{ item.cliente_nombre }} {{ item.cliente_apellido }}
+                </span>
+
+                <span *ngIf="item.expediente_numero">
+                  Expte. {{ item.expediente_numero }}/{{ item.expediente_anio }}
+                </span>
+
+                <span *ngIf="!item.cliente_nombre && !item.expediente_numero">
+                  {{ item.beneficiario_tipo || '—' }}
+                </span>
+              </td>
+
+              <td class="td-monto">
+                {{ item.monto | currency:'$':'symbol':'1.2-2' }}
+              </td>
+
+              <td>
+                <span
+                  class="estado-chip"
+                  [class.estado-chip--pendiente]="item.estado === 'pendiente'"
+                  [class.estado-chip--pagado]="item.estado === 'pagado'"
+                  [class.estado-chip--anulado]="item.estado === 'anulado'">
+                  {{ item.estado | titlecase }}
+                </span>
+              </td>
+
+              <td>
+                <div class="row-actions">
+                  <button class="action-icon-btn" matTooltip="Editar" (click)="abrirEditar(item)">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+
+                  <button
+                    *ngIf="item.estado === 'pendiente'"
+                    class="action-icon-btn action-icon-btn--confirm"
+                    matTooltip="Marcar pagado"
+                    (click)="marcarPagado(item)">
+                    <mat-icon>check</mat-icon>
+                  </button>
+
+                  <button
+                    class="action-icon-btn action-icon-btn--danger"
+                    matTooltip="Eliminar"
+                    (click)="eliminar(item)">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="9" class="empty-row">
+                <mat-icon>receipt_long</mat-icon>
+                No se encontraron reintegros
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="reintegrosFiltrados.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
+
+  <div class="modal-backdrop" *ngIf="modalAbierto" (click)="cerrarModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h2>{{ modoEdicion ? 'Editar reintegro/pago' : 'Nuevo reintegro/pago' }}</h2>
+        <button class="btn-cerrar" (click)="cerrarModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-form">
+
+          <div class="modal-field">
+            <label class="modal-label">Fecha gasto</label>
+            <input class="modal-input" type="date" [(ngModel)]="form.fecha_gasto">
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Monto</label>
+            <input class="modal-input" type="number" min="0.01" step="0.01" [(ngModel)]="form.monto">
+          </div>
+
+          <div class="modal-field modal-field--full">
+            <label class="modal-label">Descripción</label>
+            <input class="modal-input" type="text" [(ngModel)]="form.descripcion">
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Categoría</label>
+            <select class="modal-input" [(ngModel)]="form.categoria">
+              <option [ngValue]="null">Seleccionar</option>
+              <option *ngFor="let c of categorias" [ngValue]="c">{{ c }}</option>
+            </select>
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Estado</label>
+            <select class="modal-input" [(ngModel)]="form.estado">
+              <option *ngFor="let e of estados" [ngValue]="e">{{ e | titlecase }}</option>
+            </select>
+          </div>
+
+          <!-- 
+          <div class="modal-field">
+            <label class="modal-label">Pagó</label>
+            <select class="modal-input" [(ngModel)]="form.pagado_por_usuario_id">
+              <option [ngValue]="null">Seleccionar</option>
+              <option *ngFor="let u of usuarios" [ngValue]="u.id">{{ u.nombre }}</option>
+            </select>
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Debe pagar</label>
+            <select class="modal-input" [(ngModel)]="form.debe_pagar_usuario_id">
+              <option [ngValue]="null">Seleccionar</option>
+              <option *ngFor="let u of usuarios" [ngValue]="u.id">{{ u.nombre }}</option>
+            </select>
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Cliente</label>
+            <select class="modal-input" [(ngModel)]="form.cliente_id">
+              <option [ngValue]="null">Sin cliente</option>
+              <option *ngFor="let c of clientes" [ngValue]="c.id">
+                {{ c.nombre }} {{ c.apellido }}
+              </option>
+            </select>
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Expediente</label>
+            <select class="modal-input" [(ngModel)]="form.expediente_id">
+              <option [ngValue]="null">Sin expediente</option>
+              <option *ngFor="let e of expedientes" [ngValue]="e.id">
+                {{ e.numero }}/{{ e.anio }} - {{ e.caratula }}
+              </option>
+            </select>
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Beneficiario externo</label>
+            <input class="modal-input" type="text" [(ngModel)]="form.beneficiario_nombre">
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Tipo beneficiario</label>
+            <input class="modal-input" type="text" [(ngModel)]="form.beneficiario_tipo">
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Método de pago</label>
+            <input class="modal-input" type="text" [(ngModel)]="form.metodo_pago">
+          </div>
+
+          <div class="modal-field">
+            <label class="modal-label">Fecha pagado</label>
+            <input class="modal-input" type="date" [(ngModel)]="form.fecha_pagado">
+          </div>
+
+          <div class="modal-field modal-field--full">
+            <label class="modal-label">Comprobante URL</label>
+            <input class="modal-input" type="text" [(ngModel)]="form.comprobante_url">
+          </div>
+
+          <div class="modal-field modal-field--full">
+            <label class="modal-label">Observaciones</label>
+            <textarea class="modal-textarea" rows="3" [(ngModel)]="form.observaciones"></textarea>
+          </div> -->
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" (click)="cerrarModal()">Cancelar</button>
+        <button class="btn-save" (click)="guardar()" [disabled]="guardando">
+          <mat-icon>save</mat-icon>
+          {{ guardando ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
