@@ -214,6 +214,10 @@ export class AbogadosPresentadosPage implements OnInit, OnDestroy {
           Swal.showValidationMessage('El email es obligatorio');
           return null;
         }
+          if (!telefono) {
+          Swal.showValidationMessage('El telefono es obligatorio');
+          return null;
+        }
 
         if (!estudio_id) {
           Swal.showValidationMessage('Debe seleccionar un estudio');

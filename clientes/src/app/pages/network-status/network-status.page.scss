@@ -1,0 +1,170 @@
+$c-white:    #ffffff;
+$c-bg:       #f0f2f7;
+$c-text:     #1e293b;
+$c-muted:    #64748b;
+$c-border:   #e2e8f0;
+$c-blue:     #1e40af;
+$c-red:      #dc2626;
+$c-orange:   #d97706;
+$ease:       cubic-bezier(0.4, 0, 0.2, 1);
+
+// ── Overlay de fondo ──────────────────────────────────────────
+.ns-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s $ease;
+
+  &--visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+}
+
+// ── Card ──────────────────────────────────────────────────────
+.ns-card {
+  background: $c-white;
+  border-radius: 20px;
+  padding: 40px 36px 32px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08);
+  border: 1px solid $c-border;
+  text-align: center;
+  animation: card-in 0.28s $ease both;
+
+  // Franja de color arriba según tipo
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  &--offline::before  { background: $c-orange; }
+  &--server::before   { background: $c-red; }
+}
+
+@keyframes card-in {
+  from { transform: translateY(16px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+// ── Icono ─────────────────────────────────────────────────────
+.ns-icon-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.ns-icon-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: pulse-ring 2s ease-out infinite;
+
+  .ns-card--offline & { background: rgba($c-orange, 0.12); }
+  .ns-card--server  & { background: rgba($c-red,    0.10); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.85); opacity: 0.8; }
+  70%  { transform: scale(1.15); opacity: 0;   }
+  100% { transform: scale(1.15); opacity: 0;   }
+}
+
+.ns-icon {
+  font-size: 36px;
+  width: 36px;
+  height: 36px;
+  position: relative;
+  z-index: 1;
+
+  .ns-card--offline & { color: $c-orange; }
+  .ns-card--server  & { color: $c-red;    }
+}
+
+// ── Textos ────────────────────────────────────────────────────
+.ns-body { margin-bottom: 24px; }
+
+.ns-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: $c-text;
+  margin: 0 0 8px;
+}
+
+.ns-subtitle {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  color: $c-muted;
+  margin: 0;
+  line-height: 1.55;
+}
+
+// ── Botón reintentar ──────────────────────────────────────────
+.ns-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: $c-blue;
+  color: $c-white;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 26px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  transition: all 0.18s $ease;
+
+  &:hover:not(:disabled) {
+    background: darken($c-blue, 6%);
+    box-shadow: 0 4px 14px rgba(30, 64, 175, 0.35);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+.ns-retry-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s $ease;
+
+  &--spinning {
+    animation: spin 0.9s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Responsive ────────────────────────────────────────────────
+@media (max-width: 480px) {
+  .ns-card {
+    margin: 0 16px;
+    padding: 32px 24px 28px;
+  }
+}

@@ -1,5 +1,8 @@
 <div class="layout-wrapper" [class.sidebar-hidden]="sidebarCollapsed">
 
+  <!-- Indicador / Cartel de estado de conexión -->
+  <app-network-status></app-network-status>
+
   <!-- Sidebar -->
   <app-sidebar
     [(collapsed)]="sidebarCollapsed"

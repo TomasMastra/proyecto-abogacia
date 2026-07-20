@@ -5,13 +5,13 @@ import { filter, Subscription } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { UsuarioService } from 'src/app/services/usuario.service';
-
+import { NetworkStatusPage } from 'src/app/pages/network-status/network-status.page';
 @Component({
   selector: 'app-main-layout',
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss'],
   standalone: true,
-  imports: [CommonModule, RouterOutlet, MatIconModule, SidebarComponent],
+  imports: [CommonModule, RouterOutlet, MatIconModule, SidebarComponent, NetworkStatusPage],
 })
 export class MainLayoutComponent implements OnInit, OnDestroy {
 

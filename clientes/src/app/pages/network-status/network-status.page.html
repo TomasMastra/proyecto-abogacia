@@ -1,0 +1,22 @@
+<div class="ns-overlay" *ngIf="visible" [class.ns-overlay--visible]="visible">
+  <div class="ns-card" [class.ns-card--offline]="state === 'offline'" [class.ns-card--server]="state === 'server-down'">
+
+    <div class="ns-icon-wrap">
+      <mat-icon class="ns-icon">{{ icon }}</mat-icon>
+      <span class="ns-icon-ring"></span>
+    </div>
+
+    <div class="ns-body">
+      <p class="ns-title">{{ title }}</p>
+      <p class="ns-subtitle">{{ subtitle }}</p>
+    </div>
+
+    <button class="ns-retry-btn" (click)="retry()" [disabled]="retrying">
+      <mat-icon class="ns-retry-icon" [class.ns-retry-icon--spinning]="retrying">
+        {{ retrying ? 'autorenew' : 'refresh' }}
+      </mat-icon>
+      {{ retrying ? 'Verificando...' : 'Reintentar' }}
+    </button>
+
+  </div>
+</div>

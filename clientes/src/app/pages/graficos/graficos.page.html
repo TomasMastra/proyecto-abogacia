@@ -1,62 +1,116 @@
 <div class="page-wrapper">
 
   <div class="page-header">
-    <h1 class="page-title">Gráficos de gestión</h1>
+    <h1 class="page-title">Estadísticas</h1>
   </div>
 
-  <div class="controls-card">
-    <div class="control-group">
-      <label class="control-label">Mostrar</label>
-      <div class="select-wrap">
-        <mat-icon class="select-icon">bar_chart</mat-icon>
-        <select [(ngModel)]="tipoGrafico" class="custom-select">
-          <option value="">Seleccioná un gráfico</option>
-          <option value="cobros">Total cobrado por mes</option>
+  <div class="list-card">
+
+    <!-- ── Toolbar ── -->
+    <div class="toolbar">
+
+      <div class="search-wrap">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input
+          class="search-input"
+          placeholder="Buscar en los resultados..."
+          [(ngModel)]="busqueda"
+          (ngModelChange)="buscar()">
+      </div>
+
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="tipoEstadistica" (change)="onTipoChange()">
           <option value="demandados">Cantidad de demandados</option>
+          <option value="iniciados">Expedientes iniciados</option>
         </select>
-        <mat-icon class="select-arrow">expand_more</mat-icon>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
-    </div>
 
-    <div class="control-group" *ngIf="tipoGrafico === 'demandados'">
-      <label class="control-label">Mes</label>
-      <div class="select-wrap">
-        <mat-icon class="select-icon">calendar_month</mat-icon>
+      <div class="filter-select-wrap">
+        <select class="filter-select" [(ngModel)]="anioSeleccionado" (change)="onAnioChange()">
+          <option [ngValue]="'todos'">Todos los años</option>
+          <option *ngFor="let anio of aniosDisponibles" [ngValue]="anio">
+            {{ anio }}
+          </option>
+        </select>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
+      </div>
+
+      <div class="filter-select-wrap">
         <select
+          class="filter-select"
           [(ngModel)]="mesSeleccionado"
-          (change)="actualizarDemandadosPorNombreEnMes(mesSeleccionado)"
-          class="custom-select">
-          <option *ngFor="let mes of mesesDisponibles" [value]="mes">{{ mes }}</option>
+          [disabled]="mesDeshabilitado"
+          (change)="onMesChange()">
+            <option [ngValue]="'todos'">Todos los meses</option>
+            <option *ngFor="let mes of mesesDisponibles" [ngValue]="mes.numero">
+              {{ mes.nombre }}
+            </option>
         </select>
-        <mat-icon class="select-arrow">expand_more</mat-icon>
+        <mat-icon class="select-chevron">expand_more</mat-icon>
       </div>
+
     </div>
-  </div>
 
-  <!-- Estado vacío -->
-  <div class="empty-state" *ngIf="!tipoGrafico">
-    <mat-icon>insert_chart_outlined</mat-icon>
-    <p>Seleccioná un tipo de gráfico para comenzar</p>
-  </div>
-
-  <!-- Gráfico -->
-  <div class="chart-card" *ngIf="tipoGrafico">
-    <div class="chart-header">
-      <h2 class="chart-title">
-        {{ tipoGrafico === 'cobros' ? 'Total cobrado por mes' : 'Demandados en ' + mesSeleccionado }}
-      </h2>
+    <!-- ── Resumen ── -->
+    <div class="stats-summary">
+      <span class="summary-label">{{ tituloEstadistica }}</span>
+      <span class="summary-sep">—</span>
+      <span class="summary-value" *ngIf="!cargando">{{ total }}</span>
+      <span class="summary-value summary-value--loading" *ngIf="cargando"></span>
     </div>
-    <div class="chart-body">
-      <app-chart-cobranzas
-        *ngIf="tipoGrafico === 'cobros'"
-        [cobrosPorMes]="cobrosPorMes">
-      </app-chart-cobranzas>
 
-      <app-chart-cobranzas
-        *ngIf="tipoGrafico === 'demandados'"
-        [demandadosPorNombre]="demandadosPorNombre">
-      </app-chart-cobranzas>
+    <!-- ── Tabla ── -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 52px;">#</th>
+            <th>{{ columnaPeriodo }}</th>
+            <th style="width: 160px; text-align: right;">{{ columnaValor }}</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- Skeleton -->
+          <tr class="skeleton-table-row" *ngFor="let _ of skeletonRows" [hidden]="!cargando">
+            <td><div class="skeleton-cell sk-xs"></div></td>
+            <td><div class="skeleton-cell sk-lg"></div></td>
+            <td><div class="skeleton-cell sk-sm"></div></td>
+          </tr>
+
+          <ng-container *ngIf="!cargando">
+
+            <tr *ngFor="let fila of listaPaginada; let i = index">
+              <td class="td-rank">{{ pageIndex * pageSize + i + 1 }}</td>
+              <td class="td-nombre">{{ obtenerEtiquetaFila(fila) }}</td>
+              <td class="td-cantidad">
+                <span class="cantidad-chip">{{ fila.cantidad }}</span>
+              </td>
+            </tr>
+
+            <tr *ngIf="listaPaginada.length === 0">
+              <td colspan="3" class="empty-row">
+                <mat-icon>assessment</mat-icon>
+                No hay resultados para los filtros seleccionados
+              </td>
+            </tr>
+
+          </ng-container>
+
+        </tbody>
+      </table>
     </div>
-  </div>
 
+    <!-- ── Paginador ── -->
+    <mat-paginator
+      [length]="resultadoFiltrado.length"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
+
+  </div>
 </div>

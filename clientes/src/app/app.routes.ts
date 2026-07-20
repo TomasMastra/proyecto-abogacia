@@ -80,16 +80,16 @@ export const routes: Routes = [
     path: 'reintegros',
     loadComponent: () => import('./pages/reintegros/reintegros.page').then( m => m.ReintegrosPage)
   },
+  {
+    path: 'network-status',
+    loadComponent: () => import('./pages/network-status/network-status.page').then( m => m.NetworkStatusPage)
+  },
 
     ],
   },
 
   // ── Wildcard ─────────────────────────────────────────────
   { path: '**', redirectTo: 'login' },
-
-
-
-
 
 
 ];

@@ -7875,7 +7875,7 @@ app.get("/expedientes/agenda-hoy", async (req, res) => {
         NULL::text AS oficiada
       FROM public.expedientes e
       WHERE e.fecha_atencion::date = CURRENT_DATE
-        AND e.estado <> 'eliminado' AND e.estado <> 'Cobrado' AND e.estado <> 'Archivo" 
+        AND e.estado <> 'eliminado' AND e.estado <> 'Cobrado' AND e.estado <> 'Archivo' 
 
       UNION ALL
       
@@ -8002,10 +8002,14 @@ app.post("/usuario/presentados", async (req, res) => {
       return res.status(400).json({ mensaje: "El email es obligatorio" });
     }
 
+    if (!telefonoLimpio) {
+      return res.status(400).json({ mensaje: "El telefono es obligatorio" });
+    }
+
     const { rows } = await pgPool.query(
       `
       INSERT INTO public.usuario (nombre, email, telefono, rol, estudio_id)
-      VALUES ($1, $2, $3, 'Presentado, $4')
+      VALUES ($1, $2, $3, 'Presentado', $4)
       RETURNING id, nombre, email, telefono, rol, estudio_id
       `,
       [nombreLimpio, emailLimpio, telefonoLimpio, estudio_id || null]

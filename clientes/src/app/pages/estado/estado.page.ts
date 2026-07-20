@@ -635,6 +635,13 @@ buscar() {
         .subscribe(
           (uma) => {
             this.uma = uma;
+
+if (this.uma.length > 0) {
+  const ultimaUMA = this.uma[this.uma.length - 1];
+
+  this.form.get('umaSeleccionado')?.setValue(ultimaUMA);
+  this.umaSeleccionado = ultimaUMA;
+}
             //this.umaSeleccionado = uma[0];
           },
           (error) => {
@@ -963,12 +970,12 @@ asignarDatos() {
   let umaValue: any = null;
   let montoAcuerdo: number | null = null;
 
+  if (this.uma.length > 0) {
+    umaValue = this.uma[0]; // 100173, porque vienen ordenadas DESC
+  }
+
   if (this.expediente.valorUMA == null) {
-    umaValue = this.uma.length > 0 ? this.uma[0] : null;
     montoAcuerdo = this.expediente.montoLiquidacionHonorarios ?? 0;
-    this.montoUMA = montoAcuerdo;
-  } else {
-    umaValue = this.uma.find(u => u.valor == this.expediente.valorUMA) ?? null;
   }
 
   this.tipoSeleccionado = this.expediente.tipo ?? null;
