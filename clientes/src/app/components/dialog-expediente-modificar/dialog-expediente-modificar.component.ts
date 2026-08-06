@@ -78,7 +78,7 @@ export class DialogExpedienteModificarComponent implements OnInit, OnDestroy {
   estadosVisibles: string[] = [];
 
   // combos
-  tipos = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
+  tipos = ['todos', 'CCF', 'COM', 'CIV', 'CC', 'CAF'];
   juicios = ['ordinario', 'sumarisimo', 'a definir'];
   mensajeSelectJuzgado = 'Filtrar por juzgado';
 

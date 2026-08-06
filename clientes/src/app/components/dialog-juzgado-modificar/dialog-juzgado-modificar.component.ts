@@ -57,7 +57,7 @@ export class DialogJuzgadoModificarComponent {
   private destroy$ = new Subject<void>(); 
   localidadElegida: any; 
 
-  tipos: any[] = ['CCF', 'COM', 'CIV', 'CC'];
+  tipos: any[] = ['CCF', 'COM', 'CIV', 'CC', 'CAF'];
   tipoSeleccionado: any;
   constructor(
     private juzgadosService: JuzgadosService, private localidadesService: LocalidadesService,

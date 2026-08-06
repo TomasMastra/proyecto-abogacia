@@ -63,7 +63,7 @@ export class DatosImportantesPage implements OnInit {
   estado: string = 'sentencia'; // o 'cobrado'
   listaUsuarios: UsuarioModel[] = [];
 
-  tiposJuzgado: string[] = ['CCF', 'COM', 'CIV', 'CC']; // o los que vos tengas
+  tiposJuzgado: string[] = ['CCF', 'COM', 'CIV', 'CC', 'CAF']; // o los que vos tengas
   listaJuzgados: any[] = []; // después la cargás desde tu servicio
 
   tipoSeleccionado: string = '';

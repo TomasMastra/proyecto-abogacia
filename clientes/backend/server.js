@@ -5600,7 +5600,7 @@ app.delete("/codigos/:id", async (req, res) => {
   }
 });
 
-const FUEROS = ['CCF', 'COM', 'CIV', 'CC'];
+const FUEROS = ['CCF', 'COM', 'CIV', 'CC', 'CAF'];
 
 // postgres
 app.get("/jurisprudencias", async (req, res) => {
@@ -7973,7 +7973,7 @@ app.get("/usuario/presentados", async (req, res) => {
         u.email,
         u.telefono,
         u.estudio_id,
-        e.nombre AS estudio_nombre
+        e.nombre AS nombre_estudio
       FROM public.usuario u
       LEFT JOIN public.estudio e ON e.id = u.estudio_id
       WHERE u.rol = 'Presentado'

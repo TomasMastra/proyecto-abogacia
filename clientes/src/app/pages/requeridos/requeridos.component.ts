@@ -48,7 +48,7 @@ export class RequeridosPage implements OnInit, OnDestroy {
   listaUsuarios: UsuarioModel[] = [];
   listaJuzgados: any[] = [];
 
-  tiposJuzgado: string[] = ['CCF', 'COM', 'CIV', 'CC'];
+  tiposJuzgado: string[] = ['CCF', 'COM', 'CIV', 'CC', 'CAF'];
   tipoSeleccionado: string = '';
   juzgadoSeleccionado: string = '';
   juicioSeleccionado: string = '';

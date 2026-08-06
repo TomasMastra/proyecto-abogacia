@@ -661,6 +661,8 @@ async agregarJurisprudencias(): Promise<void> {
           <option value="COM">COM</option>
           <option value="CIV">CIV</option>
           <option value="CC">CC</option>
+          <option value="CAF">CAF</option>
+
         </select>
 
         <select id="juzgadoIdAjeno" class="swal2-select campo-unificado">
@@ -1319,7 +1321,7 @@ async modificarJurisprudencia(j: any): Promise<void> {
 
           <select id="fueroAjeno" class="swal2-select campo-unificado">
             <option value="">Seleccionar fuero</option>
-            ${['CCF','COM','CIV','CC'].map(f => `<option value="${f}" ${String(j.fuero) === f ? 'selected' : ''}>${f}</option>`).join('')}
+            ${['CCF','COM','CIV','CC','CAF'].map(f => `<option value="${f}" ${String(j.fuero) === f ? 'selected' : ''}>${f}</option>`).join('')}
           </select>
 
           <select id="juzgadoIdAjeno" class="swal2-select campo-unificado">

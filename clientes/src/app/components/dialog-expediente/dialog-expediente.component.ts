@@ -80,7 +80,7 @@ export class DialogExpedienteComponent {
 
 
   mensajeSelectJuzgado = 'Filtrar juzgado';
-  tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC'];
+  tipos: any[] = ['todos', 'CCF', 'COM', 'CIV', 'CC', 'CAF'];
   juicios: any[] = ['ordinario', 'sumarisimo', 'a definir'];
 
 

@@ -46,7 +46,7 @@ export class ListaMediacionesPage implements OnInit, OnDestroy {
   listaUsuarios: UsuarioModel[] = [];
   listaJuzgados: any[] = [];
 
-  tiposJuzgado = ['CCF', 'COM', 'CIV', 'CC'];
+  tiposJuzgado = ['CCF', 'COM', 'CIV', 'CC', 'CAF'];
   tipoSeleccionado = '';
   juzgadoSeleccionado = '';
   abogadoSeleccionado = '';
