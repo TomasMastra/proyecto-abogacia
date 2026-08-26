@@ -79,6 +79,7 @@
               <th>Cliente</th>
               <th>Expediente</th>
               <th>Fecha inicio</th>
+              <th>Caso</th>
               <th>Antigüedad</th>
               <th>Acción</th>
             </tr>
@@ -102,6 +103,11 @@
                 <td>{{ getTituloClientes(item) }}</td>
                 <td class="td-num">{{ item.numero }}/{{ item.anio }}</td>
                 <td>{{ mostrarFecha(item.fecha_inicio) || '—' }}</td>
+                <td>
+                  {{ (item.estado | lowercase) === 'sentencia' ? 'Con sentencia' : 'Sin sentencia' }}
+                </td>
+
+
                 <td>
                   <span class="antiguedad-chip">
                     {{ calcularAntiguedad(item.fecha_inicio) }}

@@ -126,6 +126,7 @@ export class InformesEnrePage {
               numero: null,
               anio: null,
               caratula: item.nombre_cliente || `${item.nombre || ''} ${item.apellido || ''}`.trim(),
+              estado: item.estado,
 
               clientes: [{
                 cliente_id: item.cliente_id,
@@ -251,6 +252,8 @@ agruparPorExpediente(data: any[]) {
         fecha_inicio: item.fecha_inicio,
         caratula: item.caratula || `${item.numero}/${item.anio}`,
         clientes: [],
+        estado: item.estado,
+
 
         numero_cliente_edesur: item.numero_cliente_edesur ?? '',
         fecha_pedido_informe: item.fecha_pedido_informe ?? '',

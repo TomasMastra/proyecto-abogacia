@@ -6681,6 +6681,7 @@ app.get("/expedientes/informes", async (req, res) => {
           e.numero,
           e.anio,
           e.fecha_inicio,
+          e.estado,
           e.numero_cliente_edesur,
           e.fecha_pedido_informe,
           e.fecha_respuesta_informe,
@@ -6714,6 +6715,7 @@ app.get("/expedientes/informes", async (req, res) => {
         fecha_inicio,
         empresa_id,
         empresa,
+        estado,
         numero_cliente_edesur,
         fecha_pedido_informe,
         fecha_respuesta_informe,
@@ -6723,8 +6725,11 @@ app.get("/expedientes/informes", async (req, res) => {
         estado_reclamo
       FROM expedientes_energia
       WHERE rn = 1
-        AND fecha_inicio <= (CURRENT_DATE - '2 years 6 mons'::interval)
-      ORDER BY apellido ASC, nombre ASC
+      AND (
+        estado = 'Sentencia'
+        OR fecha_inicio <= (CURRENT_DATE - '3 years'::interval)
+      )      
+        ORDER BY apellido ASC, nombre ASC
     `;
 
     const { rows } = await pgPool.query(query);
