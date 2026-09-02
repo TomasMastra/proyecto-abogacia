@@ -528,7 +528,7 @@ getFeriadosDesde(fecha: string) {
   return this.http.get<string[]>(`/api/feriados?fecha=${fecha}`);
 }
 
-obtenerTotalCobranzasPorMes(anio: number, mes: number) {
+obtenerTotalCobranzasPorMes(anio: any, mes: any) {
   const uid = this.usuarioService.usuarioLogeado?.id;
 
   return this.http.get<any>(`${this.apiUrl}/total-cobranzas-por-mes`, {
@@ -654,11 +654,19 @@ getPartes(expedienteId: number) {
 }
 
 // expedientes.service.ts
-getCobranzasMensuales(anio?: number) {
+/*getCobranzasMensuales(anio?: number) {
   const params = anio ? { params: { anio: anio.toString() } } : {};
   return this.http.get<any[]>(`${this.apiUrl}/cobranzas-mensuales`, params);
-}
+}*/
 
+getCobranzasMensuales(): Observable<any[]> {
+  const uid = this.usuarioService.usuarioLogeado?.id;
+  return this.http.get<any[]>(`${this.apiUrl}/cobranzas-mensuales`, {
+    params: {
+      usuario_id: uid != null ? String(uid) : ''
+    }
+  });
+}
 // (opcional para el click de un mes → detalle ya hecho antes)
 getCobranzasDetallePorMes(anio: number, mes: number) {
   const uid = this.usuarioService.usuarioLogeado?.id;

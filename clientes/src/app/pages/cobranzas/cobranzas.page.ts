@@ -111,27 +111,40 @@ ngOnInit() {
 }
 
 cargarCobrosPorMes(): void {
-  const desdeAnio = 2016;
-  const hoy = new Date();
-  const hastaAnio = hoy.getFullYear();
-  const hastaMes = hoy.getMonth() + 1;
-
-  const mesesTemporales: string[] = [];
-  for (let anio = desdeAnio; anio <= hastaAnio; anio++) {
-    const mesFin = (anio === hastaAnio) ? hastaMes : 12;
-    for (let mes = 1; mes <= mesFin; mes++) {
-      mesesTemporales.push(`${anio}-${mes.toString().padStart(2, '0')}`);
-    }
-  }
-  this.mesesDisponibles = mesesTemporales.reverse();
-  this.cobrosPorMes = {}; // resetear
-
   this.cargandoCobros = true;
-  this.pendientesCobros = this.mesesDisponibles.length;
+  this.cobrosPorMes = {};
+  this.mesesDisponibles = [];
 
-  this.mesesDisponibles.forEach(mes => {
-    const [anio, mesStr] = mes.split('-').map(Number);
-    this.obtenerCobrosPorMes(anio, mesStr, mes);
+  this.expedienteService.getCobranzasMensuales().subscribe({
+    next: (data: any[]) => {
+      const mesesConMonto: string[] = [];
+
+      (data || []).forEach(item => {
+        const total = Number(item.totalGeneral || 0);
+        if (total > 0) {
+          const mesFormateado = String(item.mes).padStart(2, '0');
+          const claveMes = `${item.anio}-${mesFormateado}`;
+
+          this.cobrosPorMes[claveMes] = {
+            capital: Number(item.totalCapital || 0),
+            honorarios: Number(item.totalHonorarios || 0),
+            alzada: Number(item.totalAlzada || 0),
+            ejecucion: Number(item.totalEjecucion || 0),
+            diferencia: Number(item.totalDiferencia || 0),
+            total: total
+          };
+
+          mesesConMonto.push(claveMes);
+        }
+      });
+
+      this.mesesDisponibles = mesesConMonto;
+      this.cargandoCobros = false;
+    },
+    error: (err) => {
+      console.error('[Cobranzas] Error al cargar cobros:', err);
+      this.cargandoCobros = false;
+    }
   });
 }
 
