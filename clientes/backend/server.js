@@ -7032,7 +7032,7 @@ app.get("/expedientes/informes", async (req, res) => {
       FROM expedientes_energia
       WHERE rn = 1
       AND (
-        estado = 'Sentencia'
+        estado = 'Sentencia' OR estado = 'Cobrado'
         OR fecha_inicio <= (CURRENT_DATE - '3 years'::interval)
       )      
         ORDER BY apellido ASC, nombre ASC
