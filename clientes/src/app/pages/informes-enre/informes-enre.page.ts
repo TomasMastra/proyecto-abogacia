@@ -581,6 +581,57 @@ deshacerCambios(item: any) {
   });
 }
 
+
+finalizar(item: any) {
+  if (item.es_manual) {
+    // Se preservan los datos existentes del ítem para evitar borrados accidentales en la BD
+    const payload = {
+      cliente_id: item.cliente_id ?? item.clientes?.[0]?.cliente_id,
+      empresa_id: Number(item.empresa_id ?? 1),
+      fecha_inicio: this.formatearFechaInput(item.fecha_inicio),
+
+      numero_cliente_edesur: item.numero_cliente_edesur ?? null,
+      fecha_pedido_informe: item.fecha_pedido_informe ?? null,
+      fecha_respuesta_informe: item.fecha_respuesta_informe ?? null,
+      tiene_cortes: item.tiene_cortes ?? null,
+      dias_cortes: item.dias_cortes ?? null,
+      observaciones_reclamo: item.observaciones_reclamo ?? null,
+      
+      estado_reclamo: 'finalizado'
+    };
+
+    this.informesEnreService.actualizarInformeManual(item.id, payload as any).subscribe({
+      next: () => this.cargar(),
+      error: (error) => {
+        console.error('Error al finalizar informe manual:', error);
+        alert('No se pudo finalizar el informe.');
+      }
+    });
+
+    return;
+  }
+
+  const idExpediente = item.id ?? item.expediente_id;
+
+  if (!idExpediente) {
+    alert('El expediente no tiene id válido.');
+    return;
+  }
+
+  const expedienteActualizado = {
+    ...item,
+    estado_reclamo: 'finalizado'
+  };
+
+  this.expedientesService.actualizarExpediente(idExpediente, expedienteActualizado).subscribe({
+    next: () => this.cargar(),
+    error: (error) => {
+      console.error('Error al finalizar expediente:', error);
+      alert('No se pudo finalizar el expediente.');
+    }
+  });
+}
+
 iniciar(item: any) {
   const idExpediente = item.id ?? item.expediente_id;
 

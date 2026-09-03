@@ -8053,9 +8053,10 @@ app.get("/expedientes/informes-enre/manual", async (req, res) => {
 
       FROM public.informes_enre i
       LEFT JOIN public.clientes c ON c.id = i.cliente_id
+      WHERE i.estado_reclamo != 'finalizado'
       ORDER BY i.fecha_inicio DESC
     `);
-
+// LETICIA ACEITUNO y otros c/ EDESUR S.A. s/ DAÃ‘OS Y PERJUICIOS
     return res.json(rows);
 
   } catch (err) {
